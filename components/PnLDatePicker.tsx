@@ -88,7 +88,7 @@ export default function PnLDatePicker({
   const handleMonthClick = (monthKey: string) => {
     if (!isMonthAvailable(monthKey)) return;
 
-    if (mode === 'month' || mode === 'all') {
+    if (mode === 'month') {
       setMode('month');
       setSelectedMonth(monthKey);
       // Convert month to date range (first day to last day of month)
