@@ -18,6 +18,7 @@ import PnLSummaryCards from '@/components/PnLSummaryCards';
 import PnLServiceChart from '@/components/PnLServiceChart';
 import PnLTable from '@/components/PnLTable';
 import PnLServiceDetail from '@/components/PnLServiceDetail';
+import PnLDatePicker from '@/components/PnLDatePicker';
 import TodoUpload from '@/components/TodoUpload';
 import OverseasSalesCard from '@/components/OverseasSalesCard';
 import type { Results, ServiceFilter } from '@/lib/types';
@@ -55,6 +56,9 @@ export default function Dashboard() {
   const [todoRefresh, setTodoRefresh] = useState(0);
   const [pnlSource, setPnlSource] = useState<'complaints' | 'excel' | 'none'>('none');
   const [pnlComplaintsInfo, setPnlComplaintsInfo] = useState<PnLComplaintsInfo | null>(null);
+  const [pnlStartDate, setPnlStartDate] = useState<string | null>(null);
+  const [pnlEndDate, setPnlEndDate] = useState<string | null>(null);
+  const [pnlAvailableMonths, setPnlAvailableMonths] = useState<string[]>([]);
   
   // Use ref to avoid useCallback dependency issues
   const availableDatesRef = useRef<string[]>([]);
@@ -188,19 +192,32 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Fetch P&L data
-  const fetchPnLData = useCallback(async () => {
+  // Fetch P&L data with optional date filtering
+  const fetchPnLData = useCallback(async (startDate?: string | null, endDate?: string | null) => {
     setPnlLoading(true);
     try {
-      const res = await fetch('/api/pnl');
+      let url = '/api/pnl';
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (params.toString()) url += '?' + params.toString();
+      
+      const res = await fetch(url);
       const data = await res.json();
       if (data.aggregated) {
         setPnlData(data.aggregated);
         setPnlSource(data.source || 'none');
         if (data.complaintsData) {
           setPnlComplaintsInfo(data.complaintsData);
+          // Extract available months from complaints data
+          const months = new Set<string>();
+          Object.values(data.complaintsData.serviceBreakdown).forEach((service: { byMonth: Record<string, number> }) => {
+            Object.keys(service.byMonth).forEach(month => months.add(month));
+          });
+          setPnlAvailableMonths(Array.from(months).sort());
         } else {
           setPnlComplaintsInfo(null);
+          setPnlAvailableMonths([]);
         }
       }
     } catch (err) {
@@ -215,12 +232,18 @@ export default function Dashboard() {
     fetchDates();
   }, [fetchDates, uploadRefresh]);
 
-  // Fetch P&L data when switching to P&L tab
+  // Fetch P&L data when switching to P&L tab or when date filter changes
   useEffect(() => {
     if (activeTab === 'pnl') {
-      fetchPnLData();
+      fetchPnLData(pnlStartDate, pnlEndDate);
     }
-  }, [activeTab, fetchPnLData]);
+  }, [activeTab, fetchPnLData, pnlStartDate, pnlEndDate]);
+
+  // Handle P&L date selection
+  const handlePnLDateSelect = (date: string | null, endDate?: string | null) => {
+    setPnlStartDate(date);
+    setPnlEndDate(endDate || null);
+  };
 
   // Fetch results only when a date is selected
   useEffect(() => {
@@ -519,13 +542,21 @@ export default function Dashboard() {
                     </button>
                   ))}
                 </div>
-                <button
-                  onClick={fetchPnLData}
-                  disabled={pnlLoading}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
-                >
-                  {pnlLoading ? 'Refreshing...' : 'Refresh'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <PnLDatePicker
+                    availableMonths={pnlAvailableMonths}
+                    selectedStartDate={pnlStartDate}
+                    selectedEndDate={pnlEndDate}
+                    onDateSelect={handlePnLDateSelect}
+                  />
+                  <button
+                    onClick={() => fetchPnLData(pnlStartDate, pnlEndDate)}
+                    disabled={pnlLoading}
+                    className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+                  >
+                    {pnlLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
               </div>
             </div>
 

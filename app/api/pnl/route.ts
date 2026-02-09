@@ -2,9 +2,106 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
-import { getPnLComplaintsDataAsync, getServiceVolumesAsync } from '@/lib/pnl-complaints-processor';
+import { getPnLComplaintsDataAsync } from '@/lib/pnl-complaints-processor';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
-import type { PnLServiceKey } from '@/lib/pnl-complaints-types';
+import type { PnLServiceKey, PnLComplaintsData } from '@/lib/pnl-complaints-types';
+import { ALL_SERVICE_KEYS } from '@/lib/pnl-complaints-types';
+
+// Filter complaints data by date range and recalculate volumes
+function filterComplaintsDataByDate(
+  data: PnLComplaintsData,
+  startDate?: string,
+  endDate?: string
+): { volumes: Record<PnLServiceKey, number>; filteredData: PnLComplaintsData } {
+  if (!startDate && !endDate) {
+    // No filter, return original volumes
+    const volumes: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
+    for (const key of ALL_SERVICE_KEYS) {
+      volumes[key] = data.services[key].uniqueSales;
+    }
+    return { volumes, filteredData: data };
+  }
+
+  const start = startDate ? new Date(startDate) : new Date(0);
+  const end = endDate ? new Date(endDate + 'T23:59:59') : new Date('9999-12-31');
+
+  // Calculate filtered volumes by counting sales within date range
+  const volumes: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
+  const filteredByMonth: Record<PnLServiceKey, Record<string, number>> = {} as Record<PnLServiceKey, Record<string, number>>;
+  let totalFilteredSales = 0;
+  let totalFilteredComplaints = 0;
+  const uniqueClients = new Set<string>();
+  const uniqueContracts = new Set<string>();
+
+  for (const key of ALL_SERVICE_KEYS) {
+    volumes[key] = 0;
+    filteredByMonth[key] = {};
+    const service = data.services[key];
+
+    for (const sale of service.sales) {
+      const saleDate = new Date(sale.firstSaleDate);
+      if (saleDate >= start && saleDate <= end) {
+        volumes[key]++;
+        totalFilteredSales++;
+        
+        if (sale.clientId) uniqueClients.add(sale.clientId);
+        if (sale.contractId) uniqueContracts.add(sale.contractId);
+
+        // Count by month
+        const monthKey = sale.firstSaleDate.substring(0, 7);
+        filteredByMonth[key][monthKey] = (filteredByMonth[key][monthKey] || 0) + 1;
+
+        // Count complaints in range
+        for (const dateStr of sale.complaintDates) {
+          const date = new Date(dateStr);
+          if (date >= start && date <= end) {
+            totalFilteredComplaints++;
+          }
+        }
+      }
+    }
+  }
+
+  // Create filtered data structure
+  const filteredData: PnLComplaintsData = {
+    ...data,
+    rawComplaintsCount: totalFilteredComplaints,
+    summary: {
+      totalUniqueSales: totalFilteredSales,
+      totalUniqueClients: uniqueClients.size,
+      totalUniqueContracts: uniqueContracts.size,
+    },
+    services: {} as PnLComplaintsData['services'],
+  };
+
+  for (const key of ALL_SERVICE_KEYS) {
+    filteredData.services[key] = {
+      ...data.services[key],
+      uniqueSales: volumes[key],
+      byMonth: filteredByMonth[key],
+      uniqueClients: new Set(
+        data.services[key].sales
+          .filter(s => {
+            const d = new Date(s.firstSaleDate);
+            return d >= start && d <= end;
+          })
+          .map(s => s.clientId)
+          .filter(Boolean)
+      ).size,
+      uniqueContracts: new Set(
+        data.services[key].sales
+          .filter(s => {
+            const d = new Date(s.firstSaleDate);
+            return d >= start && d <= end;
+          })
+          .map(s => s.contractId)
+          .filter(Boolean)
+      ).size,
+    };
+  }
+
+  return { volumes, filteredData };
+}
 
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
@@ -73,11 +170,27 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const source = searchParams.get('source') || 'auto'; // 'auto', 'complaints', 'excel'
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
     
     // Try to get complaint-derived data first
     const complaintsData = await getPnLComplaintsDataAsync();
-    const volumes = await getServiceVolumesAsync();
     const hasComplaintsData = complaintsData && complaintsData.summary.totalUniqueSales > 0;
+    
+    // Apply date filter if provided
+    let volumes: Record<PnLServiceKey, number>;
+    let filteredComplaintsData: PnLComplaintsData | null = complaintsData;
+    
+    if (hasComplaintsData && complaintsData) {
+      const filtered = filterComplaintsDataByDate(complaintsData, startDate, endDate);
+      volumes = filtered.volumes;
+      filteredComplaintsData = filtered.filteredData;
+    } else {
+      volumes = {
+        oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
+        schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
+      };
+    }
     
     // Check if P&L Excel files exist
     const hasExcelFiles = fs.existsSync(PNL_DIR) && 
@@ -143,12 +256,13 @@ export async function GET(request: Request) {
       return NextResponse.json({
         source: 'complaints',
         aggregated,
+        dateFilter: startDate || endDate ? { startDate, endDate } : null,
         complaintsData: {
           lastUpdated: complaintsData!.lastUpdated,
-          rawComplaintsCount: complaintsData!.rawComplaintsCount,
-          summary: complaintsData!.summary,
+          rawComplaintsCount: filteredComplaintsData!.rawComplaintsCount,
+          summary: filteredComplaintsData!.summary,
           serviceBreakdown: Object.fromEntries(
-            Object.entries(complaintsData!.services).map(([key, service]) => [
+            Object.entries(filteredComplaintsData!.services).map(([key, service]) => [
               key,
               {
                 uniqueSales: service.uniqueSales,
