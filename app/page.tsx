@@ -554,7 +554,6 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-            </div>
 
             {/* Data Source Indicator */}
             {pnlSource === 'complaints' && pnlComplaintsInfo && (
