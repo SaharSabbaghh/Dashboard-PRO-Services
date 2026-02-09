@@ -23,6 +23,22 @@ import OverseasSalesCard from '@/components/OverseasSalesCard';
 import type { Results, ServiceFilter } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
+interface PnLComplaintsInfo {
+  lastUpdated: string;
+  rawComplaintsCount: number;
+  summary: {
+    totalUniqueSales: number;
+    totalUniqueClients: number;
+    totalUniqueContracts: number;
+  };
+  serviceBreakdown: Record<string, {
+    uniqueSales: number;
+    uniqueClients: number;
+    totalComplaints: number;
+    byMonth: Record<string, number>;
+  }>;
+}
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('upload');
   const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa'>('overview');
@@ -37,6 +53,8 @@ export default function Dashboard() {
   const [pnlData, setPnlData] = useState<AggregatedPnL | null>(null);
   const [pnlLoading, setPnlLoading] = useState(false);
   const [todoRefresh, setTodoRefresh] = useState(0);
+  const [pnlSource, setPnlSource] = useState<'complaints' | 'excel' | 'none'>('none');
+  const [pnlComplaintsInfo, setPnlComplaintsInfo] = useState<PnLComplaintsInfo | null>(null);
   
   // Use ref to avoid useCallback dependency issues
   const availableDatesRef = useRef<string[]>([]);
@@ -178,6 +196,12 @@ export default function Dashboard() {
       const data = await res.json();
       if (data.aggregated) {
         setPnlData(data.aggregated);
+        setPnlSource(data.source || 'none');
+        if (data.complaintsData) {
+          setPnlComplaintsInfo(data.complaintsData);
+        } else {
+          setPnlComplaintsInfo(null);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch P&L data:', err);
@@ -193,10 +217,10 @@ export default function Dashboard() {
 
   // Fetch P&L data when switching to P&L tab
   useEffect(() => {
-    if (activeTab === 'pnl' && !pnlData) {
+    if (activeTab === 'pnl') {
       fetchPnLData();
     }
-  }, [activeTab, pnlData, fetchPnLData]);
+  }, [activeTab, fetchPnLData]);
 
   // Fetch results only when a date is selected
   useEffect(() => {
@@ -505,11 +529,143 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Data Source Indicator */}
+            {pnlSource === 'complaints' && pnlComplaintsInfo && (
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-800">Live Complaints Data</p>
+                      <p className="text-xs text-emerald-600">
+                        Updated {new Date(pnlComplaintsInfo.lastUpdated).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-6 text-sm">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.rawComplaintsCount.toLocaleString()}</p>
+                      <p className="text-xs text-emerald-600">Total Complaints</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.summary.totalUniqueSales.toLocaleString()}</p>
+                      <p className="text-xs text-emerald-600">Unique Sales</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.summary.totalUniqueClients.toLocaleString()}</p>
+                      <p className="text-xs text-emerald-600">Unique Clients</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.summary.totalUniqueContracts.toLocaleString()}</p>
+                      <p className="text-xs text-emerald-600">Unique Contracts</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {pnlSource === 'excel' && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800">Excel File Data</p>
+                    <p className="text-xs text-blue-600">
+                      Reading from P&L Excel files • Use API to upload live complaints data
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Overview Sub-tab */}
             {pnlSubTab === 'overview' && (
               <>
                 <PnLSummaryCards data={pnlData} isLoading={pnlLoading} />
                 <PnLServiceChart data={pnlData} />
+                
+                {/* Monthly Sales Breakdown - Only show for complaints data */}
+                {pnlSource === 'complaints' && pnlComplaintsInfo && (
+                  <div className="bg-white rounded-xl border-2 border-gray-600 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <h3 className="text-base font-semibold text-slate-800">Sales by Month (Per Service)</h3>
+                    </div>
+                    <div className="p-4 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-slate-600">Service</th>
+                            {Object.keys(
+                              Object.values(pnlComplaintsInfo.serviceBreakdown)
+                                .reduce((acc, s) => ({ ...acc, ...s.byMonth }), {})
+                            ).sort().map(month => (
+                              <th key={month} className="px-3 py-2 text-right font-semibold text-slate-600">
+                                {month}
+                              </th>
+                            ))}
+                            <th className="px-3 py-2 text-right font-semibold text-slate-800">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {Object.entries(pnlComplaintsInfo.serviceBreakdown)
+                            .filter(([, data]) => data.uniqueSales > 0)
+                            .map(([key, data]) => {
+                              const allMonths = Object.keys(
+                                Object.values(pnlComplaintsInfo.serviceBreakdown)
+                                  .reduce((acc, s) => ({ ...acc, ...s.byMonth }), {})
+                              ).sort();
+                              return (
+                                <tr key={key} className="hover:bg-slate-50">
+                                  <td className="px-3 py-2 font-medium text-slate-800 capitalize">
+                                    {key === 'ethiopianPP' ? 'Ethiopian PP' : 
+                                     key === 'filipinaPP' ? 'Filipina PP' : 
+                                     key.toUpperCase()}
+                                  </td>
+                                  {allMonths.map(month => (
+                                    <td key={month} className="px-3 py-2 text-right text-slate-600">
+                                      {data.byMonth[month] || '—'}
+                                    </td>
+                                  ))}
+                                  <td className="px-3 py-2 text-right font-semibold text-slate-800">
+                                    {data.uniqueSales}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                        <tfoot className="bg-slate-100 font-semibold">
+                          <tr>
+                            <td className="px-3 py-2 text-slate-800">Total</td>
+                            {Object.keys(
+                              Object.values(pnlComplaintsInfo.serviceBreakdown)
+                                .reduce((acc, s) => ({ ...acc, ...s.byMonth }), {})
+                            ).sort().map(month => {
+                              const monthTotal = Object.values(pnlComplaintsInfo.serviceBreakdown)
+                                .reduce((sum, s) => sum + (s.byMonth[month] || 0), 0);
+                              return (
+                                <td key={month} className="px-3 py-2 text-right text-slate-800">
+                                  {monthTotal}
+                                </td>
+                              );
+                            })}
+                            <td className="px-3 py-2 text-right text-slate-800">
+                              {pnlComplaintsInfo.summary.totalUniqueSales}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 <CollapsibleSection
                   title="Detailed Breakdown"
                   count={pnlData ? Object.keys(pnlData.services).length : 0}
