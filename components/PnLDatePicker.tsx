@@ -17,7 +17,7 @@ export default function PnLDatePicker({
   onDateSelect,
 }: PnLDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mode, setMode] = useState<'all' | 'month' | 'range'>('all');
+  const [mode, setMode] = useState<'month' | 'range'>('month');
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
@@ -45,12 +45,8 @@ export default function PnLDatePicker({
     } else if (selectedStartDate) {
       setMode('month');
       setSelectedMonth(selectedStartDate.substring(0, 7));
-    } else {
-      setMode('all');
-      setSelectedMonth(null);
-      setRangeStart(null);
-      setRangeEnd(null);
     }
+    // If no dates selected, keep current mode but clear selections
   }, [selectedStartDate, selectedEndDate]);
 
   const months = [
@@ -127,15 +123,6 @@ export default function PnLDatePicker({
     }
   };
 
-  const handleAllTime = () => {
-    setMode('all');
-    setSelectedMonth(null);
-    setRangeStart(null);
-    setRangeEnd(null);
-    onDateSelect(null);
-    setIsOpen(false);
-  };
-
   const handleThisMonth = () => {
     const thisMonth = format(new Date(), 'yyyy-MM');
     if (isMonthAvailable(thisMonth)) {
@@ -176,8 +163,8 @@ export default function PnLDatePicker({
   };
 
   const getDisplayText = () => {
-    if (mode === 'all' || (!selectedStartDate && !selectedEndDate)) {
-      return 'All Time';
+    if (!selectedStartDate && !selectedEndDate) {
+      return 'Select Date';
     }
     if (mode === 'month' && selectedMonth) {
       try {
@@ -246,14 +233,6 @@ export default function PnLDatePicker({
         <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-xl border border-slate-200 shadow-lg p-4 min-w-[320px]">
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-slate-100">
-            <button
-              onClick={handleAllTime}
-              className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                mode === 'all' ? 'bg-blue-100 text-blue-700 font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Time
-            </button>
             <button
               onClick={handleThisMonth}
               className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
