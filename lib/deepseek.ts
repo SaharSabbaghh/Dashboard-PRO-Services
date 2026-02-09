@@ -2,25 +2,46 @@ import OpenAI from 'openai';
 import { PROSPECT_ANALYSIS_PROMPT, SYSTEM_PROMPT } from './prompts';
 import { logCost, logFailure, calculateCost } from './cost-tracker';
 
-// Use OpenAI for real-time processing (set USE_OPENAI=true in .env.local)
-const USE_OPENAI = process.env.USE_OPENAI === 'true';
-
 // OpenAI configuration
 const OPENAI_MODEL = 'gpt-4o-mini';
-const openaiClient = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // DeepSeek configuration (via OpenRouter)
 const DEEPSEEK_MODEL = 'deepseek/deepseek-chat';
-const deepseekClient = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY || '',
-});
 
-// Select client and model based on configuration
-const client = USE_OPENAI ? openaiClient : deepseekClient;
-const MODEL = USE_OPENAI ? OPENAI_MODEL : DEEPSEEK_MODEL;
+// Lazy initialization of clients to avoid build-time errors
+let _openaiClient: OpenAI | null = null;
+let _deepseekClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!_openaiClient) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is not set');
+    }
+    _openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openaiClient;
+}
+
+function getDeepSeekClient(): OpenAI {
+  if (!_deepseekClient) {
+    _deepseekClient = new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.OPENROUTER_API_KEY || '',
+    });
+  }
+  return _deepseekClient;
+}
+
+// Get the appropriate client and model based on configuration
+function getClientAndModel(): { client: OpenAI; model: string } {
+  const useOpenAI = process.env.USE_OPENAI === 'true';
+  if (useOpenAI) {
+    return { client: getOpenAIClient(), model: OPENAI_MODEL };
+  }
+  return { client: getDeepSeekClient(), model: DEEPSEEK_MODEL };
+}
 
 export interface ProspectAnalysis {
   isOECProspect: boolean;
@@ -45,15 +66,19 @@ export interface AnalysisResult extends ProspectAnalysis {
 }
 
 export async function analyzeConversation(conversationId: string, messages: string): Promise<AnalysisResult> {
-  const provider = USE_OPENAI ? 'OpenAI' : 'DeepSeek';
+  const useOpenAI = process.env.USE_OPENAI === 'true';
+  const provider = useOpenAI ? 'OpenAI' : 'DeepSeek';
+  
   try {
+    const { client, model } = getClientAndModel();
+    
     // Truncate very long conversations to avoid token limits
     const truncatedMessages = messages.length > 8000 
       ? messages.substring(0, 8000) + '\n...[truncated]'
       : messages;
 
     const response = await client.chat.completions.create({
-      model: MODEL,
+      model: model,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: PROSPECT_ANALYSIS_PROMPT + truncatedMessages }
@@ -68,10 +93,10 @@ export async function analyzeConversation(conversationId: string, messages: stri
     if (usage) {
       const inputTokens = usage.prompt_tokens || 0;
       const outputTokens = usage.completion_tokens || 0;
-      cost = calculateCost(MODEL, inputTokens, outputTokens, false);
+      cost = calculateCost(model, inputTokens, outputTokens, false);
       
       logCost({
-        model: MODEL,
+        model: model,
         type: 'realtime',
         tokens: { input: inputTokens, output: outputTokens },
         cost,
@@ -110,8 +135,9 @@ export async function analyzeConversation(conversationId: string, messages: stri
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[${provider}] Error analyzing ${conversationId}:`, errorMessage);
     
+    const currentModel = process.env.USE_OPENAI === 'true' ? OPENAI_MODEL : DEEPSEEK_MODEL;
     logFailure({
-      model: MODEL,
+      model: currentModel,
       type: 'realtime',
       conversationId,
       error: errorMessage,
