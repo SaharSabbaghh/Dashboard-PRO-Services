@@ -209,15 +209,12 @@ export default function Dashboard() {
         setPnlSource(data.source || 'none');
         if (data.complaintsData) {
           setPnlComplaintsInfo(data.complaintsData);
-          // Extract available months from complaints data
-          const months = new Set<string>();
-          Object.values(data.complaintsData.serviceBreakdown).forEach((service: { byMonth: Record<string, number> }) => {
-            Object.keys(service.byMonth).forEach(month => months.add(month));
-          });
-          setPnlAvailableMonths(Array.from(months).sort());
         } else {
           setPnlComplaintsInfo(null);
-          setPnlAvailableMonths([]);
+        }
+        // Use availableMonths from API (always from original data)
+        if (data.availableMonths) {
+          setPnlAvailableMonths(data.availableMonths);
         }
       }
     } catch (err) {

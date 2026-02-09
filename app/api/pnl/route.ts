@@ -253,10 +253,19 @@ export async function GET(request: Request) {
         },
       };
       
+      // Collect all available months from original data for the date picker
+      const allAvailableMonths = new Set<string>();
+      for (const key of ALL_SERVICE_KEYS) {
+        Object.keys(complaintsData!.services[key].byMonth).forEach(month => {
+          allAvailableMonths.add(month);
+        });
+      }
+
       return NextResponse.json({
         source: 'complaints',
         aggregated,
         dateFilter: startDate || endDate ? { startDate, endDate } : null,
+        availableMonths: Array.from(allAvailableMonths).sort(),
         complaintsData: {
           lastUpdated: complaintsData!.lastUpdated,
           rawComplaintsCount: filteredComplaintsData!.rawComplaintsCount,
