@@ -511,9 +511,23 @@ export default function Dashboard() {
         {activeTab === 'pnl' && (
           <div className="space-y-6">
             {/* Sub-tabs Navigation */}
-            <div className="flex flex-col gap-2 border-b border-slate-200 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg flex-wrap">
+            <div className="flex flex-col gap-3 border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-3">
+                <PnLDatePicker
+                  availableMonths={pnlAvailableMonths}
+                  selectedStartDate={pnlStartDate}
+                  selectedEndDate={pnlEndDate}
+                  onDateSelect={handlePnLDateSelect}
+                />
+                <button
+                  onClick={() => fetchPnLData(pnlStartDate, pnlEndDate)}
+                  disabled={pnlLoading}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+                >
+                  {pnlLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
+              <div className="flex gap-1 bg-slate-100 p-1 rounded-lg flex-wrap">
                   {[
                     { id: 'overview', label: 'Overview' },
                     { id: 'oec', label: 'OEC' },
@@ -538,21 +552,6 @@ export default function Dashboard() {
                       {tab.label}
                     </button>
                   ))}
-                </div>
-                <div className="flex items-center gap-3">
-                  <PnLDatePicker
-                    availableMonths={pnlAvailableMonths}
-                    selectedStartDate={pnlStartDate}
-                    selectedEndDate={pnlEndDate}
-                    onDateSelect={handlePnLDateSelect}
-                  />
-                  <button
-                    onClick={() => fetchPnLData(pnlStartDate, pnlEndDate)}
-                    disabled={pnlLoading}
-                    className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
-                  >
-                    {pnlLoading ? 'Refreshing...' : 'Refresh'}
-                  </button>
                 </div>
               </div>
             </div>
