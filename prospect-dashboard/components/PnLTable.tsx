@@ -31,9 +31,9 @@ export default function PnLTable({ data }: PnLTableProps) {
   };
 
   const services = Object.entries(data.services).map(([key, service]) => ({
+    ...service,
     key,
     name: serviceLabels[key] || key,
-    ...service,
   }));
 
   // Calculate totals (service fees are per-order, don't sum them)

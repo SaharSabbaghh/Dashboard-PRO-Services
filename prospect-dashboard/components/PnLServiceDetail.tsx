@@ -233,7 +233,7 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
                   width={50}
                 />
                 <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value) => formatCurrency(Number(value) || 0)}
                   contentStyle={tooltipStyle}
                   cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
                 />
@@ -277,7 +277,7 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                  formatter={(value) => [formatCurrency(Number(value) || 0), 'Revenue']}
                   contentStyle={tooltipStyle}
                 />
               </PieChart>
