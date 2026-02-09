@@ -1,0 +1,73 @@
+import { NextResponse } from 'next/server';
+import { getAllDatesWithSummary, getProspectDetailsByDate, getAvailableDates, getDailyData } from '@/lib/storage';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const detailed = searchParams.get('detailed') === 'true';
+    
+    // Get all dates and aggregate
+    const dates = getAvailableDates();
+    
+    let totalProcessed = 0;
+    let oec = 0, owwa = 0, travelVisa = 0;
+    let oecConverted = 0, owwaConverted = 0, travelVisaConverted = 0;
+    const countryCounts: Record<string, number> = {};
+    const byContractType = {
+      CC: { oec: 0, owwa: 0, travelVisa: 0 },
+      MV: { oec: 0, owwa: 0, travelVisa: 0 },
+    };
+    
+    const allSummaries = getAllDatesWithSummary();
+    for (const summary of allSummaries) {
+      if (!summary) continue;
+      totalProcessed += summary.processedCount;
+      oec += summary.prospects.oec;
+      owwa += summary.prospects.owwa;
+      travelVisa += summary.prospects.travelVisa;
+      oecConverted += summary.prospects.oecConverted || 0;
+      owwaConverted += summary.prospects.owwaConverted || 0;
+      travelVisaConverted += summary.prospects.travelVisaConverted || 0;
+      
+      for (const [country, count] of Object.entries(summary.prospects.countryCounts)) {
+        countryCounts[country] = (countryCounts[country] || 0) + count;
+      }
+    }
+    
+    // Aggregate byContractType from daily data
+    for (const date of dates) {
+      const dailyData = getDailyData(date);
+      if (dailyData?.summary?.byContractType) {
+        byContractType.CC.oec += dailyData.summary.byContractType.CC?.oec || 0;
+        byContractType.CC.owwa += dailyData.summary.byContractType.CC?.owwa || 0;
+        byContractType.CC.travelVisa += dailyData.summary.byContractType.CC?.travelVisa || 0;
+        byContractType.MV.oec += dailyData.summary.byContractType.MV?.oec || 0;
+        byContractType.MV.owwa += dailyData.summary.byContractType.MV?.owwa || 0;
+        byContractType.MV.travelVisa += dailyData.summary.byContractType.MV?.travelVisa || 0;
+      }
+    }
+    
+    const result = {
+      totalProcessed,
+      totalConversations: totalProcessed,
+      isProcessing: false,
+      prospects: { oec, owwa, travelVisa },
+      conversions: { oec: oecConverted, owwa: owwaConverted, travelVisa: travelVisaConverted },
+      countryCounts,
+      byContractType,
+    };
+    
+    if (detailed) {
+      const prospectDetails: Array<unknown> = [];
+      for (const date of dates) {
+        prospectDetails.push(...getProspectDetailsByDate(date));
+      }
+      return NextResponse.json({ ...result, prospectDetails });
+    }
+    
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Results error:', error);
+    return NextResponse.json({ error: 'Failed to get results' }, { status: 500 });
+  }
+}

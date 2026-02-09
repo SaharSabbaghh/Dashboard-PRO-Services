@@ -1,0 +1,4 @@
+# This folder is for local development data only.
+# Production uses Vercel Blob storage.
+# All JSON files in this folder are gitignored.
+
