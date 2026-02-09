@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { 
-  processAndSavePnLComplaints, 
-  clearComplaintsByDateRange,
-  getPnLComplaintsData,
-  getPnLComplaintsSummary,
+  processAndSavePnLComplaintsAsync, 
+  clearComplaintsByDateRangeAsync,
+  getPnLComplaintsDataAsync,
+  getPnLComplaintsSummaryAsync,
 } from '@/lib/pnl-complaints-processor';
 import type { PnLComplaint } from '@/lib/pnl-complaints-types';
 import { ALL_SERVICE_KEYS, SERVICE_NAMES } from '@/lib/pnl-complaints-types';
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     const complaints = body.complaints.map(normalizeComplaint);
     
     // Process and save (replaces all existing data)
-    const result = processAndSavePnLComplaints(complaints);
+    const result = await processAndSavePnLComplaintsAsync(complaints);
     
     console.log(`[P&L Ingest] Complete: ${result.summary.totalUniqueSales} unique sales from ${totalReceived} complaints`);
     
@@ -183,10 +183,10 @@ export async function DELETE(request: Request) {
     console.log(`[P&L Ingest] Clearing data from ${startDate || 'beginning'} to ${endDate || 'end'}`);
     
     // Get current state before clearing
-    const before = getPnLComplaintsSummary();
+    const before = await getPnLComplaintsSummaryAsync();
     
     // Clear and reprocess
-    const result = clearComplaintsByDateRange(startDate, endDate);
+    const result = await clearComplaintsByDateRangeAsync(startDate, endDate);
     
     console.log(`[P&L Ingest] Cleared: ${before.totalSales - result.summary.totalUniqueSales} sales removed`);
     
@@ -223,7 +223,7 @@ export async function DELETE(request: Request) {
  * GET - API info and current status
  */
 export async function GET() {
-  const data = getPnLComplaintsData();
+  const data = await getPnLComplaintsDataAsync();
   
   const status = data ? {
     hasData: true,

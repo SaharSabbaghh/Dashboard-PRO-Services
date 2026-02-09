@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
-import { getPnLComplaintsData, getServiceVolumes } from '@/lib/pnl-complaints-processor';
+import { getPnLComplaintsDataAsync, getServiceVolumesAsync } from '@/lib/pnl-complaints-processor';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
 import type { PnLServiceKey } from '@/lib/pnl-complaints-types';
 
@@ -75,8 +75,8 @@ export async function GET(request: Request) {
     const source = searchParams.get('source') || 'auto'; // 'auto', 'complaints', 'excel'
     
     // Try to get complaint-derived data first
-    const complaintsData = getPnLComplaintsData();
-    const volumes = getServiceVolumes();
+    const complaintsData = await getPnLComplaintsDataAsync();
+    const volumes = await getServiceVolumesAsync();
     const hasComplaintsData = complaintsData && complaintsData.summary.totalUniqueSales > 0;
     
     // Check if P&L Excel files exist

@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { put, list, del, head } from '@vercel/blob';
 import type { 
   PnLComplaint, 
   PnLComplaintSale, 
@@ -18,6 +19,12 @@ import {
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PNL_COMPLAINTS_FILE = path.join(DATA_DIR, 'pnl-complaints.json');
+const PNL_COMPLAINTS_BLOB_PATH = 'pnl-complaints.json';
+
+// Check if we're in Vercel environment (use Blob) or local (use file system)
+function isVercelEnvironment(): boolean {
+  return !!process.env.BLOB_READ_WRITE_TOKEN;
+}
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -257,9 +264,45 @@ export function filterComplaintsByDateRange(
 }
 
 /**
- * Storage functions
+ * Blob Storage functions (for Vercel deployment)
  */
-export function getPnLComplaintsData(): PnLComplaintsData | null {
+async function readBlobData(): Promise<PnLComplaintsData | null> {
+  try {
+    const { blobs } = await list({ prefix: PNL_COMPLAINTS_BLOB_PATH });
+    if (blobs.length === 0) return null;
+    
+    const response = await fetch(blobs[0].url);
+    if (!response.ok) return null;
+    
+    return await response.json();
+  } catch (error) {
+    console.error('[P&L Complaints] Error reading blob:', error);
+    return null;
+  }
+}
+
+async function writeBlobData(data: PnLComplaintsData): Promise<void> {
+  try {
+    // Delete existing blob first (if any)
+    const existing = await head(PNL_COMPLAINTS_BLOB_PATH).catch(() => null);
+    if (existing) {
+      await del(PNL_COMPLAINTS_BLOB_PATH);
+    }
+    
+    await put(PNL_COMPLAINTS_BLOB_PATH, JSON.stringify(data, null, 2), {
+      access: 'public',
+      addRandomSuffix: false,
+    });
+  } catch (error) {
+    console.error('[P&L Complaints] Error writing blob:', error);
+    throw error;
+  }
+}
+
+/**
+ * Local file storage functions
+ */
+function readLocalData(): PnLComplaintsData | null {
   ensureDataDir();
   if (!fs.existsSync(PNL_COMPLAINTS_FILE)) return null;
   try {
@@ -269,14 +312,50 @@ export function getPnLComplaintsData(): PnLComplaintsData | null {
   }
 }
 
-export function savePnLComplaintsData(data: PnLComplaintsData): void {
+function writeLocalData(data: PnLComplaintsData): void {
   ensureDataDir();
   fs.writeFileSync(PNL_COMPLAINTS_FILE, JSON.stringify(data, null, 2));
 }
 
 /**
- * Process and save complaints (replaces all existing data)
+ * Unified storage functions (auto-detect environment)
  */
+export async function getPnLComplaintsDataAsync(): Promise<PnLComplaintsData | null> {
+  if (isVercelEnvironment()) {
+    return await readBlobData();
+  }
+  return readLocalData();
+}
+
+export async function savePnLComplaintsDataAsync(data: PnLComplaintsData): Promise<void> {
+  if (isVercelEnvironment()) {
+    await writeBlobData(data);
+  } else {
+    writeLocalData(data);
+  }
+}
+
+// Sync versions for backwards compatibility (local only)
+export function getPnLComplaintsData(): PnLComplaintsData | null {
+  // For sync access, only use local storage
+  // In production, use async versions
+  return readLocalData();
+}
+
+export function savePnLComplaintsData(data: PnLComplaintsData): void {
+  writeLocalData(data);
+}
+
+/**
+ * Process and save complaints (replaces all existing data) - ASYNC version
+ */
+export async function processAndSavePnLComplaintsAsync(complaints: PnLComplaint[]): Promise<PnLComplaintsData> {
+  const data = processPnLComplaints(complaints);
+  await savePnLComplaintsDataAsync(data);
+  return data;
+}
+
+// Sync version for local development
 export function processAndSavePnLComplaints(complaints: PnLComplaint[]): PnLComplaintsData {
   const data = processPnLComplaints(complaints);
   savePnLComplaintsData(data);
@@ -284,8 +363,24 @@ export function processAndSavePnLComplaints(complaints: PnLComplaint[]): PnLComp
 }
 
 /**
- * Clear complaints by date range and save
+ * Clear complaints by date range and save - ASYNC version
  */
+export async function clearComplaintsByDateRangeAsync(
+  startDate?: string,
+  endDate?: string
+): Promise<PnLComplaintsData> {
+  const existing = await getPnLComplaintsDataAsync();
+  
+  if (!existing) {
+    return createEmptyComplaintsData();
+  }
+  
+  const filtered = filterComplaintsByDateRange(existing, startDate, endDate);
+  await savePnLComplaintsDataAsync(filtered);
+  return filtered;
+}
+
+// Sync version for local development
 export function clearComplaintsByDateRange(
   startDate?: string,
   endDate?: string
@@ -302,8 +397,33 @@ export function clearComplaintsByDateRange(
 }
 
 /**
- * Get service volumes for P&L calculation
+ * Get service volumes for P&L calculation - ASYNC version
  */
+export async function getServiceVolumesAsync(): Promise<Record<PnLServiceKey, number>> {
+  const data = await getPnLComplaintsDataAsync();
+  
+  const volumes: Record<PnLServiceKey, number> = {
+    oec: 0,
+    owwa: 0,
+    ttl: 0,
+    tte: 0,
+    ttj: 0,
+    schengen: 0,
+    gcc: 0,
+    ethiopianPP: 0,
+    filipinaPP: 0,
+  };
+  
+  if (!data) return volumes;
+  
+  for (const key of ALL_SERVICE_KEYS) {
+    volumes[key] = data.services[key].uniqueSales;
+  }
+  
+  return volumes;
+}
+
+// Sync version for local development
 export function getServiceVolumes(): Record<PnLServiceKey, number> {
   const data = getPnLComplaintsData();
   
@@ -338,8 +458,50 @@ export function getServiceSalesByMonth(serviceKey: PnLServiceKey): Record<string
 }
 
 /**
- * Get summary statistics
+ * Get summary statistics - ASYNC version
  */
+export async function getPnLComplaintsSummaryAsync(): Promise<{
+  totalSales: number;
+  totalComplaints: number;
+  salesByService: Record<PnLServiceKey, number>;
+  lastUpdated: string | null;
+}> {
+  const data = await getPnLComplaintsDataAsync();
+  
+  if (!data) {
+    return {
+      totalSales: 0,
+      totalComplaints: 0,
+      salesByService: {
+        oec: 0,
+        owwa: 0,
+        ttl: 0,
+        tte: 0,
+        ttj: 0,
+        schengen: 0,
+        gcc: 0,
+        ethiopianPP: 0,
+        filipinaPP: 0,
+      },
+      lastUpdated: null,
+    };
+  }
+  
+  const salesByService: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
+  
+  for (const key of ALL_SERVICE_KEYS) {
+    salesByService[key] = data.services[key].uniqueSales;
+  }
+  
+  return {
+    totalSales: data.summary.totalUniqueSales,
+    totalComplaints: data.rawComplaintsCount,
+    salesByService,
+    lastUpdated: data.lastUpdated,
+  };
+}
+
+// Sync version for backwards compatibility
 export function getPnLComplaintsSummary(): {
   totalSales: number;
   totalComplaints: number;
