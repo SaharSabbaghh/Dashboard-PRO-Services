@@ -100,9 +100,19 @@ export const COMPLAINT_TYPE_MAP: Record<string, PnLServiceKey> = {
   'gcc travel': 'gcc',
   'gcc': 'gcc',
   
-  // Schengen
+  // Schengen - includes country-specific variants
   'schengen': 'schengen',
   'schengen visa': 'schengen',
+  'schengen visa to france': 'schengen',
+  'schengen visa to germany': 'schengen',
+  'schengen visa to italy': 'schengen',
+  'schengen visa to spain': 'schengen',
+  'schengen visa to netherlands': 'schengen',
+  'schengen to france': 'schengen',
+  'schengen to germany': 'schengen',
+  
+  // Jordan variant
+  'tourist to jordan': 'ttj',
 };
 
 // Service display names
@@ -134,7 +144,43 @@ export const ALL_SERVICE_KEYS: PnLServiceKey[] = [
 // Get service key from complaint type (returns undefined if not a tracked service)
 export function getServiceKeyFromComplaintType(complaintType: string): PnLServiceKey | undefined {
   const normalized = complaintType.toLowerCase().trim();
-  return COMPLAINT_TYPE_MAP[normalized];
+  
+  // First try exact match
+  if (COMPLAINT_TYPE_MAP[normalized]) {
+    return COMPLAINT_TYPE_MAP[normalized];
+  }
+  
+  // Then try partial/contains matching for flexibility
+  // Order matters - check more specific patterns first
+  if (normalized.includes('overseas') || normalized.includes('oec')) {
+    return 'oec';
+  }
+  if (normalized.includes('owwa')) {
+    return 'owwa';
+  }
+  if (normalized.includes('schengen')) {
+    return 'schengen';
+  }
+  if (normalized.includes('lebanon')) {
+    return 'ttl';
+  }
+  if (normalized.includes('egypt')) {
+    return 'tte';
+  }
+  if (normalized.includes('jordan')) {
+    return 'ttj';
+  }
+  if (normalized.includes('ethiopian') && normalized.includes('passport')) {
+    return 'ethiopianPP';
+  }
+  if (normalized.includes('filipina') && normalized.includes('passport')) {
+    return 'filipinaPP';
+  }
+  if (normalized.includes('gcc')) {
+    return 'gcc';
+  }
+  
+  return undefined;
 }
 
 // Generate a unique key for deduplication (service + contract + client + housemaid)

@@ -182,7 +182,23 @@ export async function POST(request: Request) {
       console.log(`[P&L Ingest] Complete: ${result.summary.totalUniqueSales} unique sales from ${result.rawComplaintsCount} complaints`);
     }
     
-    // Build response with service breakdown
+    // For intermediate batches, return minimal response
+    if (mode === 'batch' && batchInfo && !batchInfo.isLast) {
+      return NextResponse.json({
+        success: true,
+        mode: 'batch',
+        batch: {
+          batchId: batchInfo.batchId,
+          batchIndex: batchInfo.batchIndex,
+          totalBatches: batchInfo.totalBatches,
+          isComplete: false,
+          received: totalReceived,
+        },
+        message: `Batch ${batchInfo.batchIndex + 1}/${batchInfo.totalBatches} received. Waiting for more...`,
+      });
+    }
+    
+    // Build full response with service breakdown (for final batch or non-batch modes)
     const serviceBreakdown: Record<string, { uniqueSales: number; totalComplaints: number }> = {};
     for (const key of ALL_SERVICE_KEYS) {
       const service = result.services[key];
@@ -201,7 +217,7 @@ export async function POST(request: Request) {
         batchId: batchInfo.batchId,
         batchIndex: batchInfo.batchIndex,
         totalBatches: batchInfo.totalBatches,
-        isComplete,
+        isComplete: true,
       } : undefined,
       totalReceived,
       totalProcessed: result.rawComplaintsCount,
