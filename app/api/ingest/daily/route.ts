@@ -6,6 +6,7 @@ import type { ProcessedConversation } from '@/lib/storage';
  * API Endpoint: POST /api/ingest/daily
  * 
  * Receives daily conversation data from external systems.
+ * Supports batched uploads for large datasets.
  * 
  * Authentication:
  *   Header: Authorization: Bearer <your-api-key>
@@ -13,6 +14,11 @@ import type { ProcessedConversation } from '@/lib/storage';
  * Request Body:
  * {
  *   "date": "2026-02-09",  // Optional, defaults to today
+ *   "batchInfo": {          // Optional, for batched uploads
+ *     "batchIndex": 0,
+ *     "totalBatches": 5,
+ *     "isLast": false
+ *   },
  *   "conversations": [
  *     {
  *       "conversationId": "CH12345...",
@@ -72,8 +78,15 @@ interface IngestConversation {
   messages: string;
 }
 
+interface BatchInfo {
+  batchIndex: number;
+  totalBatches: number;
+  isLast?: boolean;
+}
+
 interface IngestRequest {
   date?: string;
+  batchInfo?: BatchInfo;
   conversations: IngestConversation[];
 }
 
@@ -105,7 +118,14 @@ export async function POST(request: Request) {
     }
     
     const date = body.date || getTodayDate();
-    console.log(`[Ingest Daily] Processing ${body.conversations.length} conversations for ${date}`);
+    const batchInfo = body.batchInfo;
+    
+    // Log with batch info if present
+    if (batchInfo) {
+      console.log(`[Ingest Daily] Batch ${batchInfo.batchIndex + 1}/${batchInfo.totalBatches} - ${body.conversations.length} conversations for ${date}`);
+    } else {
+      console.log(`[Ingest Daily] Processing ${body.conversations.length} conversations for ${date}`);
+    }
     
     // Get or create daily data
     const dailyData = await getOrCreateDailyData(date);
@@ -212,10 +232,32 @@ export async function POST(request: Request) {
     // Save
     await saveDailyData(date, dailyData);
     
-    console.log(`[Ingest Daily] Complete: ${imported} imported, ${duplicates} duplicates`);
+    const isComplete = !batchInfo || batchInfo.isLast;
+    
+    // For intermediate batches, return minimal response
+    if (batchInfo && !batchInfo.isLast) {
+      return NextResponse.json({
+        success: true,
+        batch: {
+          batchIndex: batchInfo.batchIndex,
+          totalBatches: batchInfo.totalBatches,
+          isComplete: false,
+        },
+        date,
+        imported,
+        message: `Batch ${batchInfo.batchIndex + 1}/${batchInfo.totalBatches} received`,
+      });
+    }
+    
+    console.log(`[Ingest Daily] Complete: ${imported} imported, ${duplicates} duplicates, total: ${dailyData.totalConversations}`);
     
     return NextResponse.json({
       success: true,
+      batch: batchInfo ? {
+        batchIndex: batchInfo.batchIndex,
+        totalBatches: batchInfo.totalBatches,
+        isComplete: true,
+      } : undefined,
       date,
       imported,
       duplicates,
