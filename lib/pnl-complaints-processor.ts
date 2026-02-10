@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { put, list, del, head } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 import type { 
   PnLComplaint, 
   PnLComplaintSale, 
@@ -283,15 +283,11 @@ async function readBlobData(): Promise<PnLComplaintsData | null> {
 
 async function writeBlobData(data: PnLComplaintsData): Promise<void> {
   try {
-    // Delete existing blob first (if any)
-    const existing = await head(PNL_COMPLAINTS_BLOB_PATH).catch(() => null);
-    if (existing) {
-      await del(PNL_COMPLAINTS_BLOB_PATH);
-    }
-    
+    // Use allowOverwrite to handle concurrent requests without conflicts
     await put(PNL_COMPLAINTS_BLOB_PATH, JSON.stringify(data, null, 2), {
       access: 'public',
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
   } catch (error) {
     console.error('[P&L Complaints] Error writing blob:', error);
