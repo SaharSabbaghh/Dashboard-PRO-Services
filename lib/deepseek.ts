@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { PROSPECT_ANALYSIS_PROMPT, SYSTEM_PROMPT } from './prompts';
-import { logCost, logFailure, calculateCost } from './cost-tracker';
+import { logCostAsync, logFailureAsync, calculateCost } from './cost-tracker';
 
 // OpenAI configuration
 const OPENAI_MODEL = 'gpt-4o-mini';
@@ -95,7 +95,7 @@ export async function analyzeConversation(conversationId: string, messages: stri
       const outputTokens = usage.completion_tokens || 0;
       cost = calculateCost(model, inputTokens, outputTokens, false);
       
-      logCost({
+      await logCostAsync({
         model: model,
         type: 'realtime',
         tokens: { input: inputTokens, output: outputTokens },
@@ -136,7 +136,7 @@ export async function analyzeConversation(conversationId: string, messages: stri
     console.error(`[${provider}] Error analyzing ${conversationId}:`, errorMessage);
     
     const currentModel = process.env.USE_OPENAI === 'true' ? OPENAI_MODEL : DEEPSEEK_MODEL;
-    logFailure({
+    await logFailureAsync({
       model: currentModel,
       type: 'realtime',
       conversationId,

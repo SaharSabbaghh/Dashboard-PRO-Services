@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getCostSummary, getTodayCosts, resetCostLog } from '@/lib/cost-tracker';
+import { getCostSummaryAsync, getTodayCostsAsync, resetCostLogAsync } from '@/lib/cost-tracker';
 
 export async function GET() {
   try {
-    const summary = getCostSummary();
-    const today = getTodayCosts();
+    const summary = await getCostSummaryAsync();
+    const today = await getTodayCostsAsync();
     
     return NextResponse.json({
       total: {
@@ -33,7 +33,7 @@ export async function GET() {
 
 export async function DELETE() {
   try {
-    resetCostLog();
+    await resetCostLogAsync();
     return NextResponse.json({ message: 'Cost log reset' });
   } catch (error) {
     console.error('[Costs] Reset error:', error);
@@ -43,4 +43,3 @@ export async function DELETE() {
     );
   }
 }
-
