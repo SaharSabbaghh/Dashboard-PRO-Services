@@ -4,6 +4,7 @@ import {
   clearComplaintsByDateRangeAsync,
   getPnLComplaintsDataAsync,
   getPnLComplaintsSummaryAsync,
+  appendAndSavePnLComplaintsAsync,
 } from '@/lib/pnl-complaints-processor';
 import type { PnLComplaint } from '@/lib/pnl-complaints-types';
 import { ALL_SERVICE_KEYS, SERVICE_NAMES } from '@/lib/pnl-complaints-types';
@@ -11,14 +12,21 @@ import { ALL_SERVICE_KEYS, SERVICE_NAMES } from '@/lib/pnl-complaints-types';
 /**
  * API Endpoint: /api/ingest/pnl-complaints
  * 
- * Receives daily complaint data for P&L tracking.
- * Each import REPLACES all existing data.
+ * Receives complaint data for P&L tracking.
+ * Supports both single-batch and multi-batch uploads for large datasets.
  * 
  * Authentication:
  *   Header: Authorization: Bearer <your-api-key>
  * 
  * POST - Ingest complaints:
  * {
+ *   "mode": "replace" | "append" | "batch",  // Optional, default: "replace"
+ *   "batchInfo": {                            // Required when mode="batch"
+ *     "batchId": "unique-session-id",
+ *     "batchIndex": 0,                        // 0-based index
+ *     "totalBatches": 5,
+ *     "isLast": true                          // true for final batch
+ *   },
  *   "complaints": [
  *     {
  *       "contractId": "1086364",
@@ -30,6 +38,11 @@ import { ALL_SERVICE_KEYS, SERVICE_NAMES } from '@/lib/pnl-complaints-types';
  *     ...
  *   ]
  * }
+ * 
+ * Modes:
+ *   - "replace": Replaces ALL existing data (default, use for small datasets)
+ *   - "append": Adds to existing data (use for incremental updates)
+ *   - "batch": Multi-batch upload session (first batch clears, subsequent append)
  * 
  * DELETE - Clear data by date range:
  *   Query params: ?startDate=2026-01-01&endDate=2026-01-31
@@ -72,8 +85,17 @@ interface IngestComplaintRaw {
   creationDate?: string;
 }
 
+interface BatchInfo {
+  batchId: string;
+  batchIndex: number;
+  totalBatches: number;
+  isLast?: boolean;
+}
+
 interface IngestRequest {
   complaints: IngestComplaintRaw[];
+  mode?: 'replace' | 'append' | 'batch';
+  batchInfo?: BatchInfo;
 }
 
 // Normalize complaint from either CSV format or camelCase format
@@ -88,8 +110,11 @@ function normalizeComplaint(raw: IngestComplaintRaw): PnLComplaint {
 }
 
 /**
- * POST - Receive and process daily complaints
- * Completely replaces existing data
+ * POST - Receive and process complaints
+ * Supports three modes:
+ *   - "replace": Replaces all existing data (default)
+ *   - "append": Adds to existing data
+ *   - "batch": Multi-batch upload (first batch clears, rest append)
  */
 export async function POST(request: Request) {
   try {
@@ -111,16 +136,51 @@ export async function POST(request: Request) {
       );
     }
     
+    const mode = body.mode || 'replace';
+    const batchInfo = body.batchInfo;
     const totalReceived = body.complaints.length;
-    console.log(`[P&L Ingest] Processing ${totalReceived} complaints`);
+    
+    // Validate batch mode
+    if (mode === 'batch' && !batchInfo) {
+      return NextResponse.json(
+        { error: 'batchInfo is required when mode is "batch"' },
+        { status: 400 }
+      );
+    }
+    
+    // Log batch progress
+    if (mode === 'batch' && batchInfo) {
+      console.log(`[P&L Ingest] Batch ${batchInfo.batchIndex + 1}/${batchInfo.totalBatches} (ID: ${batchInfo.batchId}) - ${totalReceived} complaints`);
+    } else {
+      console.log(`[P&L Ingest] Processing ${totalReceived} complaints (mode: ${mode})`);
+    }
     
     // Normalize complaints
     const complaints = body.complaints.map(normalizeComplaint);
     
-    // Process and save (replaces all existing data)
-    const result = await processAndSavePnLComplaintsAsync(complaints);
+    // Determine if we should replace or append
+    let shouldReplace = false;
+    if (mode === 'replace') {
+      shouldReplace = true;
+    } else if (mode === 'batch' && batchInfo) {
+      // First batch in a batch session clears existing data
+      shouldReplace = batchInfo.batchIndex === 0;
+    }
+    // mode === 'append' always appends
     
-    console.log(`[P&L Ingest] Complete: ${result.summary.totalUniqueSales} unique sales from ${totalReceived} complaints`);
+    // Process and save
+    let result;
+    if (shouldReplace) {
+      result = await processAndSavePnLComplaintsAsync(complaints);
+    } else {
+      result = await appendAndSavePnLComplaintsAsync(complaints);
+    }
+    
+    const isComplete = mode !== 'batch' || batchInfo?.isLast;
+    
+    if (isComplete) {
+      console.log(`[P&L Ingest] Complete: ${result.summary.totalUniqueSales} unique sales from ${result.rawComplaintsCount} complaints`);
+    }
     
     // Build response with service breakdown
     const serviceBreakdown: Record<string, { uniqueSales: number; totalComplaints: number }> = {};
@@ -136,6 +196,13 @@ export async function POST(request: Request) {
     
     return NextResponse.json({
       success: true,
+      mode,
+      batch: batchInfo ? {
+        batchId: batchInfo.batchId,
+        batchIndex: batchInfo.batchIndex,
+        totalBatches: batchInfo.totalBatches,
+        isComplete,
+      } : undefined,
       totalReceived,
       totalProcessed: result.rawComplaintsCount,
       summary: {
@@ -248,9 +315,17 @@ export async function GET() {
     endpoint: '/api/ingest/pnl-complaints',
     methods: {
       POST: {
-        description: 'Ingest complaints data for P&L tracking (replaces all existing data)',
+        description: 'Ingest complaints data for P&L tracking',
         authentication: 'Bearer token in Authorization header',
         body: {
+          mode: '"replace" (default) | "append" | "batch"',
+          batchInfo: {
+            description: 'Required when mode="batch"',
+            batchId: 'unique session ID (e.g., timestamp)',
+            batchIndex: 'number (0-based)',
+            totalBatches: 'number',
+            isLast: 'boolean (true for final batch)',
+          },
           complaints: [
             {
               contractId: 'string (or CONTRACT_ID)',
@@ -261,6 +336,12 @@ export async function GET() {
             }
           ],
         },
+        modes: {
+          replace: 'Replaces ALL existing data (use for small datasets < 500)',
+          append: 'Adds to existing data (use for incremental updates)',
+          batch: 'Multi-batch upload: first batch clears, rest append',
+        },
+        recommendedBatchSize: 500,
       },
       DELETE: {
         description: 'Clear data by date range',

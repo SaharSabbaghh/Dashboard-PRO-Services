@@ -359,6 +359,74 @@ export function processAndSavePnLComplaints(complaints: PnLComplaint[]): PnLComp
 }
 
 /**
+ * Extract raw complaints from existing data structure
+ * Used when appending new complaints to existing data
+ */
+function extractRawComplaints(data: PnLComplaintsData): PnLComplaint[] {
+  const complaints: PnLComplaint[] = [];
+  
+  for (const serviceKey of ALL_SERVICE_KEYS) {
+    const service = data.services[serviceKey];
+    
+    for (const sale of service.sales) {
+      // Each sale can have multiple complaint dates
+      for (const dateStr of sale.complaintDates) {
+        complaints.push({
+          contractId: sale.contractId,
+          housemaidId: sale.housemaidId,
+          clientId: sale.clientId,
+          complaintType: service.serviceName,
+          creationDate: dateStr,
+          serviceKey,
+        });
+      }
+    }
+  }
+  
+  return complaints;
+}
+
+/**
+ * Append new complaints to existing data and reprocess - ASYNC version
+ * Used for batched uploads and incremental updates
+ */
+export async function appendAndSavePnLComplaintsAsync(newComplaints: PnLComplaint[]): Promise<PnLComplaintsData> {
+  // Get existing data
+  const existingData = await getPnLComplaintsDataAsync();
+  
+  // If no existing data, just process the new complaints
+  if (!existingData) {
+    return processAndSavePnLComplaintsAsync(newComplaints);
+  }
+  
+  // Extract existing complaints from the data structure
+  const existingComplaints = extractRawComplaints(existingData);
+  
+  // Combine and reprocess all complaints
+  const allComplaints = [...existingComplaints, ...newComplaints];
+  const data = processPnLComplaints(allComplaints);
+  
+  await savePnLComplaintsDataAsync(data);
+  return data;
+}
+
+// Sync version for local development
+export function appendAndSavePnLComplaints(newComplaints: PnLComplaint[]): PnLComplaintsData {
+  const existingData = getPnLComplaintsData();
+  
+  if (!existingData) {
+    return processAndSavePnLComplaints(newComplaints);
+  }
+  
+  const existingComplaints = extractRawComplaints(existingData);
+  const allComplaints = [...existingComplaints, ...newComplaints];
+  const data = processPnLComplaints(allComplaints);
+  
+  savePnLComplaintsData(data);
+  return data;
+}
+
+/**
  * Clear complaints by date range and save - ASYNC version
  */
 export async function clearComplaintsByDateRangeAsync(
