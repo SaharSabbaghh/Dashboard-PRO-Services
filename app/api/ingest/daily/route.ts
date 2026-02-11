@@ -80,6 +80,22 @@ interface IngestConversation {
   clientName?: string;
   contractType?: string;
   messages: string;
+  // AI Analysis fields (from n8n)
+  isOECProspect?: boolean;
+  isOECProspectConfidence?: number;
+  oecConverted?: boolean;
+  oecConvertedConfidence?: number;
+  isOWWAProspect?: boolean;
+  isOWWAProspectConfidence?: number;
+  owwaConverted?: boolean;
+  owwaConvertedConfidence?: number;
+  isTravelVisaProspect?: boolean;
+  isTravelVisaProspectConfidence?: number;
+  travelVisaCountries?: string[];
+  travelVisaConverted?: boolean;
+  travelVisaConvertedConfidence?: number;
+  processingStatus?: string;
+  processedAt?: string;
 }
 
 interface BatchInfo {
@@ -268,12 +284,22 @@ export async function POST(request: Request) {
           clientName: entity.clientName,
           contractType: entity.contractType,
           messages: newMessages,
-          isOECProspect: false,
-          isOWWAProspect: false,
-          isTravelVisaProspect: false,
-          travelVisaCountries: [],
-          processingStatus: 'pending',
-          processedAt: '', // Not yet analyzed by AI
+          // Use values from incoming data (from n8n AI analysis)
+          isOECProspect: entity.conversations[0].isOECProspect ?? false,
+          isOECProspectConfidence: entity.conversations[0].isOECProspectConfidence,
+          oecConverted: entity.conversations[0].oecConverted,
+          oecConvertedConfidence: entity.conversations[0].oecConvertedConfidence,
+          isOWWAProspect: entity.conversations[0].isOWWAProspect ?? false,
+          isOWWAProspectConfidence: entity.conversations[0].isOWWAProspectConfidence,
+          owwaConverted: entity.conversations[0].owwaConverted,
+          owwaConvertedConfidence: entity.conversations[0].owwaConvertedConfidence,
+          isTravelVisaProspect: entity.conversations[0].isTravelVisaProspect ?? false,
+          isTravelVisaProspectConfidence: entity.conversations[0].isTravelVisaProspectConfidence,
+          travelVisaCountries: entity.conversations[0].travelVisaCountries || [],
+          travelVisaConverted: entity.conversations[0].travelVisaConverted,
+          travelVisaConvertedConfidence: entity.conversations[0].travelVisaConvertedConfidence,
+          processingStatus: entity.conversations[0].processingStatus || 'pending',
+          processedAt: entity.conversations[0].processedAt || '',
         };
         
         dailyData.results.push(result);
