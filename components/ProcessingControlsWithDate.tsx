@@ -79,7 +79,7 @@ export default function ProcessingControlsWithDate({
       const response = await fetch('/api/process/date', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: selectedDate, batchSize: 50 }),
+        body: JSON.stringify({ date: selectedDate, batchSize: 20 }),
       });
       
       const data = await response.json();
@@ -245,7 +245,7 @@ export default function ProcessingControlsWithDate({
       {isProcessing && (
         <div className="flex items-center gap-2 text-xs text-blue-600">
           <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full" />
-          Processing 50 parallel...
+          Processing batch (20 at a time)...
         </div>
       )}
     </div>

@@ -69,24 +69,42 @@ export async function POST(request: Request) {
       });
     }
     
-    // Process batch in parallel (20 concurrent)
+    // Process batch in parallel (with concurrency control)
     const results = await analyzeConversationsBatch(conversations);
     
     let successCount = 0;
     let failureCount = 0;
     let batchCost = 0;
     
-    // Update daily data with results
+    // Build a map of results by ID for quick lookup
+    const resultsMap = new Map<string, typeof results[0]['result']>();
     for (const { id, result } of results) {
-      const index = dailyData.results.findIndex(r => r.id === id);
-      if (index === -1) continue;
-      
+      resultsMap.set(id, result);
       if (result.success) {
         successCount++;
         batchCost += result.cost;
-        
-        dailyData.results[index] = {
-          ...dailyData.results[index],
+      } else {
+        failureCount++;
+      }
+    }
+    
+    // RE-FETCH fresh data before saving to avoid race conditions
+    const freshData = await getDailyData(date);
+    if (!freshData) {
+      return NextResponse.json({ error: 'Data disappeared during processing' }, { status: 500 });
+    }
+    
+    // Apply ONLY our processed results to the fresh data
+    for (const [id, result] of resultsMap) {
+      const index = freshData.results.findIndex(r => r.id === id);
+      if (index === -1) continue;
+      
+      // Only update if not already processed (avoid overwriting)
+      if (freshData.results[index].processedAt) continue;
+      
+      if (result.success) {
+        freshData.results[index] = {
+          ...freshData.results[index],
           isOECProspect: result.isOECProspect,
           isOECProspectConfidence: result.isOECProspectConfidence,
           oecConverted: result.oecConverted,
@@ -103,15 +121,17 @@ export async function POST(request: Request) {
           processedAt: new Date().toISOString(),
         };
       } else {
-        failureCount++;
         // Mark as processed but failed
-        dailyData.results[index].processedAt = new Date().toISOString();
+        freshData.results[index].processedAt = new Date().toISOString();
       }
     }
     
-    // Update processed count
-    dailyData.processedCount = dailyData.results.filter(r => r.processedAt).length;
-    await saveDailyData(date, dailyData);
+    // Update processed count from fresh data
+    freshData.processedCount = freshData.results.filter(r => r.processedAt).length;
+    await saveDailyData(date, freshData);
+    
+    // Use freshData for response
+    const dailyDataFinal = freshData;
     
     // Update run stats
     const currentRun = await getLatestRun(date);
@@ -124,7 +144,7 @@ export async function POST(request: Request) {
       });
     }
     
-    const remaining = dailyData.totalConversations - dailyData.processedCount;
+    const remaining = dailyDataFinal.totalConversations - dailyDataFinal.processedCount;
     const isComplete = remaining === 0;
     
     // Complete run if done
@@ -140,8 +160,8 @@ export async function POST(request: Request) {
       processedInBatch: successCount,
       failedInBatch: failureCount,
       batchCost,
-      totalProcessed: dailyData.processedCount,
-      totalConversations: dailyData.totalConversations,
+      totalProcessed: dailyDataFinal.processedCount,
+      totalConversations: dailyDataFinal.totalConversations,
       remaining,
       isComplete,
       runStats: latestRun,

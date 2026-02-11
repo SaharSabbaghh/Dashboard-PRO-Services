@@ -164,41 +164,89 @@ export async function analyzeConversation(conversationId: string, messages: stri
   }
 }
 
-// Analyze multiple conversations in parallel
-export async function analyzeConversationsBatch(
-  conversations: Array<{ id: string; messages: string }>
-): Promise<Array<{ id: string; result: AnalysisResult }>> {
-  const results = await Promise.allSettled(
-    conversations.map(async (conv) => ({
-      id: conv.id,
-      result: await analyzeConversation(conv.id, conv.messages),
-    }))
-  );
+// Concurrency-limited promise executor
+async function runWithConcurrency<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
 
-  return results.map((result, index) => {
-    if (result.status === 'fulfilled') {
-      return result.value;
+  async function worker() {
+    while (index < items.length) {
+      const currentIndex = index++;
+      try {
+        results[currentIndex] = await fn(items[currentIndex]);
+      } catch (error) {
+        // Re-throw to be caught by Promise.allSettled pattern
+        throw { index: currentIndex, error };
+      }
     }
-    return {
-      id: conversations[index].id,
-      result: {
-        success: false,
-        cost: 0,
-        error: result.reason?.message || 'Unknown error',
-        isOECProspect: false,
-        isOECProspectConfidence: 0,
-        oecConverted: false,
-        oecConvertedConfidence: 0,
-        isOWWAProspect: false,
-        isOWWAProspectConfidence: 0,
-        owwaConverted: false,
-        owwaConvertedConfidence: 0,
-        isTravelVisaProspect: false,
-        isTravelVisaProspectConfidence: 0,
-        travelVisaCountries: [],
-        travelVisaConverted: false,
-        travelVisaConvertedConfidence: 0,
-      },
-    };
-  });
+  }
+
+  // Create worker pool
+  const workers = Array(Math.min(concurrency, items.length))
+    .fill(null)
+    .map(() => worker());
+
+  await Promise.all(workers);
+  return results;
+}
+
+// Analyze multiple conversations with controlled concurrency
+export async function analyzeConversationsBatch(
+  conversations: Array<{ id: string; messages: string }>,
+  concurrency: number = 10 // Default to 10 concurrent requests
+): Promise<Array<{ id: string; result: AnalysisResult }>> {
+  const results: Array<{ id: string; result: AnalysisResult }> = [];
+
+  // Process with concurrency limit
+  const processOne = async (conv: { id: string; messages: string }) => {
+    const result = await analyzeConversation(conv.id, conv.messages);
+    return { id: conv.id, result };
+  };
+
+  // Use Promise.allSettled with chunked execution
+  const chunks: Array<{ id: string; messages: string }>[] = [];
+  for (let i = 0; i < conversations.length; i += concurrency) {
+    chunks.push(conversations.slice(i, i + concurrency));
+  }
+
+  for (const chunk of chunks) {
+    const chunkResults = await Promise.allSettled(
+      chunk.map(processOne)
+    );
+
+    for (let i = 0; i < chunkResults.length; i++) {
+      const result = chunkResults[i];
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        results.push({
+          id: chunk[i].id,
+          result: {
+            success: false,
+            cost: 0,
+            error: result.reason?.message || 'Unknown error',
+            isOECProspect: false,
+            isOECProspectConfidence: 0,
+            oecConverted: false,
+            oecConvertedConfidence: 0,
+            isOWWAProspect: false,
+            isOWWAProspectConfidence: 0,
+            owwaConverted: false,
+            owwaConvertedConfidence: 0,
+            isTravelVisaProspect: false,
+            isTravelVisaProspectConfidence: 0,
+            travelVisaCountries: [],
+            travelVisaConverted: false,
+            travelVisaConvertedConfidence: 0,
+          },
+        });
+      }
+    }
+  }
+
+  return results;
 }
