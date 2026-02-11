@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAllDatesWithSummary, getProspectDetailsByDate, getAvailableDates, getDailyData } from '@/lib/storage';
 
+// Force Node.js runtime for file system operations
+export const runtime = 'nodejs';
 // Disable caching for aggregated results
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

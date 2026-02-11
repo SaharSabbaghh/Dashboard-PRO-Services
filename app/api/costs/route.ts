@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCostSummaryAsync, getTodayCostsAsync, resetCostLogAsync } from '@/lib/cost-tracker';
 
+// Force Node.js runtime for blob storage operations
+export const runtime = 'nodejs';
 // Disable caching for cost tracking data
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

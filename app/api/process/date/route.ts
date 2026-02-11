@@ -3,6 +3,8 @@ import { getDailyData, saveDailyData, startRun, updateRun, completeRun, getLates
 import { analyzeConversationsBatch } from '@/lib/deepseek';
 import { withLock } from '@/lib/lock-manager';
 
+// Force Node.js runtime for blob operations and AI processing
+export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max
 
 const MAX_RETRY_COUNT = 3; // Maximum retry attempts for failed processing

@@ -3,6 +3,9 @@ import Papa from 'papaparse';
 import { getOrCreateDailyData, saveDailyData, getTodayDate } from '@/lib/unified-storage';
 import { normalizeDate, getEarliestDate } from '@/lib/date-utils';
 
+// Force Node.js runtime for blob storage operations
+export const runtime = 'nodejs';
+
 // Old format columns
 interface OldCSVRow {
   Id: string;

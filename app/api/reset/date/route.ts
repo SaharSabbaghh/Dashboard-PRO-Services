@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { resetDailyProcessing, getDailyData } from '@/lib/unified-storage';
 
+// Force Node.js runtime for blob storage operations
+export const runtime = 'nodejs';
+
 export async function POST(request: Request) {
   try {
     const { date } = await request.json();

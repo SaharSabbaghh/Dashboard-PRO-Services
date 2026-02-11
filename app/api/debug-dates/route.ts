@@ -3,6 +3,9 @@ import { list } from '@vercel/blob';
 import { getAvailableDates, getDailyData } from '@/lib/unified-storage';
 import { getPnLComplaintsDataAsync } from '@/lib/pnl-complaints-processor';
 
+// Force Node.js runtime for blob storage operations
+export const runtime = 'nodejs';
+
 const DAILY_PREFIX = 'daily/';
 
 export async function GET() {

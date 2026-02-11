@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
 
+// Force Node.js runtime for blob storage operations
+export const runtime = 'nodejs';
 // Disable caching for dynamic data - ensures fresh data from blob storage
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

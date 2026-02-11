@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, saveDailyData, completeRun } from '@/lib/storage';
 
+// Force Node.js runtime for storage operations
+export const runtime = 'nodejs';
+
 export async function POST(request: Request) {
   try {
     const { date } = await request.json();

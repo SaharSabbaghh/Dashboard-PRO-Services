@@ -3,6 +3,9 @@ import { getOrCreateDailyData, saveDailyData, getTodayDate } from '@/lib/unified
 import type { ProcessedConversation } from '@/lib/storage';
 import { normalizeDate, getEarliestDate } from '@/lib/date-utils';
 
+// Force Node.js runtime for blob storage operations
+export const runtime = 'nodejs';
+
 /**
  * API Endpoint: POST /api/ingest/daily
  * 
