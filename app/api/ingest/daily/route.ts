@@ -214,13 +214,13 @@ export async function POST(request: Request) {
           ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessages
           : newMessages;
         
-        // Append conversation IDs
+        // Append conversation IDs (keep unique only)
+        const existingConvIds = new Set(existing.conversationId ? existing.conversationId.split(',') : []);
         const newConvIds = entity.conversations.map(c => c.conversationId).filter(Boolean);
-        if (newConvIds.length > 0) {
-          existing.conversationId = existing.conversationId 
-            ? existing.conversationId + ',' + newConvIds.join(',')
-            : newConvIds.join(',');
+        for (const id of newConvIds) {
+          existingConvIds.add(id);
         }
+        existing.conversationId = Array.from(existingConvIds).filter(Boolean).join(',');
         
         // Fill in missing fields
         if (!existing.contractId && entity.contractId) existing.contractId = entity.contractId;
@@ -236,9 +236,10 @@ export async function POST(request: Request) {
         merged++;
       } else {
         // CREATE new result
+        const uniqueConvIds = [...new Set(entity.conversations.map(c => c.conversationId).filter(Boolean))];
         const result: ProcessedConversation = {
           id: entity.entityKey,
-          conversationId: entity.conversations.map(c => c.conversationId).join(','),
+          conversationId: uniqueConvIds.join(','),
           chatStartDateTime: entity.firstMessageTime,
           maidId: entity.maidId,
           clientId: entity.clientId,
