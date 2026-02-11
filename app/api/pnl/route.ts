@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -7,6 +8,8 @@ import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
 import type { PnLServiceKey, PnLComplaintsData } from '@/lib/pnl-complaints-types';
 import { ALL_SERVICE_KEYS } from '@/lib/pnl-complaints-types';
 
+// Force Node.js runtime for filesystem access (required for fs operations)
+export const runtime = 'nodejs';
 // Disable caching for P&L data
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
