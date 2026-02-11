@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAggregatedResultsByDate, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
+import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
 
 export async function GET(
   request: Request,
@@ -16,18 +16,45 @@ export async function GET(
       );
     }
     
-    console.log('[API] Fetching date:', date);
-    const aggregated = await getAggregatedResultsByDate(date);
-    console.log('[API] Aggregated result:', JSON.stringify(aggregated).slice(0, 500));
+    // Use getDailyData directly (same as the working /api/dates endpoint)
+    const data = await getDailyData(date);
+    if (!data) {
+      return NextResponse.json(
+        { error: 'No data found for this date' },
+        { status: 404 }
+      );
+    }
+    
+    const latestRun = await getLatestRun(date);
     const prospects = await getProspectDetailsByDate(date);
     const households = await getProspectsGroupedByHousehold(date);
     
+    // Calculate summary counts
+    const defaultByContractType = {
+      CC: { oec: 0, owwa: 0, travelVisa: 0 },
+      MV: { oec: 0, owwa: 0, travelVisa: 0 },
+    };
+    
     return NextResponse.json({
-      ...aggregated,
+      date,
+      fileName: data.fileName,
+      totalProcessed: data.processedCount,
+      totalConversations: data.totalConversations,
+      isProcessing: data.isProcessing,
       prospects: {
-        ...aggregated.prospects,
+        oec: data.summary?.oec || 0,
+        owwa: data.summary?.owwa || 0,
+        travelVisa: data.summary?.travelVisa || 0,
         details: prospects,
       },
+      conversions: {
+        oec: data.summary?.oecConverted || 0,
+        owwa: data.summary?.owwaConverted || 0,
+        travelVisa: data.summary?.travelVisaConverted || 0,
+      },
+      countryCounts: data.summary?.countryCounts || {},
+      byContractType: data.summary?.byContractType || defaultByContractType,
+      latestRun,
       households,
     });
     
