@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOrCreateDailyData, saveDailyData, getTodayDate } from '@/lib/unified-storage';
 import type { ProcessedConversation } from '@/lib/storage';
+import { normalizeDate, getEarliestDate } from '@/lib/date-utils';
 
 /**
  * API Endpoint: POST /api/ingest/daily
@@ -171,8 +172,10 @@ export async function POST(request: Request) {
       if (existingInBatch) {
         existingInBatch.conversations.push(conv);
         // Keep earliest time
-        if (conv.chatStartDateTime && conv.chatStartDateTime < existingInBatch.firstMessageTime) {
-          existingInBatch.firstMessageTime = conv.chatStartDateTime;
+        const convTime = normalizeDate(conv.chatStartDateTime);
+        const existingTime = normalizeDate(existingInBatch.firstMessageTime);
+        if (convTime < existingTime) {
+          existingInBatch.firstMessageTime = convTime;
         }
         // Fill in missing fields
         if (!existingInBatch.contractId && conv.contractId) existingInBatch.contractId = conv.contractId;
@@ -192,7 +195,7 @@ export async function POST(request: Request) {
           maidName: conv.maidName || '',
           clientName: conv.clientName || '',
           contractType: conv.contractType || '',
-          firstMessageTime: conv.chatStartDateTime || new Date().toISOString(),
+          firstMessageTime: normalizeDate(conv.chatStartDateTime),
           existingIndex,
         });
       }
@@ -241,8 +244,10 @@ export async function POST(request: Request) {
         if (!existing.contractType && entity.contractType) existing.contractType = entity.contractType;
         
         // Keep earliest time
-        if (entity.firstMessageTime && entity.firstMessageTime < existing.chatStartDateTime) {
-          existing.chatStartDateTime = entity.firstMessageTime;
+        const entityTime = normalizeDate(entity.firstMessageTime);
+        const existingTime = normalizeDate(existing.chatStartDateTime);
+        if (entityTime < existingTime) {
+          existing.chatStartDateTime = entityTime;
         }
         
         merged++;
@@ -264,7 +269,9 @@ export async function POST(request: Request) {
           isOWWAProspect: false,
           isTravelVisaProspect: false,
           travelVisaCountries: [],
+          processingStatus: 'pending',
           processedAt: '', // Not yet analyzed by AI
+          retryCount: 0,
         };
         
         dailyData.results.push(result);

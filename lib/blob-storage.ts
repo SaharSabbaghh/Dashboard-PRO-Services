@@ -20,10 +20,17 @@ export function isVercelEnvironment(): boolean {
 
 async function readBlob<T>(path: string): Promise<T | null> {
   try {
-    const { blobs } = await list({ prefix: path });
-    if (blobs.length === 0) return null;
+    // Try to get blob metadata first to check existence
+    const { blobs } = await list({ 
+      prefix: path,
+      limit: 1,
+    });
     
-    const response = await fetch(blobs[0].url);
+    // Find exact match (not just prefix match)
+    const exactMatch = blobs.find(b => b.pathname === path);
+    if (!exactMatch) return null;
+    
+    const response = await fetch(exactMatch.url);
     if (!response.ok) return null;
     
     return await response.json();
@@ -35,12 +42,23 @@ async function readBlob<T>(path: string): Promise<T | null> {
 
 async function writeBlob<T>(path: string, data: T): Promise<void> {
   try {
-    // Use allowOverwrite for atomic writes (no delete needed)
-    await put(path, JSON.stringify(data, null, 2), {
+    // Add metadata for version tracking
+    const dataWithMeta = {
+      ...data,
+      _blobMeta: {
+        lastModified: new Date().toISOString(),
+        version: Date.now(),
+      },
+    };
+    
+    // Use allowOverwrite for atomic writes
+    await put(path, JSON.stringify(dataWithMeta, null, 2), {
       access: 'public',
       addRandomSuffix: false,
       allowOverwrite: true,
     });
+    
+    console.log(`[Blob] Successfully wrote ${path} at version ${dataWithMeta._blobMeta.version}`);
   } catch (error) {
     console.error(`[Blob] Error writing ${path}:`, error);
     throw error;
@@ -432,7 +450,10 @@ export async function resetDailyProcessingBlob(date: string): Promise<void> {
     isTravelVisaProspect: false,
     travelVisaCountries: [],
     travelVisaConverted: false,
+    processingStatus: 'pending',
     processedAt: '',
+    processingError: undefined,
+    retryCount: 0,
   }));
   data.processedCount = 0;
   data.isProcessing = false;

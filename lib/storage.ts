@@ -27,7 +27,10 @@ export interface ProcessedConversation {
   travelVisaCountries: string[];
   travelVisaConverted?: boolean;
   travelVisaConvertedConfidence?: number;
+  processingStatus: 'pending' | 'processing' | 'success' | 'failed';
   processedAt: string;
+  processingError?: string;
+  retryCount?: number;
 }
 
 export interface RunStats {
@@ -467,7 +470,10 @@ export function resetDailyProcessing(date: string): void {
     isTravelVisaProspect: false,
     travelVisaCountries: [],
     travelVisaConverted: false,
+    processingStatus: 'pending',
     processedAt: '',
+    processingError: undefined,
+    retryCount: 0,
   }));
   data.processedCount = 0;
   data.isProcessing = false;

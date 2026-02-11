@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Papa from 'papaparse';
 import { getOrCreateDailyData, saveDailyData, getTodayDate } from '@/lib/unified-storage';
+import { normalizeDate, getEarliestDate } from '@/lib/date-utils';
 
 // Old format columns
 interface OldCSVRow {
@@ -36,21 +37,6 @@ type CSVRow = OldCSVRow | NewCSVRow;
 
 function isNewFormat(row: CSVRow): row is NewCSVRow {
   return 'CONVERSATION_ID' in row || 'MERGED_MESSAGES' in row;
-}
-
-function parseDate(dateStr: string): string {
-  // Format: "2026-01-26 1:57:53" or "2026-01-26 06:02:17.000" -> ISO string
-  if (!dateStr) return new Date().toISOString();
-  
-  const [datePart, timePart] = dateStr.split(' ');
-  if (!datePart) return new Date().toISOString();
-  
-  const [year, month, day] = datePart.split('-').map(Number);
-  // Handle time with optional milliseconds
-  const timeClean = (timePart || '0:0:0').split('.')[0];
-  const [hour, minute, second] = timeClean.split(':').map(Number);
-  
-  return new Date(year, month - 1, day, hour || 0, minute || 0, second || 0).toISOString();
 }
 
 interface ExtractedRowData {
@@ -307,7 +293,7 @@ export async function POST(request: Request) {
         if (!existing.contractType && entity.contractType) existing.contractType = entity.contractType;
         
         // Keep earliest time
-        const newTime = parseDate(entity.firstMessageTime);
+        const newTime = normalizeDate(entity.firstMessageTime);
         if (newTime && newTime < existing.chatStartDateTime) {
           existing.chatStartDateTime = newTime;
         }
@@ -319,7 +305,7 @@ export async function POST(request: Request) {
         dailyData.results.push({
           id: entity.entityKey, // Use entity key as unique ID
           conversationId: uniqueConvIds.join(','), // Store unique conversation IDs only
-          chatStartDateTime: parseDate(entity.firstMessageTime),
+          chatStartDateTime: normalizeDate(entity.firstMessageTime),
           maidId: entity.maidId,
           clientId: entity.clientId,
           contractId: entity.contractId, // For household grouping
@@ -331,7 +317,9 @@ export async function POST(request: Request) {
           isOWWAProspect: false,
           isTravelVisaProspect: false,
           travelVisaCountries: [],
+          processingStatus: 'pending',
           processedAt: '', // Empty means not yet analyzed
+          retryCount: 0,
         });
         
         newCount++;

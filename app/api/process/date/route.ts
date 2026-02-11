@@ -1,12 +1,45 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, saveDailyData, startRun, updateRun, completeRun, getLatestRun } from '@/lib/unified-storage';
 import { analyzeConversationsBatch } from '@/lib/deepseek';
+import { withLock } from '@/lib/lock-manager';
 
 export const maxDuration = 300; // 5 minutes max
+
+const MAX_RETRY_COUNT = 3; // Maximum retry attempts for failed processing
 
 export async function POST(request: Request) {
   try {
     const { date, batchSize = 50 } = await request.json();
+    
+    if (!date) {
+      return NextResponse.json({ error: 'Date is required' }, { status: 400 });
+    }
+    
+    // Use distributed locking to prevent concurrent processing of same date
+    const result = await withLock(
+      `process-date-${date}`,
+      async () => processDateInternal(date, batchSize),
+      `process-api-${Date.now()}`
+    );
+    
+    if (result === null) {
+      return NextResponse.json(
+        { error: 'Could not acquire lock - another process is already processing this date' },
+        { status: 409 }
+      );
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('[Process-Date] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process conversations', details: String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+async function processDateInternal(date: string, batchSize: number) {
     
     if (!date) {
       return NextResponse.json({ error: 'Date is required' }, { status: 400 });
@@ -17,8 +50,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No data found for this date' }, { status: 404 });
     }
     
-    // Find unprocessed conversations
-    const unprocessed = dailyData.results.filter(r => !r.processedAt);
+    // Find unprocessed or failed (below retry limit) conversations
+    const unprocessed = dailyData.results.filter(r => 
+      r.processingStatus === 'pending' || 
+      (r.processingStatus === 'failed' && (r.retryCount || 0) < MAX_RETRY_COUNT)
+    );
     
     if (unprocessed.length === 0) {
       // Complete any active run
@@ -53,6 +89,16 @@ export async function POST(request: Request) {
     
     // Take next batch - process in parallel
     const toProcess = unprocessed.slice(0, batchSize);
+    
+    // Mark items as 'processing' before sending to AI
+    for (const conv of toProcess) {
+      const index = dailyData.results.findIndex(r => r.id === conv.id);
+      if (index !== -1) {
+        dailyData.results[index].processingStatus = 'processing';
+      }
+    }
+    await saveDailyData(date, dailyData);
+    
     const conversations = toProcess
       .filter(conv => conv.messages)
       .map(conv => ({ id: conv.id, messages: conv.messages || '' }));
@@ -88,7 +134,7 @@ export async function POST(request: Request) {
       }
     }
     
-    // RE-FETCH fresh data before saving to avoid race conditions
+    // RE-FETCH fresh data before saving (with lock still held)
     const freshData = await getDailyData(date);
     if (!freshData) {
       return NextResponse.json({ error: 'Data disappeared during processing' }, { status: 500 });
@@ -99,12 +145,17 @@ export async function POST(request: Request) {
       const index = freshData.results.findIndex(r => r.id === id);
       if (index === -1) continue;
       
-      // Only update if not already processed (avoid overwriting)
-      if (freshData.results[index].processedAt) continue;
+      const conversation = freshData.results[index];
+      
+      // Only update if in 'processing' state (avoid overwriting concurrent changes)
+      if (conversation.processingStatus !== 'processing') {
+        console.warn(`[Process-Date] Skipping ${id} - status changed from 'processing' to '${conversation.processingStatus}'`);
+        continue;
+      }
       
       if (result.success) {
         freshData.results[index] = {
-          ...freshData.results[index],
+          ...conversation,
           isOECProspect: result.isOECProspect,
           isOECProspectConfidence: result.isOECProspectConfidence,
           oecConverted: result.oecConverted,
@@ -118,16 +169,25 @@ export async function POST(request: Request) {
           travelVisaCountries: result.travelVisaCountries,
           travelVisaConverted: result.travelVisaConverted,
           travelVisaConvertedConfidence: result.travelVisaConvertedConfidence,
+          processingStatus: 'success',
           processedAt: new Date().toISOString(),
+          processingError: undefined,
         };
       } else {
-        // Mark as processed but failed
-        freshData.results[index].processedAt = new Date().toISOString();
+        // Mark as failed and track retry count
+        const retryCount = (conversation.retryCount || 0) + 1;
+        freshData.results[index] = {
+          ...conversation,
+          processingStatus: retryCount >= MAX_RETRY_COUNT ? 'failed' : 'pending',
+          processedAt: new Date().toISOString(),
+          processingError: result.error,
+          retryCount,
+        };
       }
     }
     
-    // Update processed count from fresh data
-    freshData.processedCount = freshData.results.filter(r => r.processedAt).length;
+    // Update processed count (only count 'success' status)
+    freshData.processedCount = freshData.results.filter(r => r.processingStatus === 'success').length;
     await saveDailyData(date, freshData);
     
     // Use freshData for response

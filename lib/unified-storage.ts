@@ -10,6 +10,7 @@ import * as fsStorage from './storage';
 import * as blobStorage from './blob-storage';
 import type { DailyData, RunStats } from './storage';
 import type { OverseasSalesData, TodoRow } from './todo-types';
+import { getTodayDate as getTodayDateUtil } from './date-utils';
 
 // Check if we should use blob storage
 function isBlobEnabled(): boolean {
@@ -195,7 +196,7 @@ export async function resetDailyProcessing(date: string): Promise<void> {
 // ============================================================
 
 export function getTodayDate(): string {
-  return fsStorage.getTodayDate();
+  return getTodayDateUtil();
 }
 
 // Re-export types
