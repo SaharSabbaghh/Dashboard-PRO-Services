@@ -268,17 +268,36 @@ export async function POST(request: Request) {
         // MERGE with existing result (instead of skipping)
         const existing = dailyData.results[existingIndex];
         
-        // Append new messages to existing
-        existing.messages = existing.messages 
-          ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessages
-          : newMessages;
+        // Get existing conversation IDs
+        const existingConvIds = new Set(existing.conversationId ? existing.conversationId.split(',').filter(Boolean) : []);
         
-        // Append conversation IDs (keep unique only)
-        const existingConvIds = new Set(existing.conversationId ? existing.conversationId.split(',') : []);
-        const newConvIds = entity.conversationIds.filter(Boolean);
-        for (const id of newConvIds) {
-          existingConvIds.add(id);
+        // Only add messages from NEW conversation IDs (skip duplicates)
+        const newConvIdsToAdd: string[] = [];
+        const newMessagesToAdd: string[] = [];
+        
+        for (let i = 0; i < entity.conversationIds.length; i++) {
+          const convId = entity.conversationIds[i];
+          if (convId && !existingConvIds.has(convId)) {
+            newConvIdsToAdd.push(convId);
+            if (entity.messages[i]) {
+              newMessagesToAdd.push(entity.messages[i]);
+            }
+          }
         }
+        
+        if (newMessagesToAdd.length > 0) {
+          // Append only new messages
+          const newMessagesOnly = newMessagesToAdd.join('\n\n--- Next Conversation ---\n\n');
+          existing.messages = existing.messages 
+            ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessagesOnly
+            : newMessagesOnly;
+          
+          // Add new conversation IDs
+          for (const id of newConvIdsToAdd) {
+            existingConvIds.add(id);
+          }
+        }
+        
         existing.conversationId = Array.from(existingConvIds).filter(Boolean).join(',');
         
         // Fill in missing fields

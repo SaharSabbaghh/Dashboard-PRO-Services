@@ -209,17 +209,29 @@ export async function POST(request: Request) {
         // MERGE with existing result
         const existing = dailyData.results[entity.existingIndex];
         
-        // Append new messages to existing
-        existing.messages = existing.messages 
-          ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessages
-          : newMessages;
+        // Get existing conversation IDs
+        const existingConvIds = new Set(existing.conversationId ? existing.conversationId.split(',').filter(Boolean) : []);
         
-        // Append conversation IDs (keep unique only)
-        const existingConvIds = new Set(existing.conversationId ? existing.conversationId.split(',') : []);
-        const newConvIds = entity.conversations.map(c => c.conversationId).filter(Boolean);
-        for (const id of newConvIds) {
-          existingConvIds.add(id);
+        // Only add messages from NEW conversation IDs (skip duplicates)
+        const newConversations = entity.conversations.filter(c => 
+          c.conversationId && !existingConvIds.has(c.conversationId)
+        );
+        
+        if (newConversations.length > 0) {
+          // Append only new messages
+          const newMessagesOnly = newConversations.map(c => c.messages).join('\n\n--- Next Conversation ---\n\n');
+          existing.messages = existing.messages 
+            ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessagesOnly
+            : newMessagesOnly;
+          
+          // Add new conversation IDs
+          for (const conv of newConversations) {
+            if (conv.conversationId) {
+              existingConvIds.add(conv.conversationId);
+            }
+          }
         }
+        
         existing.conversationId = Array.from(existingConvIds).filter(Boolean).join(',');
         
         // Fill in missing fields
