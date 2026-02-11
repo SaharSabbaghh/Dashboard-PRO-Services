@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
 
+// Disable caching for dynamic data - ensures fresh data from blob storage
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ date: string }> }

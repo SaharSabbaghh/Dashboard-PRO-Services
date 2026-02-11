@@ -7,6 +7,10 @@ import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
 import type { PnLServiceKey, PnLComplaintsData } from '@/lib/pnl-complaints-types';
 import { ALL_SERVICE_KEYS } from '@/lib/pnl-complaints-types';
 
+// Disable caching for P&L data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Filter complaints data by date range and recalculate volumes
 function filterComplaintsDataByDate(
   data: PnLComplaintsData,

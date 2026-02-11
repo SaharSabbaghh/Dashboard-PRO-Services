@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getOverseasSalesData, getOverseasSalesSummary } from '@/lib/unified-storage';
 
+// Disable caching for overseas sales data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const salesData = await getOverseasSalesData();

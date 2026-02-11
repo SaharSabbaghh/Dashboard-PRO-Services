@@ -30,7 +30,16 @@ async function readBlob<T>(path: string): Promise<T | null> {
     const exactMatch = blobs.find(b => b.pathname === path);
     if (!exactMatch) return null;
     
-    const response = await fetch(exactMatch.url);
+    // Add cache: 'no-store' to prevent Next.js from caching blob data
+    const response = await fetch(exactMatch.url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
+    
     if (!response.ok) return null;
     
     return await response.json();

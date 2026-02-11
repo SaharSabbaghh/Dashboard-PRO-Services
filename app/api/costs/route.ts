@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getCostSummaryAsync, getTodayCostsAsync, resetCostLogAsync } from '@/lib/cost-tracker';
 
+// Disable caching for cost tracking data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const summary = await getCostSummaryAsync();
