@@ -16,7 +16,9 @@ export async function GET(
       );
     }
     
+    console.log('[API] Fetching date:', date);
     const aggregated = await getAggregatedResultsByDate(date);
+    console.log('[API] Aggregated result:', JSON.stringify(aggregated).slice(0, 500));
     const prospects = await getProspectDetailsByDate(date);
     const households = await getProspectsGroupedByHousehold(date);
     

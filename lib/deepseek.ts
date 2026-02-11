@@ -164,36 +164,6 @@ export async function analyzeConversation(conversationId: string, messages: stri
   }
 }
 
-// Concurrency-limited promise executor
-async function runWithConcurrency<T, R>(
-  items: T[],
-  fn: (item: T) => Promise<R>,
-  concurrency: number
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let index = 0;
-
-  async function worker() {
-    while (index < items.length) {
-      const currentIndex = index++;
-      try {
-        results[currentIndex] = await fn(items[currentIndex]);
-      } catch (error) {
-        // Re-throw to be caught by Promise.allSettled pattern
-        throw { index: currentIndex, error };
-      }
-    }
-  }
-
-  // Create worker pool
-  const workers = Array(Math.min(concurrency, items.length))
-    .fill(null)
-    .map(() => worker());
-
-  await Promise.all(workers);
-  return results;
-}
-
 // Analyze multiple conversations with controlled concurrency
 export async function analyzeConversationsBatch(
   conversations: Array<{ id: string; messages: string }>,
