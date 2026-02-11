@@ -245,45 +245,77 @@ export async function POST(request: Request) {
     // Get or create daily data for this date
     const dailyData = await getOrCreateDailyData(reportDate, file.name);
     
-    // Check for existing entity keys to avoid duplicates
-    const existingKeys = new Set(dailyData.results.map(r => r.id));
+    // Create a map of existing results for merging (not just skipping)
+    const existingResultsMap = new Map<string, number>();
+    dailyData.results.forEach((r, index) => {
+      existingResultsMap.set(r.id, index);
+    });
     
     // Convert merged entities to conversations (not yet analyzed)
     let newCount = 0;
-    let duplicateCount = 0;
+    let mergedWithExistingCount = 0;
     let mergedConversations = 0;
     
     // Store merged conversations for processing
     for (const entity of mergedEntities) {
-      if (existingKeys.has(entity.entityKey)) {
-        duplicateCount++;
-        continue;
-      }
-      
-      // Merge all messages with separator
-      const mergedMessages = entity.messages.join('\n\n--- Next Conversation ---\n\n');
+      // Merge all messages from this upload
+      const newMessages = entity.messages.join('\n\n--- Next Conversation ---\n\n');
       mergedConversations += entity.conversationIds.length > 1 ? entity.conversationIds.length - 1 : 0;
       
-      // Add as unprocessed placeholder with merged messages for later analysis
-      dailyData.results.push({
-        id: entity.entityKey, // Use entity key as unique ID
-        conversationId: entity.conversationIds.join(','), // Store all conversation IDs
-        chatStartDateTime: parseDate(entity.firstMessageTime),
-        maidId: entity.maidId,
-        clientId: entity.clientId,
-        contractId: entity.contractId, // For household grouping
-        maidName: entity.maidName,
-        clientName: entity.clientName,
-        contractType: entity.contractType, // "CC", "MV", or ""
-        messages: mergedMessages, // Store the merged conversation text
-        isOECProspect: false,
-        isOWWAProspect: false,
-        isTravelVisaProspect: false,
-        travelVisaCountries: [],
-        processedAt: '', // Empty means not yet analyzed
-      });
+      const existingIndex = existingResultsMap.get(entity.entityKey);
       
-      newCount++;
+      if (existingIndex !== undefined) {
+        // MERGE with existing result (instead of skipping)
+        const existing = dailyData.results[existingIndex];
+        
+        // Append new messages to existing
+        existing.messages = existing.messages 
+          ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessages
+          : newMessages;
+        
+        // Append conversation IDs
+        const newConvIds = entity.conversationIds.filter(Boolean);
+        if (newConvIds.length > 0) {
+          existing.conversationId = existing.conversationId 
+            ? existing.conversationId + ',' + newConvIds.join(',')
+            : newConvIds.join(',');
+        }
+        
+        // Fill in missing fields
+        if (!existing.contractId && entity.contractId) existing.contractId = entity.contractId;
+        if (!existing.maidName && entity.maidName) existing.maidName = entity.maidName;
+        if (!existing.clientName && entity.clientName) existing.clientName = entity.clientName;
+        if (!existing.contractType && entity.contractType) existing.contractType = entity.contractType;
+        
+        // Keep earliest time
+        const newTime = parseDate(entity.firstMessageTime);
+        if (newTime && newTime < existing.chatStartDateTime) {
+          existing.chatStartDateTime = newTime;
+        }
+        
+        mergedWithExistingCount++;
+      } else {
+        // CREATE new result
+        dailyData.results.push({
+          id: entity.entityKey, // Use entity key as unique ID
+          conversationId: entity.conversationIds.join(','), // Store all conversation IDs
+          chatStartDateTime: parseDate(entity.firstMessageTime),
+          maidId: entity.maidId,
+          clientId: entity.clientId,
+          contractId: entity.contractId, // For household grouping
+          maidName: entity.maidName,
+          clientName: entity.clientName,
+          contractType: entity.contractType, // "CC", "MV", or ""
+          messages: newMessages, // Store the merged conversation text
+          isOECProspect: false,
+          isOWWAProspect: false,
+          isTravelVisaProspect: false,
+          travelVisaCountries: [],
+          processedAt: '', // Empty means not yet analyzed
+        });
+        
+        newCount++;
+      }
     }
     
     // Update counts
@@ -294,7 +326,7 @@ export async function POST(request: Request) {
     // Save the daily data
     await saveDailyData(reportDate, dailyData);
     
-    console.log(`[Upload] Complete: ${newCount} new entities, ${duplicateCount} duplicates, ${mergedConversations} conversations merged`);
+    console.log(`[Upload] Complete: ${newCount} new entities, ${mergedWithExistingCount} merged with existing, ${mergedConversations} conversations merged within file`);
     
     return NextResponse.json({
       success: true,
@@ -304,7 +336,7 @@ export async function POST(request: Request) {
       totalRows: extractedRows.length,
       uniqueEntities: mergedEntities.length,
       newEntities: newCount,
-      duplicates: duplicateCount,
+      mergedWithExisting: mergedWithExistingCount,
       conversationsMerged: mergedConversations,
       totalConversations: dailyData.totalConversations,
       pendingAnalysis: dailyData.totalConversations - dailyData.processedCount,
