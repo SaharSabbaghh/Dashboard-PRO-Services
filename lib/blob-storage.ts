@@ -35,15 +35,11 @@ async function readBlob<T>(path: string): Promise<T | null> {
 
 async function writeBlob<T>(path: string, data: T): Promise<void> {
   try {
-    // Delete existing blob first (if any)
-    const existing = await head(path).catch(() => null);
-    if (existing) {
-      await del(path);
-    }
-    
+    // Use allowOverwrite for atomic writes (no delete needed)
     await put(path, JSON.stringify(data, null, 2), {
       access: 'public',
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
   } catch (error) {
     console.error(`[Blob] Error writing ${path}:`, error);
