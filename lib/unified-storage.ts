@@ -8,11 +8,11 @@
 
 import * as fsStorage from './storage';
 import * as blobStorage from './blob-storage';
-import type { DailyData, ProcessedConversation, RunStats } from './storage';
+import type { DailyData, RunStats } from './storage';
 import type { OverseasSalesData, TodoRow } from './todo-types';
 
 // Check if we should use blob storage
-function useBlob(): boolean {
+function isBlobEnabled(): boolean {
   return !!process.env.BLOB_READ_WRITE_TOKEN;
 }
 
@@ -21,14 +21,14 @@ function useBlob(): boolean {
 // ============================================================
 
 export async function getDailyData(date: string): Promise<DailyData | null> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getDailyDataBlob(date);
   }
   return fsStorage.getDailyData(date);
 }
 
 export async function saveDailyData(date: string, data: DailyData): Promise<void> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     await blobStorage.saveDailyDataBlob(date, data);
   } else {
     fsStorage.saveDailyData(date, data);
@@ -36,7 +36,7 @@ export async function saveDailyData(date: string, data: DailyData): Promise<void
 }
 
 export async function getAvailableDates(): Promise<string[]> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getAvailableDatesBlob();
   }
   return fsStorage.getAvailableDates();
@@ -75,14 +75,14 @@ export async function getOrCreateDailyData(date: string, fileName?: string): Pro
 // ============================================================
 
 export async function getOverseasSalesData(): Promise<OverseasSalesData | null> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getOverseasSalesDataBlob();
   }
   return fsStorage.getOverseasSalesData();
 }
 
 export async function saveOverseasSalesData(data: OverseasSalesData): Promise<void> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     await blobStorage.saveOverseasSalesDataBlob(data);
   } else {
     fsStorage.saveOverseasSalesData(data);
@@ -90,14 +90,14 @@ export async function saveOverseasSalesData(data: OverseasSalesData): Promise<vo
 }
 
 export async function processTodosAndSave(todos: TodoRow[]): Promise<OverseasSalesData> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.processTodosAndSaveBlob(todos);
   }
   return fsStorage.processTodosAndSave(todos);
 }
 
 export async function reprocessAllOverseasSales(todos: TodoRow[]): Promise<OverseasSalesData> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.reprocessAllOverseasSalesBlob(todos);
   }
   return fsStorage.reprocessAllOverseasSales(todos);
@@ -109,7 +109,7 @@ export async function getOverseasSalesSummary(): Promise<{
   salesByMonth: Record<string, number>;
   lastUpdated: string | null;
 }> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getOverseasSalesSummaryBlob();
   }
   return fsStorage.getOverseasSalesSummary();
@@ -120,14 +120,14 @@ export async function getOverseasSalesSummary(): Promise<{
 // ============================================================
 
 export async function startRun(date: string): Promise<string> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.startRunBlob(date);
   }
   return fsStorage.startRun(date);
 }
 
 export async function updateRun(date: string, runId: string, stats: Partial<RunStats>): Promise<void> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     await blobStorage.updateRunBlob(date, runId, stats);
   } else {
     fsStorage.updateRun(date, runId, stats);
@@ -135,7 +135,7 @@ export async function updateRun(date: string, runId: string, stats: Partial<RunS
 }
 
 export async function completeRun(date: string, runId: string): Promise<void> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     await blobStorage.completeRunBlob(date, runId);
   } else {
     fsStorage.completeRun(date, runId);
@@ -143,7 +143,7 @@ export async function completeRun(date: string, runId: string): Promise<void> {
 }
 
 export async function getLatestRun(date: string): Promise<RunStats | null> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getLatestRunBlob(date);
   }
   return fsStorage.getLatestRun(date);
@@ -154,7 +154,7 @@ export async function getLatestRun(date: string): Promise<RunStats | null> {
 // ============================================================
 
 export async function getAggregatedResultsByDate(date: string) {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getAggregatedResultsByDateBlob(date);
   }
   return fsStorage.getAggregatedResultsByDate(date);
@@ -165,14 +165,14 @@ export async function getAggregatedResultsByDate(date: string) {
 // ============================================================
 
 export async function getProspectDetailsByDate(date: string) {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getProspectDetailsByDateBlob(date);
   }
   return fsStorage.getProspectDetailsByDate(date);
 }
 
 export async function getProspectsGroupedByHousehold(date: string) {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     return await blobStorage.getProspectsGroupedByHouseholdBlob(date);
   }
   return fsStorage.getProspectsGroupedByHousehold(date);
@@ -183,7 +183,7 @@ export async function getProspectsGroupedByHousehold(date: string) {
 // ============================================================
 
 export async function resetDailyProcessing(date: string): Promise<void> {
-  if (useBlob()) {
+  if (isBlobEnabled()) {
     await blobStorage.resetDailyProcessingBlob(date);
   } else {
     fsStorage.resetDailyProcessing(date);
