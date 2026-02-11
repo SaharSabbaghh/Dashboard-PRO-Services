@@ -226,12 +226,4 @@ async function processDateInternal(date: string, batchSize: number) {
       isComplete,
       runStats: latestRun,
     });
-    
-  } catch (error) {
-    console.error('[Process-Date] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process conversations', details: String(error) },
-      { status: 500 }
-    );
-  }
 }
