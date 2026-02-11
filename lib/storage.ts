@@ -27,10 +27,8 @@ export interface ProcessedConversation {
   travelVisaCountries: string[];
   travelVisaConverted?: boolean;
   travelVisaConvertedConfidence?: number;
-  processingStatus: 'pending' | 'processing' | 'success' | 'failed';
-  processedAt: string;
-  processingError?: string;
-  retryCount?: number;
+  processingStatus?: string; // Optional: For tracking if data came from n8n
+  processedAt?: string; // Optional: Timestamp when processed
 }
 
 export interface RunStats {
@@ -454,31 +452,6 @@ export function getProspectsGroupedByHousehold(date: string): HouseholdGroup[] {
   });
   
   return households;
-}
-
-export function resetDailyProcessing(date: string): void {
-  const data = getDailyData(date);
-  if (!data) return;
-  
-  // Keep original conversations but clear analysis results
-  data.results = data.results.map(r => ({
-    ...r,
-    isOECProspect: false,
-    oecConverted: false,
-    isOWWAProspect: false,
-    owwaConverted: false,
-    isTravelVisaProspect: false,
-    travelVisaCountries: [],
-    travelVisaConverted: false,
-    processingStatus: 'pending',
-    processedAt: '',
-    processingError: undefined,
-    retryCount: 0,
-  }));
-  data.processedCount = 0;
-  data.isProcessing = false;
-  data.currentRunId = undefined;
-  saveDailyData(date, data);
 }
 
 // Recalculate summaries for all daily data files (use after logic changes)

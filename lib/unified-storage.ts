@@ -180,18 +180,6 @@ export async function getProspectsGroupedByHousehold(date: string) {
 }
 
 // ============================================================
-// Reset Operations
-// ============================================================
-
-export async function resetDailyProcessing(date: string): Promise<void> {
-  if (isBlobEnabled()) {
-    await blobStorage.resetDailyProcessingBlob(date);
-  } else {
-    fsStorage.resetDailyProcessing(date);
-  }
-}
-
-// ============================================================
 // Helper exports
 // ============================================================
 

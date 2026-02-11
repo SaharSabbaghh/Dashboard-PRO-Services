@@ -322,7 +322,6 @@ export async function POST(request: Request) {
           travelVisaCountries: [],
           processingStatus: 'pending',
           processedAt: '', // Empty means not yet analyzed
-          retryCount: 0,
         });
         
         newCount++;

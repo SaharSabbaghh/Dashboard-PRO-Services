@@ -274,7 +274,6 @@ export async function POST(request: Request) {
           travelVisaCountries: [],
           processingStatus: 'pending',
           processedAt: '', // Not yet analyzed by AI
-          retryCount: 0,
         };
         
         dailyData.results.push(result);

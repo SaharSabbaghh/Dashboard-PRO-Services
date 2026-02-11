@@ -442,31 +442,3 @@ export async function getProspectsGroupedByHouseholdBlob(date: string): Promise<
   return households;
 }
 
-// ============================================================
-// Reset Operations
-// ============================================================
-
-export async function resetDailyProcessingBlob(date: string): Promise<void> {
-  const data = await getDailyDataBlob(date);
-  if (!data) return;
-  
-  data.results = data.results.map(r => ({
-    ...r,
-    isOECProspect: false,
-    oecConverted: false,
-    isOWWAProspect: false,
-    owwaConverted: false,
-    isTravelVisaProspect: false,
-    travelVisaCountries: [],
-    travelVisaConverted: false,
-    processingStatus: 'pending',
-    processedAt: '',
-    processingError: undefined,
-    retryCount: 0,
-  }));
-  data.processedCount = 0;
-  data.isProcessing = false;
-  data.currentRunId = undefined;
-  await saveDailyDataBlob(date, data);
-}
-
