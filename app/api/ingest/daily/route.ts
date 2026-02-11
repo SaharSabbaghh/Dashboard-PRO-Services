@@ -130,11 +130,14 @@ export async function POST(request: Request) {
     // Get or create daily data
     const dailyData = await getOrCreateDailyData(date);
     
-    // Create a set of existing entity keys for deduplication
-    const existingKeys = new Set(dailyData.results.map(r => r.id));
+    // Create a map of existing results for merging (not just skipping)
+    const existingResultsMap = new Map<string, number>();
+    dailyData.results.forEach((r, index) => {
+      existingResultsMap.set(r.id, index);
+    });
     
     let imported = 0;
-    let duplicates = 0;
+    let merged = 0;
     
     // Group conversations by entity (client or maid)
     const entityMap = new Map<string, {
@@ -147,6 +150,7 @@ export async function POST(request: Request) {
       clientName: string;
       contractType: string;
       firstMessageTime: string;
+      existingIndex: number | null; // Track if this entity already exists
     }>();
     
     for (const conv of body.conversations) {
@@ -162,26 +166,23 @@ export async function POST(request: Request) {
         entityKey = conv.conversationId || `conv_${Date.now()}_${Math.random()}`;
       }
       
-      // Skip if already exists
-      if (existingKeys.has(entityKey)) {
-        duplicates++;
-        continue;
-      }
-      
-      // Merge into entity map
-      const existing = entityMap.get(entityKey);
-      if (existing) {
-        existing.conversations.push(conv);
+      // Check if already in entity map (from this batch)
+      const existingInBatch = entityMap.get(entityKey);
+      if (existingInBatch) {
+        existingInBatch.conversations.push(conv);
         // Keep earliest time
-        if (conv.chatStartDateTime && conv.chatStartDateTime < existing.firstMessageTime) {
-          existing.firstMessageTime = conv.chatStartDateTime;
+        if (conv.chatStartDateTime && conv.chatStartDateTime < existingInBatch.firstMessageTime) {
+          existingInBatch.firstMessageTime = conv.chatStartDateTime;
         }
         // Fill in missing fields
-        if (!existing.contractId && conv.contractId) existing.contractId = conv.contractId;
-        if (!existing.maidName && conv.maidName) existing.maidName = conv.maidName;
-        if (!existing.clientName && conv.clientName) existing.clientName = conv.clientName;
-        if (!existing.contractType && conv.contractType) existing.contractType = conv.contractType;
+        if (!existingInBatch.contractId && conv.contractId) existingInBatch.contractId = conv.contractId;
+        if (!existingInBatch.maidName && conv.maidName) existingInBatch.maidName = conv.maidName;
+        if (!existingInBatch.clientName && conv.clientName) existingInBatch.clientName = conv.clientName;
+        if (!existingInBatch.contractType && conv.contractType) existingInBatch.contractType = conv.contractType;
       } else {
+        // Check if exists in previous data
+        const existingIndex = existingResultsMap.get(entityKey) ?? null;
+        
         entityMap.set(entityKey, {
           entityKey,
           conversations: [conv],
@@ -192,37 +193,70 @@ export async function POST(request: Request) {
           clientName: conv.clientName || '',
           contractType: conv.contractType || '',
           firstMessageTime: conv.chatStartDateTime || new Date().toISOString(),
+          existingIndex,
         });
       }
     }
     
-    // Convert entity map to results
+    // Convert entity map to results (merge with existing or create new)
     for (const [, entity] of entityMap) {
-      // Merge all messages
-      const mergedMessages = entity.conversations
+      // Merge all new messages
+      const newMessages = entity.conversations
         .map(c => c.messages)
         .join('\n\n--- Next Conversation ---\n\n');
       
-      const result: ProcessedConversation = {
-        id: entity.entityKey,
-        conversationId: entity.conversations.map(c => c.conversationId).join(','),
-        chatStartDateTime: entity.firstMessageTime,
-        maidId: entity.maidId,
-        clientId: entity.clientId,
-        contractId: entity.contractId,
-        maidName: entity.maidName,
-        clientName: entity.clientName,
-        contractType: entity.contractType,
-        messages: mergedMessages,
-        isOECProspect: false,
-        isOWWAProspect: false,
-        isTravelVisaProspect: false,
-        travelVisaCountries: [],
-        processedAt: '', // Not yet analyzed by AI
-      };
-      
-      dailyData.results.push(result);
-      imported++;
+      if (entity.existingIndex !== null) {
+        // MERGE with existing result
+        const existing = dailyData.results[entity.existingIndex];
+        
+        // Append new messages to existing
+        existing.messages = existing.messages 
+          ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessages
+          : newMessages;
+        
+        // Append conversation IDs
+        const newConvIds = entity.conversations.map(c => c.conversationId).filter(Boolean);
+        if (newConvIds.length > 0) {
+          existing.conversationId = existing.conversationId 
+            ? existing.conversationId + ',' + newConvIds.join(',')
+            : newConvIds.join(',');
+        }
+        
+        // Fill in missing fields
+        if (!existing.contractId && entity.contractId) existing.contractId = entity.contractId;
+        if (!existing.maidName && entity.maidName) existing.maidName = entity.maidName;
+        if (!existing.clientName && entity.clientName) existing.clientName = entity.clientName;
+        if (!existing.contractType && entity.contractType) existing.contractType = entity.contractType;
+        
+        // Keep earliest time
+        if (entity.firstMessageTime && entity.firstMessageTime < existing.chatStartDateTime) {
+          existing.chatStartDateTime = entity.firstMessageTime;
+        }
+        
+        merged++;
+      } else {
+        // CREATE new result
+        const result: ProcessedConversation = {
+          id: entity.entityKey,
+          conversationId: entity.conversations.map(c => c.conversationId).join(','),
+          chatStartDateTime: entity.firstMessageTime,
+          maidId: entity.maidId,
+          clientId: entity.clientId,
+          contractId: entity.contractId,
+          maidName: entity.maidName,
+          clientName: entity.clientName,
+          contractType: entity.contractType,
+          messages: newMessages,
+          isOECProspect: false,
+          isOWWAProspect: false,
+          isTravelVisaProspect: false,
+          travelVisaCountries: [],
+          processedAt: '', // Not yet analyzed by AI
+        };
+        
+        dailyData.results.push(result);
+        imported++;
+      }
     }
     
     // Update counts
@@ -245,11 +279,12 @@ export async function POST(request: Request) {
         },
         date,
         imported,
+        merged,
         message: `Batch ${batchInfo.batchIndex + 1}/${batchInfo.totalBatches} received`,
       });
     }
     
-    console.log(`[Ingest Daily] Complete: ${imported} imported, ${duplicates} duplicates, total: ${dailyData.totalConversations}`);
+    console.log(`[Ingest Daily] Complete: ${imported} new, ${merged} merged, total: ${dailyData.totalConversations}`);
     
     return NextResponse.json({
       success: true,
@@ -260,7 +295,7 @@ export async function POST(request: Request) {
       } : undefined,
       date,
       imported,
-      duplicates,
+      merged,
       totalConversations: dailyData.totalConversations,
       pendingAnalysis: dailyData.totalConversations - dailyData.processedCount,
     });
