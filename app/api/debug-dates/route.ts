@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server';
 import { list } from '@vercel/blob';
 import { getAvailableDates, getDailyData } from '@/lib/unified-storage';
+import { getPnLComplaintsDataAsync } from '@/lib/pnl-complaints-processor';
 
 const DAILY_PREFIX = 'daily/';
 
 export async function GET() {
   try {
-    // Direct blob listing
+    // Check environment
+    const hasBlobToken = !!process.env.BLOB_READ_WRITE_TOKEN;
+    
+    // Direct blob listing - ALL blobs
+    const { blobs: allBlobs } = await list();
+    
+    // Direct blob listing - daily prefix
     const { blobs } = await list({ prefix: DAILY_PREFIX });
     
     const blobPaths = blobs.map(b => ({
@@ -25,9 +32,15 @@ export async function GET() {
     // Can we get daily data for 2026-02-11?
     const testData = await getDailyData('2026-02-11');
     
+    // Check P&L complaints data
+    const pnlData = await getPnLComplaintsDataAsync();
+    
     return NextResponse.json({
-      blobCount: blobs.length,
-      blobPaths,
+      hasBlobToken,
+      allBlobsCount: allBlobs.length,
+      allBlobPaths: allBlobs.map(b => b.pathname),
+      dailyBlobCount: blobs.length,
+      dailyBlobPaths: blobPaths,
       extractedDates,
       availableDatesResult: availableDates,
       testDataExists: !!testData,
@@ -35,6 +48,12 @@ export async function GET() {
         date: testData.date,
         totalConversations: testData.totalConversations,
         processedCount: testData.processedCount,
+      } : null,
+      pnlDataExists: !!pnlData,
+      pnlDataPreview: pnlData ? {
+        lastUpdated: pnlData.lastUpdated,
+        totalUniqueSales: pnlData.summary?.totalUniqueSales,
+        rawComplaintsCount: pnlData.rawComplaintsCount,
       } : null,
     });
   } catch (error) {
