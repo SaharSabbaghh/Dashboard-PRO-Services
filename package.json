@@ -12,6 +12,7 @@
     "@vercel/blob": "^2.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "openai": "^6.16.0",
     "papaparse": "^5.5.3",

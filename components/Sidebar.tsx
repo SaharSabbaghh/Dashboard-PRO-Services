@@ -1,13 +1,15 @@
 'use client';
 
+import { LayoutDashboard, Receipt } from 'lucide-react';
+
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
 const tabs = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◉' },
-  { id: 'pnl', label: 'P&L', icon: '📊' },
+  { id: 'dashboard', label: 'Sales Dashboard', Icon: LayoutDashboard },
+  { id: 'pnl', label: 'P&L', Icon: Receipt },
 ];
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
@@ -30,18 +32,19 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <nav className="p-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
+          const Icon = tab.Icon;
           
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-1 ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition-colors mb-1 ${
                 isActive
                   ? 'bg-blue-50 text-blue-700 font-medium'
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <span className="text-base">{tab.icon}</span>
+              <Icon size={20} />
               {tab.label}
             </button>
           );
