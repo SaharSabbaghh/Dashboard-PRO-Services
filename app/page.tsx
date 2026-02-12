@@ -20,7 +20,6 @@ import PnLTable from '@/components/PnLTable';
 import PnLServiceDetail from '@/components/PnLServiceDetail';
 import PnLDatePicker from '@/components/PnLDatePicker';
 import TodoUpload from '@/components/TodoUpload';
-import OverseasSalesCard from '@/components/OverseasSalesCard';
 import type { Results, ServiceFilter } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
@@ -387,9 +386,6 @@ export default function Dashboard() {
               prospectDetails={results?.prospectDetails}
               isLoading={isLoading}
             />
-
-            {/* Overseas Sales Card - Sales from To-Dos */}
-            <OverseasSalesCard refreshTrigger={todoRefresh} />
 
             <ServiceBreakdownChart 
               prospectDetails={results?.prospectDetails} 
