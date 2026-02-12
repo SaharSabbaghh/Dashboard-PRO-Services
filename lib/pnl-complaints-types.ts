@@ -68,6 +68,7 @@ export const COMPLAINT_TYPE_MAP: Record<string, PnLServiceKey> = {
   'overseas employment certificate': 'oec',
   'overseas': 'oec',
   'oec': 'oec',
+  'contract verification': 'oec', // Contract Verification also counts as OEC
   
   // OWWA
   'client owwa registration': 'owwa',
@@ -152,6 +153,9 @@ export function getServiceKeyFromComplaintType(complaintType: string): PnLServic
   
   // Then try partial/contains matching for flexibility
   // Order matters - check more specific patterns first
+  if (normalized.includes('contract verification') || normalized.includes('contract verif')) {
+    return 'oec'; // Contract Verification counts as OEC
+  }
   if (normalized.includes('overseas') || normalized.includes('oec')) {
     return 'oec';
   }
