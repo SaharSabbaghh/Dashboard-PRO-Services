@@ -1,0 +1,25 @@
+{
+  "date": "2026-02-12",
+  "conversations": [
+    {
+      "conversationId": "TEST_CONV_001",
+      "chatStartDateTime": "2026-02-12 10:00:00.000",
+      "maidId": "83290",
+      "clientId": "302616",
+      "contractId": "1061861",
+      "maidName": "Test Maid",
+      "clientName": "Test Client",
+      "contractType": "CC",
+      "messages": "I need help with my OEC certificate processing",
+      "isOECProspect": true,
+      "isOECProspectConfidence": 0.95,
+      "isOWWAProspect": false,
+      "isOWWAProspectConfidence": 0.0,
+      "isTravelVisaProspect": false,
+      "isTravelVisaProspectConfidence": 0.0,
+      "travelVisaCountries": [],
+      "processingStatus": "succeeded",
+      "processedAt": "2026-02-12T10:30:00.000Z"
+    }
+  ]
+}

@@ -6,10 +6,8 @@ interface SidebarProps {
 }
 
 const tabs = [
-  { id: 'upload', label: 'Upload', icon: '↑' },
   { id: 'dashboard', label: 'Dashboard', icon: '◉' },
   { id: 'pnl', label: 'P&L', icon: '📊' },
-  { id: 'costs', label: 'Costs', icon: '$' },
 ];
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {

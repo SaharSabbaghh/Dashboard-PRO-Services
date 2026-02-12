@@ -6,10 +6,6 @@ import ProspectCards from '@/components/ProspectCards';
 import CountryBreakdown from '@/components/CountryBreakdown';
 import ServiceBreakdownChart from '@/components/ServiceBreakdownChart';
 import ProspectTable from '@/components/ProspectTable';
-import CostTracker from '@/components/CostTracker';
-import CSVUpload from '@/components/CSVUpload';
-import UploadedFilesList from '@/components/UploadedFilesList';
-import ProcessingControlsWithDate from '@/components/ProcessingControlsWithDate';
 import DatePickerCalendar from '@/components/DatePickerCalendar';
 import CollapsibleSection from '@/components/CollapsibleSection';
 import ServiceSummaryCards from '@/components/ServiceSummaryCards';
@@ -19,7 +15,6 @@ import PnLServiceChart from '@/components/PnLServiceChart';
 import PnLTable from '@/components/PnLTable';
 import PnLServiceDetail from '@/components/PnLServiceDetail';
 import PnLDatePicker from '@/components/PnLDatePicker';
-import TodoUpload from '@/components/TodoUpload';
 import type { Results, ServiceFilter } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
@@ -40,19 +35,16 @@ interface PnLComplaintsInfo {
 }
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa'>('overview');
   const [pnlSubTab, setPnlSubTab] = useState<'overview' | 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP'>('overview');
   const [results, setResults] = useState<Results | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
-  const [selectedProcessDate, setSelectedProcessDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadRefresh, setUploadRefresh] = useState(0);
   const [pnlData, setPnlData] = useState<AggregatedPnL | null>(null);
   const [pnlLoading, setPnlLoading] = useState(false);
-  const [todoRefresh, setTodoRefresh] = useState(0);
   const [pnlSource, setPnlSource] = useState<'complaints' | 'excel' | 'none'>('none');
   const [pnlComplaintsInfo, setPnlComplaintsInfo] = useState<PnLComplaintsInfo | null>(null);
   const [pnlStartDate, setPnlStartDate] = useState<string | null>(null);
@@ -223,10 +215,10 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Fetch dates when component mounts or after upload/processing
+  // Fetch dates when component mounts
   useEffect(() => {
     fetchDates();
-  }, [fetchDates, uploadRefresh]);
+  }, [fetchDates]);
 
   // Fetch P&L data when switching to P&L tab or when date filter changes
   useEffect(() => {
@@ -247,7 +239,7 @@ export default function Dashboard() {
       setIsLoading(true);
     fetchResults(selectedDate, selectedEndDate).then(() => setIsLoading(false));
     }
-  }, [fetchResults, selectedDate, selectedEndDate, uploadRefresh]);
+  }, [fetchResults, selectedDate, selectedEndDate]);
 
   const handleDateSelect = (date: string | null, endDate?: string | null) => {
     setSelectedDate(date);
@@ -257,18 +249,6 @@ export default function Dashboard() {
     fetchResults(date, endDate).then(() => setIsLoading(false));
     } else {
       setResults(null);
-    }
-  };
-
-  const handleUploadComplete = () => {
-    setUploadRefresh(prev => prev + 1);
-    fetchDates();
-  };
-
-  const handleProcessingComplete = () => {
-    setUploadRefresh(prev => prev + 1);
-    if (selectedDate) {
-    fetchResults(selectedDate);
     }
   };
 
@@ -308,33 +288,6 @@ export default function Dashboard() {
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <main className="flex-1 p-6">
-        {/* Upload Tab */}
-        {activeTab === 'upload' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800">Upload & Process</h2>
-              <p className="text-sm text-slate-500">Upload CSV reports and run AI analysis</p>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CSVUpload onUploadComplete={handleUploadComplete} />
-              <TodoUpload onUploadComplete={() => setTodoRefresh(prev => prev + 1)} />
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <UploadedFilesList
-                selectedDate={selectedProcessDate}
-                onSelectDate={setSelectedProcessDate}
-                refreshTrigger={uploadRefresh}
-              />
-              <ProcessingControlsWithDate
-                selectedDate={selectedProcessDate}
-                onProcessingComplete={handleProcessingComplete}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
@@ -871,17 +824,6 @@ export default function Dashboard() {
             {pnlSubTab === 'filipinaPP' && (
               <PnLServiceDetail data={pnlData} filter="filipinaPP" />
             )}
-          </div>
-        )}
-
-        {/* Costs Tab */}
-        {activeTab === 'costs' && (
-          <div className="space-y-6 max-w-4xl">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800">Cost Tracking</h2>
-              <p className="text-sm text-slate-500">Monitor API usage and expenses</p>
-            </div>
-            <CostTracker />
           </div>
         )}
       </main>
