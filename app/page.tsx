@@ -15,6 +15,7 @@ import PnLServiceChart from '@/components/PnLServiceChart';
 import PnLTable from '@/components/PnLTable';
 import PnLServiceDetail from '@/components/PnLServiceDetail';
 import PnLDatePicker from '@/components/PnLDatePicker';
+import ChatsDashboard from '@/components/ChatsDashboard';
 import type { Results, ServiceFilter } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
@@ -825,6 +826,11 @@ export default function Dashboard() {
               <PnLServiceDetail data={pnlData} filter="filipinaPP" />
             )}
           </div>
+        )}
+
+        {/* Chats Dashboard Tab */}
+        {activeTab === 'chats' && (
+          <ChatsDashboard />
         )}
       </main>
     </div>

@@ -16,6 +16,18 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Features
+
+### Chats Dashboard
+A comprehensive analytics dashboard for monitoring customer frustration and confusion levels:
+
+- **Primary Metric**: Frustration Level (0-100 scale) with color-coded severity system
+- **Classification System**: Low (Green), Moderate (Yellow), High (Orange), Critical (Red)
+- **Trend Analysis**: Interactive line chart showing frustration scores over time with threshold zones
+- **Filtering Options**: Date range, channel (App, Web, WhatsApp, etc.), customer segment, and language filters
+- **Insights Section**: Main issue identification and top frustration drivers with impact percentages
+- **Risk Assessment**: Real-time risk level indicators and trend analysis
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
