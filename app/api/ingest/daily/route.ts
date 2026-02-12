@@ -247,6 +247,10 @@ export async function POST(request: Request) {
             existing.messages = existing.messages 
               ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessagesOnly
               : newMessagesOnly;
+            // Truncate if too long to avoid blob size limits
+            if (existing.messages.length > 2000) {
+              existing.messages = existing.messages.substring(0, 2000) + '... [truncated due to size limits]';
+            }
           }
           
           // Add new conversation IDs
@@ -276,6 +280,10 @@ export async function POST(request: Request) {
       } else {
         // CREATE new result
         const uniqueConvIds = [...new Set(entity.conversations.map(c => c.conversationId).filter(Boolean))];
+        // Truncate messages to avoid blob size limits (Vercel Blob has 4.5 MB limit)
+        const truncatedMessages = newMessages.length > 1500 
+          ? newMessages.substring(0, 1500) + '... [truncated]'
+          : newMessages;
         const result: ProcessedConversation = {
           id: entity.entityKey,
           conversationId: uniqueConvIds.join(','),
@@ -286,7 +294,7 @@ export async function POST(request: Request) {
           maidName: entity.maidName,
           clientName: entity.clientName,
           contractType: entity.contractType,
-          messages: newMessages,
+          messages: truncatedMessages,
           // Use values from incoming data (from n8n AI analysis)
           isOECProspect: entity.conversations[0].isOECProspect ?? false,
           isOECProspectConfidence: entity.conversations[0].isOECProspectConfidence,
