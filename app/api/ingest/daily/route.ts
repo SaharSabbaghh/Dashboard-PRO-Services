@@ -174,11 +174,13 @@ export async function POST(request: Request) {
     }>();
     
     for (const conv of body.conversations) {
-      if (!conv.messages) continue;
+      // Accept conversations even with empty messages (AI analysis is what matters)
       
-      // Determine entity key
+      // Determine entity key (prioritize contractId for better grouping)
       let entityKey = '';
-      if (conv.clientId) {
+      if (conv.contractId) {
+        entityKey = `contract_${conv.contractId}`;
+      } else if (conv.clientId) {
         entityKey = `client_${conv.clientId}`;
       } else if (conv.maidId) {
         entityKey = `maid_${conv.maidId}`;
@@ -222,9 +224,10 @@ export async function POST(request: Request) {
     
     // Convert entity map to results (merge with existing or create new)
     for (const [, entity] of entityMap) {
-      // Merge all new messages
+      // Merge all new messages (filter out empty ones)
       const newMessages = entity.conversations
-        .map(c => c.messages)
+        .map(c => c.messages || '')
+        .filter(msg => msg.trim().length > 0)
         .join('\n\n--- Next Conversation ---\n\n');
       
       if (entity.existingIndex !== null) {
@@ -240,11 +243,17 @@ export async function POST(request: Request) {
         );
         
         if (newConversations.length > 0) {
-          // Append only new messages
-          const newMessagesOnly = newConversations.map(c => c.messages).join('\n\n--- Next Conversation ---\n\n');
-          existing.messages = existing.messages 
-            ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessagesOnly
-            : newMessagesOnly;
+          // Append only new messages (filter empty ones)
+          const newMessagesOnly = newConversations
+            .map(c => c.messages || '')
+            .filter(msg => msg.trim().length > 0)
+            .join('\n\n--- Next Conversation ---\n\n');
+          
+          if (newMessagesOnly.trim().length > 0) {
+            existing.messages = existing.messages 
+              ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessagesOnly
+              : newMessagesOnly;
+          }
           
           // Add new conversation IDs
           for (const conv of newConversations) {
