@@ -5,6 +5,32 @@ import { normalizeDate, getEarliestDate } from '@/lib/date-utils';
 
 // Force Node.js runtime for blob storage operations
 export const runtime = 'nodejs';
+export const maxDuration = 60; // Allow up to 60 seconds for processing
+
+// Simple in-memory lock to prevent concurrent writes to same date
+const writeLocks = new Map<string, Promise<void>>();
+
+async function acquireWriteLock(date: string): Promise<() => void> {
+  // Wait for any existing write to complete
+  while (writeLocks.has(date)) {
+    await writeLocks.get(date);
+    // Small delay to ensure the lock is released
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
+  // Create new lock
+  let releaseFn: () => void;
+  const lockPromise = new Promise<void>((resolve) => {
+    releaseFn = resolve;
+  });
+  writeLocks.set(date, lockPromise);
+  
+  // Return release function
+  return () => {
+    writeLocks.delete(date);
+    releaseFn!();
+  };
+}
 
 /**
  * API Endpoint: POST /api/ingest/daily
@@ -105,6 +131,8 @@ interface IngestRequest {
 }
 
 export async function POST(request: Request) {
+  let releaseLock: (() => void) | null = null;
+  
   try {
     // Validate API key from Authorization header
     if (!verifyApiKey(request)) {
@@ -140,6 +168,11 @@ export async function POST(request: Request) {
     } else {
       console.log(`[Ingest Daily] Processing ${body.conversations.length} conversations for ${date}`);
     }
+    
+    // ACQUIRE LOCK to prevent concurrent writes to same date
+    console.log(`[Ingest Daily] Acquiring lock for ${date}...`);
+    releaseLock = await acquireWriteLock(date);
+    console.log(`[Ingest Daily] Lock acquired for ${date}`);
     
     // Get or create daily data
     const dailyData = await getOrCreateDailyData(date);
@@ -247,10 +280,6 @@ export async function POST(request: Request) {
             existing.messages = existing.messages 
               ? existing.messages + '\n\n--- Next Conversation ---\n\n' + newMessagesOnly
               : newMessagesOnly;
-            // Truncate if too long to avoid blob size limits
-            if (existing.messages.length > 2000) {
-              existing.messages = existing.messages.substring(0, 2000) + '... [truncated due to size limits]';
-            }
           }
           
           // Add new conversation IDs
@@ -280,10 +309,6 @@ export async function POST(request: Request) {
       } else {
         // CREATE new result
         const uniqueConvIds = [...new Set(entity.conversations.map(c => c.conversationId).filter(Boolean))];
-        // Truncate messages to avoid blob size limits (Vercel Blob has 4.5 MB limit)
-        const truncatedMessages = newMessages.length > 1500 
-          ? newMessages.substring(0, 1500) + '... [truncated]'
-          : newMessages;
         const result: ProcessedConversation = {
           id: entity.entityKey,
           conversationId: uniqueConvIds.join(','),
@@ -294,7 +319,7 @@ export async function POST(request: Request) {
           maidName: entity.maidName,
           clientName: entity.clientName,
           contractType: entity.contractType,
-          messages: truncatedMessages,
+          messages: newMessages,
           // Use values from incoming data (from n8n AI analysis)
           isOECProspect: entity.conversations[0].isOECProspect ?? false,
           isOECProspectConfidence: entity.conversations[0].isOECProspectConfidence,
@@ -360,6 +385,12 @@ export async function POST(request: Request) {
       { error: 'Failed to process daily data', details: String(error) },
       { status: 500 }
     );
+  } finally {
+    // ALWAYS release the lock
+    if (releaseLock) {
+      console.log(`[Ingest Daily] Releasing lock`);
+      releaseLock();
+    }
   }
 }
 
