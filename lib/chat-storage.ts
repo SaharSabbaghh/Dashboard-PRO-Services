@@ -522,3 +522,22 @@ export async function getLatestDelayTimeData(): Promise<DelayTimeData | null> {
     return null;
   }
 }
+
+/**
+ * Get delay time data for a specific date
+ */
+export async function getDailyDelayTimeData(date: string): Promise<DelayTimeData | null> {
+  try {
+    const response = await fetch(`${process.env.BLOB_READ_WRITE_TOKEN ? 'https://blob.vercel-storage.com' : ''}/delay-time/daily/${date}.json`);
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
+    return data as DelayTimeData;
+  } catch (error) {
+    console.error(`Error fetching delay time data for ${date}:`, error);
+    return null;
+  }
+}

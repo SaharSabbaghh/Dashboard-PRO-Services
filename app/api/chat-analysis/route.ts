@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { saveDailyChatAnalysisData, aggregateDailyChatAnalysisResults, getLatestChatAnalysisData } from '@/lib/chat-storage';
+import { saveDailyChatAnalysisData, aggregateDailyChatAnalysisResults, getLatestChatAnalysisData, getDailyChatAnalysisData } from '@/lib/chat-storage';
 import type { ChatAnalysisRequest, ChatAnalysisResponse, ChatAnalysisResult, ChatDataResponse } from '@/lib/chat-types';
 
 /**
@@ -146,18 +146,39 @@ export async function POST(request: Request): Promise<NextResponse<ChatAnalysisR
 }
 
 /**
- * GET - Retrieve latest chat analysis data for dashboard
+ * GET - Retrieve chat analysis data for dashboard
+ * Query params: ?date=YYYY-MM-DD (optional, defaults to latest)
  */
-export async function GET(): Promise<NextResponse<ChatDataResponse>> {
+export async function GET(request: Request): Promise<NextResponse<ChatDataResponse>> {
   try {
-    const data = await getLatestChatAnalysisData();
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+    
+    let data;
+    
+    if (date) {
+      // Validate date format
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Invalid date format. Use YYYY-MM-DD' 
+          },
+          { status: 400 }
+        );
+      }
+      
+      data = await getDailyChatAnalysisData(date);
+    } else {
+      data = await getLatestChatAnalysisData();
+    }
     
     if (!data) {
       return NextResponse.json({
         success: true,
         data: {
           lastUpdated: new Date().toISOString(),
-          analysisDate: new Date().toISOString().split('T')[0],
+          analysisDate: date || new Date().toISOString().split('T')[0],
           overallMetrics: {
             frustratedCount: 0,
             frustrationPercentage: 0,

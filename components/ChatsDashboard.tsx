@@ -44,23 +44,50 @@ const getTrendColor = (trend: string) => {
 // Classification and utility functions
 
 export default function ChatsDashboard() {
-  const [dateRange, setDateRange] = useState('Last 7 days');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [data, setData] = useState<ChatAnalysisData | null>(null);
   const [delayData, setDelayData] = useState<DelayTimeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch data from API
+  // Fetch available dates
   useEffect(() => {
+    const fetchDates = async () => {
+      try {
+        const res = await fetch('/api/chat-analysis/dates');
+        const result = await res.json();
+        if (result.success && result.dates) {
+          setAvailableDates(result.dates);
+          // Auto-select the most recent date
+          if (result.dates.length > 0 && !selectedDate) {
+            setSelectedDate(result.dates[result.dates.length - 1]);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching available dates:', err);
+      }
+    };
+
+    fetchDates();
+  }, []);
+
+  // Fetch data from API based on selected date
+  useEffect(() => {
+    if (!selectedDate) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        // Fetch both chat analysis and delay time data
+        // Fetch both chat analysis and delay time data for the selected date
         const [chatResponse, delayResponse] = await Promise.all([
-          fetch('/api/chat-analysis'),
-          fetch('/api/delay-time')
+          fetch(`/api/chat-analysis?date=${selectedDate}`),
+          fetch(`/api/delay-time?date=${selectedDate}`)
         ]);
         
         const chatResult = await chatResponse.json();
@@ -84,7 +111,7 @@ export default function ChatsDashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [selectedDate]);
 
   // Loading state
   if (isLoading) {
@@ -95,12 +122,71 @@ export default function ChatsDashboard() {
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
             <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
           </div>
+          {/* Date selector */}
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedDate || ''}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Date</option>
+              {availableDates.map((date) => (
+                <option key={date} value={date}>
+                  {new Date(date).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-slate-600">Loading chat analysis data...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No date selected state
+  if (!selectedDate) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
+            <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
+          </div>
+          {/* Date selector */}
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedDate || ''}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Date</option>
+              {availableDates.map((date) => (
+                <option key={date} value={date}>
+                  {new Date(date).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-slate-200">
+          <Calendar className="w-16 h-16 text-slate-300 mb-4" />
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Please Select a Date</h3>
+          <p className="text-sm text-slate-500 text-center max-w-sm">
+            Use the date picker above to select a date to view chat analysis data.
+          </p>
         </div>
       </div>
     );
@@ -115,12 +201,31 @@ export default function ChatsDashboard() {
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
             <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
           </div>
+          {/* Date selector */}
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedDate || ''}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Date</option>
+              {availableDates.map((date) => (
+                <option key={date} value={date}>
+                  {new Date(date).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertTriangle className="w-8 h-8 text-orange-500 mx-auto mb-4" />
             <p className="text-slate-600 mb-2">Unable to load chat data</p>
-            <p className="text-sm text-slate-500">{error || 'No data available'}</p>
+            <p className="text-sm text-slate-500">{error || 'No data available for this date'}</p>
           </div>
         </div>
       </div>
@@ -143,33 +248,36 @@ export default function ChatsDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
-          <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
+          <p className="text-slate-600 mt-1">
+            {selectedDate && `Data for ${new Date(selectedDate).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}`}
+          </p>
+        </div>
+        {/* Date selector */}
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedDate || ''}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">Select Date</option>
+            {availableDates.map((date) => (
+              <option key={date} value={date}>
+                {new Date(date).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Top Bar Filters */}
-      <div className="bg-white rounded-xl p-4 border border-slate-200">
-        <div className="max-w-xs">
-          {/* Date Range */}
-          <div className="relative">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Date Range</label>
-            <div className="relative">
-              <select 
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full appearance-none bg-white border border-slate-300 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option>Last 7 days</option>
-                <option>Last 14 days</option>
-                <option>Last 30 days</option>
-                <option>Last 90 days</option>
-                <option>Custom range</option>
-              </select>
-              <Calendar className="absolute right-2 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Top Bar Filters - Removed, date is now in header */}
 
       {/* Primary Metric Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
