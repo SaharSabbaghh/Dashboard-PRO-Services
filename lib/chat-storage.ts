@@ -4,10 +4,14 @@ import type {
   ChatAnalysisResult, 
   ChatTrendData, 
   ChatDriver, 
-  ChatInsight 
+  ChatInsight,
+  DelayTimeData,
+  AgentDelayRecord,
+  AgentDelayStats
 } from './chat-types';
 
 const CHAT_BLOB_PREFIX = 'chat-analysis';
+const DELAY_BLOB_PREFIX = 'delay-time';
 
 /**
  * Save daily chat analysis data to blob storage
@@ -357,5 +361,164 @@ export async function clearChatAnalysisData(): Promise<void> {
   } catch (error) {
     console.error('Error clearing chat analysis data:', error);
     throw error;
+  }
+}
+
+// ============================================================
+// DELAY TIME FUNCTIONS
+// ============================================================
+
+/**
+ * Parse delay time from DD:HH:MM:SS format to seconds
+ */
+function parseDelayToSeconds(delayStr: string): number {
+  const parts = delayStr.split(':').map(Number);
+  
+  if (parts.length === 4) {
+    const [days, hours, minutes, seconds] = parts;
+    return (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+  }
+  
+  return 0;
+}
+
+/**
+ * Format seconds to HH:MM:SS
+ */
+function formatSecondsToTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Calculate median from array of numbers
+ */
+function calculateMedian(numbers: number[]): number {
+  if (numbers.length === 0) return 0;
+  
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  
+  return sorted[mid];
+}
+
+/**
+ * Process and aggregate delay time records
+ */
+export function processDelayTimeRecords(
+  records: AgentDelayRecord[],
+  analysisDate: string
+): DelayTimeData {
+  if (records.length === 0) {
+    return {
+      lastUpdated: new Date().toISOString(),
+      analysisDate,
+      overallAvgDelaySeconds: 0,
+      overallAvgDelayFormatted: '00:00:00',
+      medianDelaySeconds: 0,
+      medianDelayFormatted: '00:00:00',
+      totalConversations: 0,
+      agentStats: [],
+    };
+  }
+
+  // Group by agent
+  const agentMap = new Map<string, { delays: number[], noReplyCount: number }>();
+  const allDelays: number[] = [];
+
+  records.forEach(record => {
+    const delaySeconds = parseDelayToSeconds(record.avgDelayDdHhMmSs);
+    allDelays.push(delaySeconds);
+
+    if (!agentMap.has(record.agentFullName)) {
+      agentMap.set(record.agentFullName, { delays: [], noReplyCount: 0 });
+    }
+
+    const agentData = agentMap.get(record.agentFullName)!;
+    agentData.delays.push(delaySeconds);
+    
+    if (record.endedWithConsumerNoReply.toLowerCase() === 'yes') {
+      agentData.noReplyCount++;
+    }
+  });
+
+  // Calculate overall metrics
+  const overallAvgDelaySeconds = Math.round(
+    allDelays.reduce((sum, d) => sum + d, 0) / allDelays.length
+  );
+  const medianDelaySeconds = Math.round(calculateMedian(allDelays));
+
+  // Calculate per-agent stats
+  const agentStats: AgentDelayStats[] = Array.from(agentMap.entries())
+    .map(([agentName, data]) => {
+      const avgDelaySeconds = Math.round(
+        data.delays.reduce((sum, d) => sum + d, 0) / data.delays.length
+      );
+      
+      return {
+        agentName,
+        avgDelaySeconds,
+        avgDelayFormatted: formatSecondsToTime(avgDelaySeconds),
+        conversationCount: data.delays.length,
+        noReplyCount: data.noReplyCount,
+      };
+    })
+    .sort((a, b) => b.avgDelaySeconds - a.avgDelaySeconds); // Sort by slowest first
+
+  return {
+    lastUpdated: new Date().toISOString(),
+    analysisDate,
+    overallAvgDelaySeconds,
+    overallAvgDelayFormatted: formatSecondsToTime(overallAvgDelaySeconds),
+    medianDelaySeconds,
+    medianDelayFormatted: formatSecondsToTime(medianDelaySeconds),
+    totalConversations: records.length,
+    agentStats,
+  };
+}
+
+/**
+ * Save delay time data to blob storage
+ */
+export async function saveDelayTimeData(data: DelayTimeData): Promise<void> {
+  // Save with date-specific filename
+  const dateBlobName = `${DELAY_BLOB_PREFIX}/daily/${data.analysisDate}.json`;
+  
+  await put(dateBlobName, JSON.stringify(data, null, 2), {
+    access: 'public',
+    contentType: 'application/json',
+  });
+  
+  // Also save as latest for dashboard
+  const latestBlobName = `${DELAY_BLOB_PREFIX}/latest.json`;
+  await put(latestBlobName, JSON.stringify(data, null, 2), {
+    access: 'public',
+    contentType: 'application/json',
+  });
+}
+
+/**
+ * Get the latest delay time data from blob storage
+ */
+export async function getLatestDelayTimeData(): Promise<DelayTimeData | null> {
+  try {
+    const response = await fetch(`${process.env.BLOB_READ_WRITE_TOKEN ? 'https://blob.vercel-storage.com' : ''}/delay-time/latest.json`);
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
+    return data as DelayTimeData;
+  } catch (error) {
+    console.error('Error fetching latest delay time data:', error);
+    return null;
   }
 }
