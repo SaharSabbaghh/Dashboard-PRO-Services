@@ -216,13 +216,18 @@ export default function ChatsDashboard() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const matchesId = conv.conversationId.toLowerCase().includes(query);
-      const matchesIssues = conv.mainIssues?.some(issue => issue.toLowerCase().includes(query));
-      const matchesPhrases = conv.keyPhrases?.some(phrase => phrase.toLowerCase().includes(query));
+      const matchesIssues = conv.mainIssues?.some(issue => issue && issue.toLowerCase().includes(query));
+      const matchesPhrases = conv.keyPhrases?.some(phrase => phrase && phrase.toLowerCase().includes(query));
       return matchesId || matchesIssues || matchesPhrases;
     }
     
     return true;
   });
+
+  // Helper function to check if array has valid content
+  const hasValidContent = (arr: string[] | undefined): boolean => {
+    return !!(arr && arr.length > 0 && arr.some(item => item && item.trim() !== ''));
+  };
 
   return (
     <div className="space-y-6">
@@ -448,52 +453,47 @@ export default function ChatsDashboard() {
                     </div>
 
                     {/* Main Issues */}
-                    {conversation.mainIssues && conversation.mainIssues.length > 0 && conversation.mainIssues[0] !== '' && (
+                    {hasValidContent(conversation.mainIssues) && (
                       <div className="mb-4">
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Issues</p>
                         <div className="flex flex-wrap gap-2">
-                          {conversation.mainIssues.map((issue, idx) => (
-                            issue && issue.trim() !== '' && (
-                              <div
-                                key={idx}
-                                className="flex items-start gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 group-hover:shadow-sm transition-shadow"
-                              >
-                                <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
-                                <span className="text-sm text-orange-900 font-medium leading-relaxed">
-                                  {issue}
-                                </span>
-                              </div>
-                            )
+                          {conversation.mainIssues!.filter(issue => issue && issue.trim() !== '').map((issue, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-start gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 group-hover:shadow-sm transition-shadow"
+                            >
+                              <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm text-orange-900 font-medium leading-relaxed">
+                                {issue}
+                              </span>
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
 
                     {/* Key Phrases */}
-                    {conversation.keyPhrases && conversation.keyPhrases.length > 0 && conversation.keyPhrases[0] !== '' && (
+                    {hasValidContent(conversation.keyPhrases) && (
                       <div>
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Key Phrases</p>
                         <div className="space-y-2">
-                          {conversation.keyPhrases.map((phrase, idx) => (
-                            phrase && phrase.trim() !== '' && (
-                              <div
-                                key={idx}
-                                className="flex gap-3 items-start pl-4 border-l-3 border-slate-300 group-hover:border-slate-400 transition-colors"
-                              >
-                                <span className="text-slate-400 text-lg leading-none">"</span>
-                                <p className="text-sm text-slate-700 italic leading-relaxed flex-1">
-                                  {phrase}
-                                </p>
-                              </div>
-                            )
+                          {conversation.keyPhrases!.filter(phrase => phrase && phrase.trim() !== '').map((phrase, idx) => (
+                            <div
+                              key={idx}
+                              className="flex gap-3 items-start pl-4 border-l-3 border-slate-300 group-hover:border-slate-400 transition-colors"
+                            >
+                              <span className="text-slate-400 text-lg leading-none">"</span>
+                              <p className="text-sm text-slate-700 italic leading-relaxed flex-1">
+                                {phrase}
+                              </p>
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
 
                     {/* No data message */}
-                    {(!conversation.mainIssues || conversation.mainIssues.length === 0 || conversation.mainIssues[0] === '') &&
-                     (!conversation.keyPhrases || conversation.keyPhrases.length === 0 || conversation.keyPhrases[0] === '') && (
+                    {!hasValidContent(conversation.mainIssues) && !hasValidContent(conversation.keyPhrases) && (
                       <p className="text-sm text-slate-400 italic">No issues or phrases recorded for this conversation</p>
                     )}
                   </div>
