@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, AlertTriangle } from 'lucide-react';
+import { Calendar, AlertTriangle, MessageSquare, Frown, HelpCircle, Clock, ChevronDown, Filter, Search } from 'lucide-react';
 import type { ChatAnalysisData, DelayTimeData } from '@/lib/chat-types';
 
 export default function ChatsDashboard() {
@@ -11,6 +11,8 @@ export default function ChatsDashboard() {
   const [delayData, setDelayData] = useState<DelayTimeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'frustrated' | 'confused'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch available dates
   useEffect(() => {
@@ -200,26 +202,48 @@ export default function ChatsDashboard() {
   const confusionPercentage = data.overallMetrics.confusionPercentage;
   const totalConversations = data.overallMetrics.totalConversations;
 
+  // Filter conversations based on selected filter and search
+  const filteredConversations = data.conversationResults.filter(conv => {
+    // Filter by status
+    if (filterStatus === 'frustrated' && !conv.frustrated) return false;
+    if (filterStatus === 'confused' && !conv.confused) return false;
+    
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesId = conv.conversationId.toLowerCase().includes(query);
+      const matchesIssues = conv.mainIssues?.some(issue => issue.toLowerCase().includes(query));
+      const matchesPhrases = conv.keyPhrases?.some(phrase => phrase.toLowerCase().includes(query));
+      return matchesId || matchesIssues || matchesPhrases;
+    }
+    
+    return true;
+  });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header with Date Selector */}
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
-          <p className="text-slate-600 mt-1">
-            {selectedDate && `Data for ${new Date(selectedDate).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}`}
-          </p>
+          <h1 className="text-3xl font-bold text-slate-900">Chat Analysis</h1>
+          {selectedDate && (
+            <p className="text-slate-500 mt-2 text-sm">
+              Showing data for {new Date(selectedDate).toLocaleDateString('en-US', { 
+                weekday: 'long',
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+          )}
         </div>
-        {/* Date selector */}
-        <div className="flex items-center gap-3">
+        
+        {/* Date Selector */}
+        <div className="relative">
           <select
             value={selectedDate || ''}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="appearance-none bg-white border-2 border-slate-200 rounded-xl px-4 py-3 pr-10 text-sm font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
           >
             <option value="">Select Date</option>
             {availableDates.map((date) => (
@@ -232,257 +256,383 @@ export default function ChatsDashboard() {
               </option>
             ))}
           </select>
+          <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
         </div>
       </div>
 
-      {/* Top Bar Filters - Removed, date is now in header */}
-
-      {/* Primary Metric Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Frustration Card */}
-        <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6">Frustrated Clients</h2>
-            <div className="text-6xl font-bold mb-2 text-red-600">
-              {frustrationPercentage}%
-            </div>
-            <div className="text-slate-500 text-lg">
-              {frustratedCount} of {totalConversations} conversations
-            </div>
+      {/* Stats Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Conversations */}
+        <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
+          <div className="flex items-center justify-between mb-3">
+            <MessageSquare className="w-8 h-8 text-slate-600" />
           </div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{totalConversations}</div>
+          <div className="text-sm font-medium text-slate-600">Total Conversations</div>
         </div>
 
-        {/* Confusion Card */}
-        <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6">Confused Clients</h2>
-            <div className="text-6xl font-bold mb-2 text-blue-600">
-              {confusionPercentage}%
-            </div>
-            <div className="text-slate-500 text-lg">
-              {confusedCount} of {totalConversations} conversations
-            </div>
+        {/* Frustrated Clients */}
+        <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-6 border border-red-200">
+          <div className="flex items-center justify-between mb-3">
+            <Frown className="w-8 h-8 text-red-600" />
+            <span className="text-2xl font-bold text-red-600">{frustrationPercentage}%</span>
           </div>
+          <div className="text-3xl font-bold text-red-900 mb-1">{frustratedCount}</div>
+          <div className="text-sm font-medium text-red-700">Frustrated Clients</div>
         </div>
 
-        {/* Average Delay Time Card */}
-        <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6">Avg Reply Time</h2>
-            <div className="mb-6">
-              {delayData ? (
-                <>
-                  <div className="text-6xl font-bold mb-2 text-green-600">
-                    {delayData.overallAvgDelayFormatted}
-                  </div>
-                  <div className="text-slate-500 text-lg">
-                    {delayData.agentStats.length} agents, {delayData.totalConversations} records
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-4xl font-bold mb-2 text-slate-400">
-                    No Data
-                  </div>
-                  <div className="text-slate-500 text-sm">
-                    No delay time data available
-                  </div>
-                </>
-              )}
-            </div>
-            {delayData && delayData.medianDelayFormatted && (
-              <div className="text-sm text-slate-600">
-                Median: <span className="font-medium text-slate-800">{delayData.medianDelayFormatted}</span>
-              </div>
-            )}
+        {/* Confused Clients */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+          <div className="flex items-center justify-between mb-3">
+            <HelpCircle className="w-8 h-8 text-blue-600" />
+            <span className="text-2xl font-bold text-blue-600">{confusionPercentage}%</span>
           </div>
+          <div className="text-3xl font-bold text-blue-900 mb-1">{confusedCount}</div>
+          <div className="text-sm font-medium text-blue-700">Confused Clients</div>
+        </div>
+
+        {/* Average Reply Time */}
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+          <div className="flex items-center justify-between mb-3">
+            <Clock className="w-8 h-8 text-green-600" />
+          </div>
+          {delayData ? (
+            <>
+              <div className="text-3xl font-bold text-green-900 mb-1">{delayData.overallAvgDelayFormatted}</div>
+              <div className="text-sm font-medium text-green-700">Avg Reply Time</div>
+              <div className="text-xs text-green-600 mt-2">Median: {delayData.medianDelayFormatted}</div>
+            </>
+          ) : (
+            <>
+              <div className="text-2xl font-bold text-slate-400 mb-1">—</div>
+              <div className="text-sm font-medium text-slate-500">No delay data</div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Conversation Records Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <div className="flex items-center justify-between">
+      {/* Conversations Section */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        {/* Header with Filters and Search */}
+        <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-slate-800">Conversation Records</h3>
+              <h3 className="text-xl font-bold text-slate-900">Conversations</h3>
               <p className="text-sm text-slate-600 mt-1">
-                {data.conversationResults.length} conversations analyzed
+                Showing {filteredConversations.length} of {data.conversationResults.length} conversations
               </p>
             </div>
-            <div className="flex gap-2">
-              <button className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100">
-                All ({data.conversationResults.length})
-              </button>
-              <button className="px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100">
-                Frustrated ({frustratedCount})
-              </button>
-              <button className="px-3 py-1.5 text-sm rounded-lg border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
-                Confused ({confusedCount})
-              </button>
+            
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                />
+              </div>
+              
+              {/* Filter Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    filterStatus === 'all'
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  All ({data.conversationResults.length})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('frustrated')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    filterStatus === 'frustrated'
+                      ? 'bg-red-600 text-white shadow-md'
+                      : 'bg-red-50 text-red-700 hover:bg-red-100'
+                  }`}
+                >
+                  <Frown className="w-4 h-4 inline mr-1" />
+                  Frustrated ({frustratedCount})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('confused')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    filterStatus === 'confused'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
+                  <HelpCircle className="w-4 h-4 inline mr-1" />
+                  Confused ({confusedCount})
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="max-h-[600px] overflow-y-auto">
-            <div className="divide-y divide-slate-100">
-              {data.conversationResults.map((conversation, index) => (
-                <div
-                  key={conversation.conversationId}
-                  className="p-6 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Status Indicators */}
-                    <div className="flex flex-col gap-2 pt-1">
-                      {conversation.frustrated && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                          <AlertTriangle className="w-3 h-3" />
-                          Frustrated
-                        </span>
-                      )}
-                      {conversation.confused && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                          <AlertTriangle className="w-3 h-3" />
-                          Confused
-                        </span>
-                      )}
-                      {!conversation.frustrated && !conversation.confused && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          ✓ OK
-                        </span>
-                      )}
+        {/* Conversations List */}
+        <div className="divide-y divide-slate-100 max-h-[700px] overflow-y-auto">
+          {filteredConversations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <MessageSquare className="w-16 h-16 text-slate-300 mb-4" />
+              <p className="text-slate-500 text-lg font-medium">No conversations found</p>
+              <p className="text-slate-400 text-sm">Try adjusting your filters or search query</p>
+            </div>
+          ) : (
+            filteredConversations.map((conversation, index) => (
+              <div
+                key={conversation.conversationId}
+                className="p-6 hover:bg-slate-50 transition-colors group"
+              >
+                <div className="flex gap-6">
+                  {/* Left: Status Badge */}
+                  <div className="flex-shrink-0">
+                    {conversation.frustrated && conversation.confused ? (
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg">
+                        <AlertTriangle className="w-6 h-6 text-white" />
+                      </div>
+                    ) : conversation.frustrated ? (
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
+                        <Frown className="w-6 h-6 text-white" />
+                      </div>
+                    ) : conversation.confused ? (
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                        <HelpCircle className="w-6 h-6 text-white" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                        <MessageSquare className="w-6 h-6 text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Header Row */}
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                      <span className="font-mono text-sm font-semibold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">
+                        {conversation.conversationId}
+                      </span>
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(conversation.analysisDate).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                      
+                      {/* Status Pills */}
+                      <div className="flex gap-2">
+                        {conversation.frustrated && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                            <Frown className="w-3 h-3" />
+                            Frustrated
+                          </span>
+                        )}
+                        {conversation.confused && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                            <HelpCircle className="w-3 h-3" />
+                            Confused
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Conversation Details */}
-                    <div className="flex-1 min-w-0">
-                      {/* Conversation ID and Date */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <h4 className="font-mono text-sm font-medium text-slate-700">
-                          {conversation.conversationId}
-                        </h4>
-                        <span className="text-xs text-slate-500">
-                          {new Date(conversation.analysisDate).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-
-                      {/* Main Issues */}
-                      {conversation.mainIssues && conversation.mainIssues.length > 0 && conversation.mainIssues[0] !== '' && (
-                        <div className="mb-3">
-                          <p className="text-xs font-semibold text-slate-600 mb-2">Main Issues:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {conversation.mainIssues.map((issue, idx) => (
-                              issue && issue.trim() !== '' && (
-                                <span
-                                  key={idx}
-                                  className="inline-block px-3 py-1 rounded-lg text-sm bg-orange-50 text-orange-800 border border-orange-200"
-                                >
+                    {/* Main Issues */}
+                    {conversation.mainIssues && conversation.mainIssues.length > 0 && conversation.mainIssues[0] !== '' && (
+                      <div className="mb-4">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Issues</p>
+                        <div className="flex flex-wrap gap-2">
+                          {conversation.mainIssues.map((issue, idx) => (
+                            issue && issue.trim() !== '' && (
+                              <div
+                                key={idx}
+                                className="flex items-start gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 group-hover:shadow-sm transition-shadow"
+                              >
+                                <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                                <span className="text-sm text-orange-900 font-medium leading-relaxed">
                                   {issue}
                                 </span>
-                              )
-                            ))}
-                          </div>
+                              </div>
+                            )
+                          ))}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Key Phrases */}
-                      {conversation.keyPhrases && conversation.keyPhrases.length > 0 && conversation.keyPhrases[0] !== '' && (
-                        <div>
-                          <p className="text-xs font-semibold text-slate-600 mb-2">Key Phrases:</p>
-                          <div className="space-y-1">
-                            {conversation.keyPhrases.map((phrase, idx) => (
-                              phrase && phrase.trim() !== '' && (
-                                <div
-                                  key={idx}
-                                  className="text-sm text-slate-700 italic pl-3 border-l-2 border-slate-300"
-                                >
-                                  "{phrase}"
-                                </div>
-                              )
-                            ))}
-                          </div>
+                    {/* Key Phrases */}
+                    {conversation.keyPhrases && conversation.keyPhrases.length > 0 && conversation.keyPhrases[0] !== '' && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Key Phrases</p>
+                        <div className="space-y-2">
+                          {conversation.keyPhrases.map((phrase, idx) => (
+                            phrase && phrase.trim() !== '' && (
+                              <div
+                                key={idx}
+                                className="flex gap-3 items-start pl-4 border-l-3 border-slate-300 group-hover:border-slate-400 transition-colors"
+                              >
+                                <span className="text-slate-400 text-lg leading-none">"</span>
+                                <p className="text-sm text-slate-700 italic leading-relaxed flex-1">
+                                  {phrase}
+                                </p>
+                              </div>
+                            )
+                          ))}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* No data message */}
-                      {(!conversation.mainIssues || conversation.mainIssues.length === 0 || conversation.mainIssues[0] === '') &&
-                       (!conversation.keyPhrases || conversation.keyPhrases.length === 0 || conversation.keyPhrases[0] === '') && (
-                        <p className="text-sm text-slate-400 italic">No issues or phrases recorded</p>
-                      )}
-                    </div>
+                    {/* No data message */}
+                    {(!conversation.mainIssues || conversation.mainIssues.length === 0 || conversation.mainIssues[0] === '') &&
+                     (!conversation.keyPhrases || conversation.keyPhrases.length === 0 || conversation.keyPhrases[0] === '') && (
+                      <p className="text-sm text-slate-400 italic">No issues or phrases recorded for this conversation</p>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Agent Delay Time Breakdown */}
+      {/* Agent Performance Breakdown */}
       {delayData && delayData.agentStats && delayData.agentStats.length > 0 && (
-        <div className="bg-white rounded-xl p-6 border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Agent Response Times</h3>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Agent Performance</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  Response time breakdown by agent
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-slate-400" />
+                <span className="text-sm font-medium text-slate-600">
+                  {delayData.agentStats.length} Agents
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
+              <thead className="bg-slate-50">
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Agent Name</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Avg Delay</th>
-                  <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Conversations</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Performance</th>
+                  <th className="text-left py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Rank
+                  </th>
+                  <th className="text-left py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Agent Name
+                  </th>
+                  <th className="text-center py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Avg Response
+                  </th>
+                  <th className="text-center py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Conversations
+                  </th>
+                  <th className="text-left py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Performance
+                  </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {delayData.agentStats
                   .sort((a, b) => a.avgDelaySeconds - b.avgDelaySeconds)
-                  .slice(0, 10)
-                  .map((agent, index) => (
-                  <tr key={agent.agentName} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          index === 0 ? 'bg-green-500' : 
-                          index <= 2 ? 'bg-blue-500' : 
-                          'bg-slate-400'
-                        }`}></div>
-                        <span className="font-medium text-slate-800">{agent.agentName}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="font-semibold text-slate-700">{agent.avgDelayFormatted}</span>
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-600">
-                      {agent.conversationCount}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-32 bg-slate-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${
-                              index === 0 ? 'bg-green-500' : 
-                              index <= 2 ? 'bg-blue-500' : 
-                              'bg-slate-400'
-                            }`}
-                            style={{ 
-                              width: `${Math.min(100, (delayData.overallAvgDelaySeconds / agent.avgDelaySeconds) * 100)}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                  .slice(0, 15)
+                  .map((agent, index) => {
+                    const isTopPerformer = index < 3;
+                    const performanceScore = Math.min(100, (delayData.overallAvgDelaySeconds / agent.avgDelaySeconds) * 100);
+                    
+                    return (
+                      <tr key={agent.agentName} className="hover:bg-slate-50 transition-colors group">
+                        <td className="py-4 px-6">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                            index === 0 
+                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-yellow-900 shadow-lg' 
+                              : index === 1 
+                              ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-slate-900 shadow-md' 
+                              : index === 2
+                              ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-orange-900 shadow-md'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {index + 1}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm ${
+                              isTopPerformer 
+                                ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg' 
+                                : 'bg-gradient-to-br from-slate-400 to-slate-500'
+                            }`}>
+                              {agent.agentName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">
+                              {agent.agentName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                            <Clock className="w-4 h-4 text-slate-500" />
+                            <span className="font-bold text-slate-900 text-sm">{agent.avgDelayFormatted}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className="inline-flex items-center justify-center w-12 h-8 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
+                            {agent.conversationCount}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner">
+                              <div 
+                                className={`h-3 rounded-full transition-all duration-500 ${
+                                  performanceScore >= 100 
+                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+                                    : performanceScore >= 80 
+                                    ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                                    : performanceScore >= 60
+                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
+                                    : 'bg-gradient-to-r from-red-500 to-red-600'
+                                }`}
+                                style={{ width: `${performanceScore}%` }}
+                              ></div>
+                            </div>
+                            <span className={`font-bold text-sm min-w-[60px] text-right ${
+                              performanceScore >= 100 
+                                ? 'text-green-600' 
+                                : performanceScore >= 80 
+                                ? 'text-blue-600'
+                                : performanceScore >= 60
+                                ? 'text-yellow-600'
+                                : 'text-red-600'
+                            }`}>
+                              {performanceScore >= 100 ? 'Excellent' : performanceScore >= 80 ? 'Good' : performanceScore >= 60 ? 'Average' : 'Slow'}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
-          {delayData.agentStats.length > 10 && (
-            <p className="text-sm text-slate-500 mt-4 text-center">
-              Showing top 10 agents. Total: {delayData.agentStats.length} agents
-            </p>
+          
+          {delayData.agentStats.length > 15 && (
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
+              <p className="text-sm text-slate-600 text-center">
+                Showing top 15 of {delayData.agentStats.length} agents
+              </p>
+            </div>
           )}
         </div>
       )}
