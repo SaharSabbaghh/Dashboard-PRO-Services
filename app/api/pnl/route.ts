@@ -382,7 +382,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ 
           error: 'No P&L files found',
           source: 'excel',
-          hasComplaintsData,
+          hasPaymentData,
         }, { status: 404 });
       }
 
