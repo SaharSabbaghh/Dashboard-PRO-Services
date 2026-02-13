@@ -159,8 +159,10 @@ export async function GET(): Promise<NextResponse<ChatDataResponse>> {
           lastUpdated: new Date().toISOString(),
           analysisDate: new Date().toISOString().split('T')[0],
           overallMetrics: {
-            frustrationScore: 0,
-            confusionScore: 0,
+            frustratedCount: 0,
+            frustrationPercentage: 0,
+            confusedCount: 0,
+            confusionPercentage: 0,
             totalConversations: 0,
             analysedConversations: 0,
           },
