@@ -20,9 +20,10 @@ import AgentsDashboard from '@/components/AgentsDashboard';
 import type { Results, ServiceFilter } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
-interface PnLComplaintsInfo {
+interface PaymentInfo {
   lastUpdated: string;
-  rawComplaintsCount: number;
+  totalPayments: number;
+  receivedPayments: number;
   summary: {
     totalUniqueSales: number;
     totalUniqueClients: number;
@@ -31,7 +32,7 @@ interface PnLComplaintsInfo {
   serviceBreakdown: Record<string, {
     uniqueSales: number;
     uniqueClients: number;
-    totalComplaints: number;
+    totalPayments: number;
     byMonth: Record<string, number>;
   }>;
 }
@@ -47,8 +48,8 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [pnlData, setPnlData] = useState<AggregatedPnL | null>(null);
   const [pnlLoading, setPnlLoading] = useState(false);
-  const [pnlSource, setPnlSource] = useState<'complaints' | 'excel' | 'none'>('none');
-  const [pnlComplaintsInfo, setPnlComplaintsInfo] = useState<PnLComplaintsInfo | null>(null);
+  const [pnlSource, setPnlSource] = useState<'payments' | 'excel' | 'none'>('none');
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
   const [pnlStartDate, setPnlStartDate] = useState<string | null>(null);
   const [pnlEndDate, setPnlEndDate] = useState<string | null>(null);
   const [pnlAvailableMonths, setPnlAvailableMonths] = useState<string[]>([]);
@@ -200,10 +201,10 @@ export default function Dashboard() {
       if (data.aggregated) {
         setPnlData(data.aggregated);
         setPnlSource(data.source || 'none');
-        if (data.complaintsData) {
-          setPnlComplaintsInfo(data.complaintsData);
+        if (data.paymentData) {
+          setPaymentInfo(data.paymentData);
         } else {
-          setPnlComplaintsInfo(null);
+          setPaymentInfo(null);
         }
         // Use availableMonths from API (always from original data)
         if (data.availableMonths) {
@@ -507,7 +508,7 @@ export default function Dashboard() {
               </div>
 
             {/* Data Source Indicator */}
-            {pnlSource === 'complaints' && pnlComplaintsInfo && (
+            {pnlSource === 'payments' && paymentInfo && (
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -517,27 +518,27 @@ export default function Dashboard() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-emerald-800">Live Complaints Data</p>
+                      <p className="text-sm font-semibold text-emerald-800">Live Payment Data</p>
                       <p className="text-xs text-emerald-600">
-                        Updated {new Date(pnlComplaintsInfo.lastUpdated).toLocaleString()}
+                        Updated {new Date(paymentInfo.lastUpdated).toLocaleString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-6 text-sm">
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.rawComplaintsCount.toLocaleString()}</p>
-                      <p className="text-xs text-emerald-600">Total Complaints</p>
+                      <p className="text-2xl font-bold text-emerald-700">{paymentInfo.totalPayments.toLocaleString()}</p>
+                      <p className="text-xs text-emerald-600">Total Payments</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.summary.totalUniqueSales.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-emerald-700">{paymentInfo.summary.totalUniqueSales.toLocaleString()}</p>
                       <p className="text-xs text-emerald-600">Unique Sales</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.summary.totalUniqueClients.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-emerald-700">{paymentInfo.summary.totalUniqueClients.toLocaleString()}</p>
                       <p className="text-xs text-emerald-600">Unique Clients</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-emerald-700">{pnlComplaintsInfo.summary.totalUniqueContracts.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-emerald-700">{paymentInfo.summary.totalUniqueContracts.toLocaleString()}</p>
                       <p className="text-xs text-emerald-600">Unique Contracts</p>
                     </div>
                   </div>
@@ -569,8 +570,8 @@ export default function Dashboard() {
                 <PnLSummaryCards data={pnlData} isLoading={pnlLoading} />
                 <PnLServiceChart data={pnlData} />
                 
-                {/* Monthly Sales Breakdown - Only show for complaints data */}
-                {pnlSource === 'complaints' && pnlComplaintsInfo && (
+                {/* Monthly Sales Breakdown - Only show for payment data */}
+                {pnlSource === 'payments' && paymentInfo && (
                   <div className="bg-white rounded-xl border-2 border-gray-600 overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-100">
                       <h3 className="text-base font-semibold text-slate-800">Sales by Month (Per Service)</h3>
@@ -581,7 +582,7 @@ export default function Dashboard() {
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-slate-600">Service</th>
                             {Object.keys(
-                              Object.values(pnlComplaintsInfo.serviceBreakdown)
+                              Object.values(paymentInfo.serviceBreakdown)
                                 .reduce((acc, s) => ({ ...acc, ...s.byMonth }), {})
                             ).sort().map(month => (
                               <th key={month} className="px-3 py-2 text-right font-semibold text-slate-600">
@@ -592,11 +593,11 @@ export default function Dashboard() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {Object.entries(pnlComplaintsInfo.serviceBreakdown)
+                          {Object.entries(paymentInfo.serviceBreakdown)
                             .filter(([, data]) => data.uniqueSales > 0)
                             .map(([key, data]) => {
                               const allMonths = Object.keys(
-                                Object.values(pnlComplaintsInfo.serviceBreakdown)
+                                Object.values(paymentInfo.serviceBreakdown)
                                   .reduce((acc, s) => ({ ...acc, ...s.byMonth }), {})
                               ).sort();
                               return (
@@ -622,10 +623,10 @@ export default function Dashboard() {
                           <tr>
                             <td className="px-3 py-2 text-slate-800">Total</td>
                             {Object.keys(
-                              Object.values(pnlComplaintsInfo.serviceBreakdown)
+                              Object.values(paymentInfo.serviceBreakdown)
                                 .reduce((acc, s) => ({ ...acc, ...s.byMonth }), {})
                             ).sort().map(month => {
-                              const monthTotal = Object.values(pnlComplaintsInfo.serviceBreakdown)
+                              const monthTotal = Object.values(paymentInfo.serviceBreakdown)
                                 .reduce((sum, s) => sum + (s.byMonth[month] || 0), 0);
                               return (
                                 <td key={month} className="px-3 py-2 text-right text-slate-800">
@@ -634,7 +635,7 @@ export default function Dashboard() {
                               );
                             })}
                             <td className="px-3 py-2 text-right text-slate-800">
-                              {pnlComplaintsInfo.summary.totalUniqueSales}
+                              {paymentInfo.summary.totalUniqueSales}
                             </td>
                           </tr>
                         </tfoot>

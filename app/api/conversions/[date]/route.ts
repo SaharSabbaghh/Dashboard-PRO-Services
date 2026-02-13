@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDailyDataBlob } from '@/lib/blob-storage';
-import { getPnLComplaintsDataAsync } from '@/lib/pnl-complaints-processor';
+import { getPaymentData, filterPaymentsByDate } from '@/lib/payment-processor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,7 @@ interface ConversionResult {
     owwa: boolean;
     travelVisa: boolean;
   };
-  complaintDates: {
+  paymentDates: {
     oec?: string[];
     owwa?: string[];
     travelVisa?: string[];
@@ -23,8 +23,8 @@ interface ConversionResult {
 /**
  * GET /api/conversions/[date]
  * 
- * Checks which prospects converted based on complaints data for a specific date.
- * Returns conversions that happened on that date only.
+ * Checks which prospects converted based on payment data for a specific date.
+ * Returns conversions (RECEIVED payments) that happened on that date only.
  */
 export async function GET(
   request: Request,
@@ -39,25 +39,52 @@ export async function GET(
       return NextResponse.json({ error: 'No data for this date' }, { status: 404 });
     }
     
-    // Get complaints data
-    const complaintsData = await getPnLComplaintsDataAsync();
-    if (!complaintsData) {
+    // Get payment data
+    const paymentData = await getPaymentData();
+    if (!paymentData) {
       return NextResponse.json({ 
         conversions: [],
-        message: 'No complaints data available'
+        message: 'No payment data available'
       });
     }
     
-    const conversions: ConversionResult[] = [];
-    const dateStart = new Date(date + 'T00:00:00Z');
-    const dateEnd = new Date(date + 'T23:59:59Z');
+    // Filter payments for this specific date (only RECEIVED payments)
+    const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
     
-    // For each prospect conversation, check if it appears in complaints
+    // Create a lookup map for faster searching: contractId -> Set of services
+    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa'>>();
+    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa', string[]>>();
+    
+    datePayments.forEach(payment => {
+      if (!paymentMap.has(payment.contractId)) {
+        paymentMap.set(payment.contractId, new Set());
+        paymentDatesMap.set(payment.contractId, new Map());
+      }
+      
+      const services = paymentMap.get(payment.contractId)!;
+      const dates = paymentDatesMap.get(payment.contractId)!;
+      
+      if (payment.service === 'oec' || payment.service === 'owwa' || payment.service === 'travel_visa') {
+        services.add(payment.service);
+        
+        if (!dates.has(payment.service)) {
+          dates.set(payment.service, []);
+        }
+        dates.get(payment.service)!.push(payment.dateOfPayment);
+      }
+    });
+    
+    const conversions: ConversionResult[] = [];
+    
+    // For each prospect conversation, check if it has a payment
     for (const result of dailyData.results) {
       if (!result.contractId) continue;
       
       const isProspect = result.isOECProspect || result.isOWWAProspect || result.isTravelVisaProspect;
       if (!isProspect) continue;
+      
+      const paidServices = paymentMap.get(result.contractId);
+      if (!paidServices || paidServices.size === 0) continue;
       
       const conversion: ConversionResult = {
         contractId: result.contractId,
@@ -66,105 +93,27 @@ export async function GET(
           owwa: false,
           travelVisa: false,
         },
-        complaintDates: {},
+        paymentDates: {},
       };
       
-      // Check OEC complaints
-      if (result.isOECProspect) {
-        const oecSale = complaintsData.services.oec.sales.find(
-          s => s.contractId === result.contractId
-        );
-        if (oecSale) {
-          // Check if any complaint date matches the specified date
-          const datesOnThisDay = oecSale.complaintDates.filter(complaintDate => {
-            const d = new Date(complaintDate);
-            return d >= dateStart && d <= dateEnd;
-          });
-          if (datesOnThisDay.length > 0) {
-            conversion.services.oec = true;
-            conversion.complaintDates.oec = datesOnThisDay;
-          }
-        }
+      const contractDates = paymentDatesMap.get(result.contractId)!;
+      
+      // Check OEC payment
+      if (result.isOECProspect && paidServices.has('oec')) {
+        conversion.services.oec = true;
+        conversion.paymentDates.oec = contractDates.get('oec') || [];
       }
       
-      // Check OWWA complaints
-      if (result.isOWWAProspect) {
-        const owwaSale = complaintsData.services.owwa.sales.find(
-          s => s.contractId === result.contractId
-        );
-        if (owwaSale) {
-          const datesOnThisDay = owwaSale.complaintDates.filter(complaintDate => {
-            const d = new Date(complaintDate);
-            return d >= dateStart && d <= dateEnd;
-          });
-          if (datesOnThisDay.length > 0) {
-            conversion.services.owwa = true;
-            conversion.complaintDates.owwa = datesOnThisDay;
-          }
-        }
+      // Check OWWA payment
+      if (result.isOWWAProspect && paidServices.has('owwa')) {
+        conversion.services.owwa = true;
+        conversion.paymentDates.owwa = contractDates.get('owwa') || [];
       }
       
-      // Check Travel Visa complaints (TTL, TTE, TTJ based on countries)
-      if (result.isTravelVisaProspect && result.travelVisaCountries.length > 0) {
-        const countries = result.travelVisaCountries.map(c => c.toLowerCase());
-        let hasConversion = false;
-        const visaDates: string[] = [];
-        
-        // Check TTL (Lebanon)
-        if (countries.includes('lebanon')) {
-          const ttlSale = complaintsData.services.ttl.sales.find(
-            s => s.contractId === result.contractId
-          );
-          if (ttlSale) {
-            const datesOnThisDay = ttlSale.complaintDates.filter(complaintDate => {
-              const d = new Date(complaintDate);
-              return d >= dateStart && d <= dateEnd;
-            });
-            if (datesOnThisDay.length > 0) {
-              hasConversion = true;
-              visaDates.push(...datesOnThisDay);
-            }
-          }
-        }
-        
-        // Check TTE (Egypt)
-        if (countries.includes('egypt')) {
-          const tteSale = complaintsData.services.tte.sales.find(
-            s => s.contractId === result.contractId
-          );
-          if (tteSale) {
-            const datesOnThisDay = tteSale.complaintDates.filter(complaintDate => {
-              const d = new Date(complaintDate);
-              return d >= dateStart && d <= dateEnd;
-            });
-            if (datesOnThisDay.length > 0) {
-              hasConversion = true;
-              visaDates.push(...datesOnThisDay);
-            }
-          }
-        }
-        
-        // Check TTJ (Jordan)
-        if (countries.includes('jordan')) {
-          const ttjSale = complaintsData.services.ttj.sales.find(
-            s => s.contractId === result.contractId
-          );
-          if (ttjSale) {
-            const datesOnThisDay = ttjSale.complaintDates.filter(complaintDate => {
-              const d = new Date(complaintDate);
-              return d >= dateStart && d <= dateEnd;
-            });
-            if (datesOnThisDay.length > 0) {
-              hasConversion = true;
-              visaDates.push(...datesOnThisDay);
-            }
-          }
-        }
-        
-        if (hasConversion) {
-          conversion.services.travelVisa = true;
-          conversion.complaintDates.travelVisa = visaDates;
-        }
+      // Check Travel Visa payment
+      if (result.isTravelVisaProspect && paidServices.has('travel_visa')) {
+        conversion.services.travelVisa = true;
+        conversion.paymentDates.travelVisa = contractDates.get('travel_visa') || [];
       }
       
       // Only add if there was a conversion

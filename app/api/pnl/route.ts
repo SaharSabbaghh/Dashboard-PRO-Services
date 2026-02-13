@@ -3,10 +3,9 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
-import { getPnLComplaintsDataAsync } from '@/lib/pnl-complaints-processor';
+import { getPaymentData } from '@/lib/payment-processor';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
-import type { PnLServiceKey, PnLComplaintsData } from '@/lib/pnl-complaints-types';
-import { ALL_SERVICE_KEYS } from '@/lib/pnl-complaints-types';
+import type { ProcessedPayment } from '@/lib/payment-types';
 
 // Force Node.js runtime for filesystem access (required for fs operations)
 export const runtime = 'nodejs';
@@ -14,100 +13,163 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Filter complaints data by date range and recalculate volumes
-function filterComplaintsDataByDate(
-  data: PnLComplaintsData,
+// Service keys for P&L
+type PnLServiceKey = 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP';
+const ALL_SERVICE_KEYS: PnLServiceKey[] = ['oec', 'owwa', 'ttl', 'tte', 'ttj', 'schengen', 'gcc', 'ethiopianPP', 'filipinaPP'];
+
+interface PaymentInfo {
+  lastUpdated: string;
+  totalPayments: number;
+  receivedPayments: number;
+  summary: {
+    totalUniqueSales: number;
+    totalUniqueClients: number;
+    totalUniqueContracts: number;
+    totalRevenue: number; // Sum of all payment amounts
+  };
+  serviceBreakdown: Record<string, {
+    uniqueSales: number;
+    uniqueClients: number;
+    totalPayments: number;
+    totalRevenue: number; // Sum of payment amounts for this service
+    avgRevenue: number; // Average payment amount
+    byMonth: Record<string, number>;
+  }>;
+}
+
+// Filter payment data by date range and recalculate volumes and revenues
+function filterPaymentsDataByDate(
+  payments: ProcessedPayment[],
   startDate?: string,
   endDate?: string
-): { volumes: Record<PnLServiceKey, number>; filteredData: PnLComplaintsData } {
-  if (!startDate && !endDate) {
-    // No filter, return original volumes
-    const volumes: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
-    for (const key of ALL_SERVICE_KEYS) {
-      volumes[key] = data.services[key].uniqueSales;
-    }
-    return { volumes, filteredData: data };
-  }
-
+): { volumes: Record<PnLServiceKey, number>; revenues: Record<PnLServiceKey, number>; paymentInfo: PaymentInfo } {
   const start = startDate ? new Date(startDate) : new Date(0);
   const end = endDate ? new Date(endDate + 'T23:59:59') : new Date('9999-12-31');
 
-  // Calculate filtered volumes by counting sales within date range
-  const volumes: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
-  const filteredByMonth: Record<PnLServiceKey, Record<string, number>> = {} as Record<PnLServiceKey, Record<string, number>>;
-  let totalFilteredSales = 0;
-  let totalFilteredComplaints = 0;
+  // Filter payments by date and status
+  const filteredPayments = payments.filter(p => {
+    if (p.status !== 'received') return false;
+    const paymentDate = new Date(p.dateOfPayment);
+    return paymentDate >= start && paymentDate <= end;
+  });
+
+  // Calculate volumes by service
+  const volumes: Record<PnLServiceKey, number> = {
+    oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
+    schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
+  };
+  
+  const revenues: Record<PnLServiceKey, number> = {
+    oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
+    schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
+  };
+  
+  const serviceBreakdown: Record<string, {
+    uniqueSales: number;
+    uniqueClients: number;
+    totalPayments: number;
+    totalRevenue: number;
+    avgRevenue: number;
+    byMonth: Record<string, number>;
+    contracts: Set<string>;
+    clients: Set<string>;
+  }> = {};
+
+  // Initialize service breakdown
+  ALL_SERVICE_KEYS.forEach(key => {
+    serviceBreakdown[key] = {
+      uniqueSales: 0,
+      uniqueClients: 0,
+      totalPayments: 0,
+      totalRevenue: 0,
+      avgRevenue: 0,
+      byMonth: {},
+      contracts: new Set(),
+      clients: new Set(),
+    };
+  });
+
   const uniqueClients = new Set<string>();
   const uniqueContracts = new Set<string>();
+  let totalRevenue = 0;
 
-  for (const key of ALL_SERVICE_KEYS) {
-    volumes[key] = 0;
-    filteredByMonth[key] = {};
-    const service = data.services[key];
+  // Process each payment
+  filteredPayments.forEach(payment => {
+    let serviceKey: PnLServiceKey | null = null;
 
-    for (const sale of service.sales) {
-      const saleDate = new Date(sale.firstSaleDate);
-      if (saleDate >= start && saleDate <= end) {
-        volumes[key]++;
-        totalFilteredSales++;
-        
-        if (sale.clientId) uniqueClients.add(sale.clientId);
-        if (sale.contractId) uniqueContracts.add(sale.contractId);
-
-        // Count by month
-        const monthKey = sale.firstSaleDate.substring(0, 7);
-        filteredByMonth[key][monthKey] = (filteredByMonth[key][monthKey] || 0) + 1;
-
-        // Count complaints in range
-        for (const dateStr of sale.complaintDates) {
-          const date = new Date(dateStr);
-          if (date >= start && date <= end) {
-            totalFilteredComplaints++;
-          }
-        }
+    // Map payment service to P&L service key
+    if (payment.service === 'oec') {
+      serviceKey = 'oec';
+    } else if (payment.service === 'owwa') {
+      serviceKey = 'owwa';
+    } else if (payment.service === 'travel_visa') {
+      // Map travel visa to specific destination (default to TTL for now)
+      // In the future, we could parse payment type to determine destination
+      const paymentTypeLower = payment.paymentType.toLowerCase();
+      if (paymentTypeLower.includes('lebanon')) {
+        serviceKey = 'ttl';
+      } else if (paymentTypeLower.includes('egypt')) {
+        serviceKey = 'tte';
+      } else if (paymentTypeLower.includes('jordan')) {
+        serviceKey = 'ttj';
+      } else {
+        // Default to TTL if destination unclear
+        serviceKey = 'ttl';
       }
     }
-  }
 
-  // Create filtered data structure
-  const filteredData: PnLComplaintsData = {
-    ...data,
-    rawComplaintsCount: totalFilteredComplaints,
+    if (serviceKey) {
+      volumes[serviceKey]++;
+      revenues[serviceKey] += payment.amountOfPayment;
+      totalRevenue += payment.amountOfPayment;
+      
+      if (payment.clientId) {
+        uniqueClients.add(payment.clientId);
+        serviceBreakdown[serviceKey].clients.add(payment.clientId);
+      }
+      if (payment.contractId) {
+        uniqueContracts.add(payment.contractId);
+        serviceBreakdown[serviceKey].contracts.add(payment.contractId);
+      }
+
+      // Count by month
+      const monthKey = payment.dateOfPayment.substring(0, 7); // "YYYY-MM"
+      serviceBreakdown[serviceKey].byMonth[monthKey] = 
+        (serviceBreakdown[serviceKey].byMonth[monthKey] || 0) + 1;
+      serviceBreakdown[serviceKey].totalPayments++;
+      serviceBreakdown[serviceKey].totalRevenue += payment.amountOfPayment;
+    }
+  });
+
+  // Finalize service breakdown
+  const finalServiceBreakdown: PaymentInfo['serviceBreakdown'] = {};
+  ALL_SERVICE_KEYS.forEach(key => {
+    const service = serviceBreakdown[key];
+    finalServiceBreakdown[key] = {
+      uniqueSales: service.contracts.size,
+      uniqueClients: service.clients.size,
+      totalPayments: service.totalPayments,
+      totalRevenue: service.totalRevenue,
+      avgRevenue: service.contracts.size > 0 ? service.totalRevenue / service.contracts.size : 0,
+      byMonth: service.byMonth,
+    };
+    volumes[key] = service.contracts.size; // Use unique contracts as volume
+  });
+
+  const paymentInfo: PaymentInfo = {
+    lastUpdated: new Date().toISOString(),
+    totalPayments: filteredPayments.length,
+    receivedPayments: filteredPayments.length,
     summary: {
-      totalUniqueSales: totalFilteredSales,
+      totalUniqueSales: uniqueContracts.size,
       totalUniqueClients: uniqueClients.size,
       totalUniqueContracts: uniqueContracts.size,
+      totalRevenue,
     },
-    services: {} as PnLComplaintsData['services'],
+    serviceBreakdown: finalServiceBreakdown,
   };
 
-  for (const key of ALL_SERVICE_KEYS) {
-    filteredData.services[key] = {
-      ...data.services[key],
-      uniqueSales: volumes[key],
-      byMonth: filteredByMonth[key],
-      uniqueClients: new Set(
-        data.services[key].sales
-          .filter(s => {
-            const d = new Date(s.firstSaleDate);
-            return d >= start && d <= end;
-          })
-          .map(s => s.clientId)
-          .filter(Boolean)
-      ).size,
-      uniqueContracts: new Set(
-        data.services[key].sales
-          .filter(s => {
-            const d = new Date(s.firstSaleDate);
-            return d >= start && d <= end;
-          })
-          .map(s => s.contractId)
-          .filter(Boolean)
-      ).size,
-    };
-  }
-
-  return { volumes, filteredData };
+  return { volumes, revenues, paymentInfo };
 }
 
 const PNL_DIR = path.join(process.cwd(), 'P&L');
@@ -151,7 +213,30 @@ const SERVICE_KEY_MAP: Record<PnLServiceKey, keyof AggregatedPnL['services']> = 
   filipinaPP: 'filipinaPP',
 };
 
-// Create service P&L from complaint-derived volume
+// Create service P&L from actual payment revenue
+function createServiceFromRevenue(
+  name: string, 
+  volume: number, 
+  actualRevenue: number,
+  unitCost: number
+): ServicePnL {
+  const totalRevenue = actualRevenue;
+  const totalCost = volume * unitCost;
+  const grossProfit = totalRevenue - totalCost;
+  const avgPrice = volume > 0 ? actualRevenue / volume : 0;
+  
+  return {
+    name,
+    volume,
+    price: avgPrice, // Average price from actual payments
+    serviceFees: 0,
+    totalRevenue,
+    totalCost,
+    grossProfit,
+  };
+}
+
+// Create service P&L from fixed unit price (fallback for when no payment amount data)
 function createServiceFromVolume(
   name: string, 
   volume: number, 
@@ -176,24 +261,30 @@ function createServiceFromVolume(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const source = searchParams.get('source') || 'auto'; // 'auto', 'complaints', 'excel'
+    const source = searchParams.get('source') || 'auto'; // 'auto', 'payments', 'excel'
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
     
-    // Try to get complaint-derived data first
-    const complaintsData = await getPnLComplaintsDataAsync();
-    const hasComplaintsData = complaintsData && complaintsData.summary.totalUniqueSales > 0;
+    // Try to get payment data first
+    const paymentData = await getPaymentData();
+    const hasPaymentData = paymentData && paymentData.totalPayments > 0;
     
     // Apply date filter if provided
     let volumes: Record<PnLServiceKey, number>;
-    let filteredComplaintsData: PnLComplaintsData | null = complaintsData;
+    let revenues: Record<PnLServiceKey, number>;
+    let paymentInfo: PaymentInfo | null = null;
     
-    if (hasComplaintsData && complaintsData) {
-      const filtered = filterComplaintsDataByDate(complaintsData, startDate, endDate);
+    if (hasPaymentData && paymentData) {
+      const filtered = filterPaymentsDataByDate(paymentData.payments, startDate, endDate);
       volumes = filtered.volumes;
-      filteredComplaintsData = filtered.filteredData;
+      revenues = filtered.revenues;
+      paymentInfo = filtered.paymentInfo;
     } else {
       volumes = {
+        oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
+        schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
+      };
+      revenues = {
         oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
         schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
       };
@@ -204,14 +295,14 @@ export async function GET(request: Request) {
       fs.readdirSync(PNL_DIR).some(f => f.endsWith('.xlsx') || f.endsWith('.xls'));
     
     // Determine which source to use
-    const useComplaints = source === 'complaints' || 
-      (source === 'auto' && hasComplaintsData);
+    const usePayments = source === 'payments' || 
+      (source === 'auto' && hasPaymentData);
     const useExcel = source === 'excel' || 
-      (source === 'auto' && !hasComplaintsData && hasExcelFiles);
+      (source === 'auto' && !hasPaymentData && hasExcelFiles);
     
-    // If using complaints data
-    if (useComplaints && hasComplaintsData) {
-      // Build P&L from complaint-derived volumes
+    // If using payment data
+    if (usePayments && hasPaymentData && paymentInfo) {
+      // Build P&L from actual payment revenues
       const serviceNames: Record<PnLServiceKey, string> = {
         oec: 'OEC',
         owwa: 'OWWA',
@@ -224,16 +315,17 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
+      // Use actual revenue from payments (not fixed prices)
       const services: AggregatedPnL['services'] = {
-        oec: createServiceFromVolume(serviceNames.oec, volumes.oec, SERVICE_PRICES.oec, SERVICE_UNIT_COSTS.oec),
-        owwa: createServiceFromVolume(serviceNames.owwa, volumes.owwa, SERVICE_PRICES.owwa, SERVICE_UNIT_COSTS.owwa),
-        ttl: createServiceFromVolume(serviceNames.ttl, volumes.ttl, SERVICE_PRICES.ttl, SERVICE_UNIT_COSTS.ttl),
-        tte: createServiceFromVolume(serviceNames.tte, volumes.tte, SERVICE_PRICES.tte, SERVICE_UNIT_COSTS.tte),
-        ttj: createServiceFromVolume(serviceNames.ttj, volumes.ttj, SERVICE_PRICES.ttj, SERVICE_UNIT_COSTS.ttj),
-        schengen: createServiceFromVolume(serviceNames.schengen, volumes.schengen, SERVICE_PRICES.schengen, SERVICE_UNIT_COSTS.schengen),
-        gcc: createServiceFromVolume(serviceNames.gcc, volumes.gcc, SERVICE_PRICES.gcc, SERVICE_UNIT_COSTS.gcc),
-        ethiopianPP: createServiceFromVolume(serviceNames.ethiopianPP, volumes.ethiopianPP, SERVICE_PRICES.ethiopianPP, SERVICE_UNIT_COSTS.ethiopianPP),
-        filipinaPP: createServiceFromVolume(serviceNames.filipinaPP, volumes.filipinaPP, SERVICE_PRICES.filipinaPP, SERVICE_UNIT_COSTS.filipinaPP),
+        oec: createServiceFromRevenue(serviceNames.oec, volumes.oec, revenues.oec, SERVICE_UNIT_COSTS.oec),
+        owwa: createServiceFromRevenue(serviceNames.owwa, volumes.owwa, revenues.owwa, SERVICE_UNIT_COSTS.owwa),
+        ttl: createServiceFromRevenue(serviceNames.ttl, volumes.ttl, revenues.ttl, SERVICE_UNIT_COSTS.ttl),
+        tte: createServiceFromRevenue(serviceNames.tte, volumes.tte, revenues.tte, SERVICE_UNIT_COSTS.tte),
+        ttj: createServiceFromRevenue(serviceNames.ttj, volumes.ttj, revenues.ttj, SERVICE_UNIT_COSTS.ttj),
+        schengen: createServiceFromRevenue(serviceNames.schengen, volumes.schengen, revenues.schengen, SERVICE_UNIT_COSTS.schengen),
+        gcc: createServiceFromRevenue(serviceNames.gcc, volumes.gcc, revenues.gcc, SERVICE_UNIT_COSTS.gcc),
+        ethiopianPP: createServiceFromRevenue(serviceNames.ethiopianPP, volumes.ethiopianPP, revenues.ethiopianPP, SERVICE_UNIT_COSTS.ethiopianPP),
+        filipinaPP: createServiceFromRevenue(serviceNames.filipinaPP, volumes.filipinaPP, revenues.filipinaPP, SERVICE_UNIT_COSTS.filipinaPP),
       };
       
       const totalRevenue = Object.values(services).reduce((sum, s) => sum + s.totalRevenue, 0);
@@ -249,7 +341,7 @@ export async function GET(request: Request) {
       };
       
       const aggregated: AggregatedPnL = {
-        files: ['complaints-data'],
+        files: ['payment-data'],
         services,
         summary: {
           totalRevenue,
@@ -260,35 +352,20 @@ export async function GET(request: Request) {
         },
       };
       
-      // Collect all available months from original data for the date picker
+      // Collect all available months from payment data for the date picker
       const allAvailableMonths = new Set<string>();
-      for (const key of ALL_SERVICE_KEYS) {
-        Object.keys(complaintsData!.services[key].byMonth).forEach(month => {
+      Object.values(paymentInfo.serviceBreakdown).forEach(service => {
+        Object.keys(service.byMonth).forEach(month => {
           allAvailableMonths.add(month);
         });
-      }
+      });
 
       return NextResponse.json({
-        source: 'complaints',
+        source: 'payments',
         aggregated,
         dateFilter: startDate || endDate ? { startDate, endDate } : null,
         availableMonths: Array.from(allAvailableMonths).sort(),
-        complaintsData: {
-          lastUpdated: complaintsData!.lastUpdated,
-          rawComplaintsCount: filteredComplaintsData!.rawComplaintsCount,
-          summary: filteredComplaintsData!.summary,
-          serviceBreakdown: Object.fromEntries(
-            Object.entries(filteredComplaintsData!.services).map(([key, service]) => [
-              key,
-              {
-                uniqueSales: service.uniqueSales,
-                uniqueClients: service.uniqueClients,
-                totalComplaints: service.totalComplaints,
-                byMonth: service.byMonth,
-              }
-            ])
-          ),
-        },
+        paymentData: paymentInfo,
         files: null,
         fileCount: 0,
       });
@@ -341,9 +418,9 @@ export async function GET(request: Request) {
     
     // No data available
     return NextResponse.json({
-      error: 'No P&L data available. Upload complaints via /api/ingest/pnl-complaints or add Excel files to P&L directory.',
+      error: 'No P&L data available. Upload payments via /api/ingest/payments or add Excel files to P&L directory.',
       source: 'none',
-      hasComplaintsData: false,
+      hasPaymentData: false,
       hasExcelFiles: false,
     }, { status: 404 });
     

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
-import { getPnLComplaintsDataAsync } from '@/lib/pnl-complaints-processor';
+import { getPaymentData, filterPaymentsByDate } from '@/lib/payment-processor';
 
 // Force Node.js runtime for blob storage operations
 export const runtime = 'nodejs';
@@ -8,15 +8,15 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Helper function to check conversions from complaints data
+// Helper function to check conversions from payment data
 async function calculateConversionsForDate(date: string, contractIds: string[]) {
-  const complaintsData = await getPnLComplaintsDataAsync();
-  if (!complaintsData || contractIds.length === 0) {
+  const paymentData = await getPaymentData();
+  if (!paymentData || contractIds.length === 0) {
     return { oec: 0, owwa: 0, travelVisa: 0 };
   }
   
-  const dateStart = new Date(date + 'T00:00:00Z');
-  const dateEnd = new Date(date + 'T23:59:59Z');
+  // Filter payments for this specific date (only RECEIVED payments)
+  const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
   
   const convertedContracts = {
     oec: new Set<string>(),
@@ -24,43 +24,15 @@ async function calculateConversionsForDate(date: string, contractIds: string[]) 
     travelVisa: new Set<string>(),
   };
   
-  // Check OEC
-  for (const sale of complaintsData.services.oec.sales) {
-    if (contractIds.includes(sale.contractId)) {
-      const hasComplaintOnDate = sale.complaintDates.some(d => {
-        const complaintDate = new Date(d);
-        return complaintDate >= dateStart && complaintDate <= dateEnd;
-      });
-      if (hasComplaintOnDate) {
-        convertedContracts.oec.add(sale.contractId);
-      }
-    }
-  }
-  
-  // Check OWWA
-  for (const sale of complaintsData.services.owwa.sales) {
-    if (contractIds.includes(sale.contractId)) {
-      const hasComplaintOnDate = sale.complaintDates.some(d => {
-        const complaintDate = new Date(d);
-        return complaintDate >= dateStart && complaintDate <= dateEnd;
-      });
-      if (hasComplaintOnDate) {
-        convertedContracts.owwa.add(sale.contractId);
-      }
-    }
-  }
-  
-  // Check Travel Visa (TTL, TTE, TTJ)
-  for (const serviceKey of ['ttl', 'tte', 'ttj'] as const) {
-    for (const sale of complaintsData.services[serviceKey].sales) {
-      if (contractIds.includes(sale.contractId)) {
-        const hasComplaintOnDate = sale.complaintDates.some(d => {
-          const complaintDate = new Date(d);
-          return complaintDate >= dateStart && complaintDate <= dateEnd;
-        });
-        if (hasComplaintOnDate) {
-          convertedContracts.travelVisa.add(sale.contractId);
-        }
+  // Check each payment on this date
+  for (const payment of datePayments) {
+    if (contractIds.includes(payment.contractId)) {
+      if (payment.service === 'oec') {
+        convertedContracts.oec.add(payment.contractId);
+      } else if (payment.service === 'owwa') {
+        convertedContracts.owwa.add(payment.contractId);
+      } else if (payment.service === 'travel_visa') {
+        convertedContracts.travelVisa.add(payment.contractId);
       }
     }
   }
@@ -105,7 +77,7 @@ export async function GET(
       .filter(p => p.contractId)
       .map(p => p.contractId);
     
-    // Calculate conversions from complaints data (only for this date)
+    // Calculate conversions from payment data (only for this date)
     const conversions = await calculateConversionsForDate(date, prospectContractIds);
     
     // Calculate summary counts
