@@ -204,6 +204,10 @@ export default function ChatsDashboard() {
 
   // Filter conversations based on selected filter and search
   const filteredConversations = data.conversationResults.filter(conv => {
+    // Only show frustrated or confused conversations (exclude neutral ones)
+    const hasIssue = conv.frustrated || conv.confused;
+    if (!hasIssue) return false;
+    
     // Filter by status
     if (filterStatus === 'frustrated' && !conv.frustrated) return false;
     if (filterStatus === 'confused' && !conv.confused) return false;
@@ -317,9 +321,9 @@ export default function ChatsDashboard() {
         <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-900">Conversations</h3>
+              <h3 className="text-xl font-bold text-slate-900">Problem Conversations</h3>
               <p className="text-sm text-slate-600 mt-1">
-                Showing {filteredConversations.length} of {data.conversationResults.length} conversations
+                Showing {filteredConversations.length} frustrated or confused conversations
               </p>
             </div>
             
@@ -346,7 +350,7 @@ export default function ChatsDashboard() {
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  All ({data.conversationResults.length})
+                  All Issues ({data.conversationResults.filter(c => c.frustrated || c.confused).length})
                 </button>
                 <button
                   onClick={() => setFilterStatus('frustrated')}
@@ -380,8 +384,10 @@ export default function ChatsDashboard() {
           {filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <MessageSquare className="w-16 h-16 text-slate-300 mb-4" />
-              <p className="text-slate-500 text-lg font-medium">No conversations found</p>
-              <p className="text-slate-400 text-sm">Try adjusting your filters or search query</p>
+              <p className="text-slate-500 text-lg font-medium">No problem conversations found</p>
+              <p className="text-slate-400 text-sm">
+                {searchQuery ? 'Try adjusting your search query' : 'All conversations are running smoothly! 🎉'}
+              </p>
             </div>
           ) : (
             filteredConversations.map((conversation, index) => (
@@ -400,13 +406,9 @@ export default function ChatsDashboard() {
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
                         <Frown className="w-6 h-6 text-white" />
                       </div>
-                    ) : conversation.confused ? (
+                    ) : (
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
                         <HelpCircle className="w-6 h-6 text-white" />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
-                        <MessageSquare className="w-6 h-6 text-white" />
                       </div>
                     )}
                   </div>
