@@ -478,7 +478,7 @@ export default function ChatsDashboard() {
                       </span>
                       
                       {/* Status Pills */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         {conversation.frustrated && (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
                             <Frown className="w-3 h-3" />
@@ -489,6 +489,20 @@ export default function ChatsDashboard() {
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
                             <HelpCircle className="w-3 h-3" />
                             Confused
+                          </span>
+                        )}
+                        
+                        {/* Service Tag */}
+                        {conversation.service && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                            {conversation.service}
+                          </span>
+                        )}
+                        
+                        {/* Skill Tag */}
+                        {conversation.skill && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                            {conversation.skill}
                           </span>
                         )}
                       </div>

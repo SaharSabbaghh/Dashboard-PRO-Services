@@ -107,6 +107,8 @@ export async function POST(request: Request): Promise<NextResponse<ChatAnalysisR
         confused: Boolean(conv.confused),
         mainIssues: Array.isArray(conv.mainIssues) ? conv.mainIssues : [],
         keyPhrases: Array.isArray(conv.keyPhrases) ? conv.keyPhrases : [],
+        service: conv.service,
+        skill: conv.skill,
         maidId: conv.maidId,
         clientId: conv.clientId,
         contractId: conv.contractId,

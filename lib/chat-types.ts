@@ -7,6 +7,8 @@ export interface ChatAnalysisResult {
   mainIssues: string[];
   keyPhrases: string[];
   analysisDate: string;
+  service?: string; // Service type (e.g., "OEC", "travel to leb")
+  skill?: string; // Skill/team (e.g., "VBC_RESOLVERS_AGENTS")
 }
 
 export interface ChatTrendData {
@@ -76,6 +78,8 @@ export interface ChatAnalysisRequest {
     confused: boolean; // Is the customer confused?
     mainIssues: string[]; // Issues identified by LLM (1 primary problem)
     keyPhrases: string[]; // Key phrases extracted by LLM
+    service?: string; // Service type (e.g., "OEC", "travel to leb")
+    skill?: string; // Skill/team (e.g., "VBC_RESOLVERS_AGENTS")
     maidId?: string;
     clientId?: string;
     contractId?: string;
