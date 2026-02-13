@@ -150,6 +150,8 @@ export async function aggregateDailyChatAnalysisResults(
     mainIssues: string[];
     keyPhrases: string[];
     chatStartDateTime?: string;
+    service?: string;
+    skill?: string;
   }>,
   analysisDate: string
 ): Promise<ChatAnalysisData> {
@@ -177,6 +179,8 @@ export async function aggregateDailyChatAnalysisResults(
     mainIssues: conv.mainIssues,
     keyPhrases: conv.keyPhrases,
     analysisDate: conv.chatStartDateTime || new Date().toISOString(),
+    service: conv.service,
+    skill: conv.skill,
   }));
 
   // Get historical trend data for the last 14 days
