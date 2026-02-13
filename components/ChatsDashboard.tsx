@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle, Clock } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, BarChart, Bar, CartesianGrid, Legend } from 'recharts';
-import type { ChatAnalysisData } from '@/lib/chat-types';
+import type { ChatAnalysisData, DelayTimeData } from '@/lib/chat-types';
 
 const getScoreClassification = (score: number) => {
   if (score <= 30) return { label: 'Low', color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' };
@@ -46,6 +46,7 @@ const getTrendColor = (trend: string) => {
 export default function ChatsDashboard() {
   const [dateRange, setDateRange] = useState('Last 7 days');
   const [data, setData] = useState<ChatAnalysisData | null>(null);
+  const [delayData, setDelayData] = useState<DelayTimeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,13 +57,23 @@ export default function ChatsDashboard() {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch('/api/chat-analysis');
-        const result = await response.json();
+        // Fetch both chat analysis and delay time data
+        const [chatResponse, delayResponse] = await Promise.all([
+          fetch('/api/chat-analysis'),
+          fetch('/api/delay-time')
+        ]);
         
-        if (result.success && result.data) {
-          setData(result.data);
+        const chatResult = await chatResponse.json();
+        const delayResult = await delayResponse.json();
+        
+        if (chatResult.success && chatResult.data) {
+          setData(chatResult.data);
         } else {
-          setError(result.error || 'Failed to fetch data');
+          setError(chatResult.error || 'Failed to fetch data');
+        }
+        
+        if (delayResult.success && delayResult.data) {
+          setDelayData(delayResult.data);
         }
       } catch (err) {
         setError('Network error occurred');
@@ -161,7 +172,7 @@ export default function ChatsDashboard() {
       </div>
 
       {/* Primary Metric Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Frustration Level Card */}
         <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
           <div className="text-center">
@@ -217,6 +228,46 @@ export default function ChatsDashboard() {
                 {Math.abs(confusionPercentage - previousConfusion)}% from previous period)
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Average Delay Time Card */}
+        <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-slate-800 mb-6">Avg Reply Time</h2>
+            
+            {/* Delay Display */}
+            <div className="mb-6">
+              {delayData ? (
+                <>
+                  <div className="text-6xl font-bold mb-2 text-green-600">
+                    {delayData.overallAvgDelayFormatted}
+                  </div>
+                  <div className="text-slate-500 text-lg">
+                    {delayData.agentStats.length} agents, {delayData.totalConversations} records
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl font-bold mb-2 text-slate-400">
+                    No Data
+                  </div>
+                  <div className="text-slate-500 text-sm">
+                    No delay time data available
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Trend/Info Indicator */}
+            {delayData && delayData.medianDelayFormatted && (
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-slate-600">Median:</span>
+                <span className="font-medium text-slate-800">
+                  {delayData.medianDelayFormatted}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -441,6 +492,71 @@ export default function ChatsDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Agent Delay Time Breakdown */}
+      {delayData && delayData.agentStats && delayData.agentStats.length > 0 && (
+        <div className="bg-white rounded-xl p-6 border border-slate-200">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">Agent Response Times</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Agent Name</th>
+                  <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Avg Delay</th>
+                  <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Conversations</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Performance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {delayData.agentStats
+                  .sort((a, b) => a.avgDelaySeconds - b.avgDelaySeconds)
+                  .slice(0, 10)
+                  .map((agent, index) => (
+                  <tr key={agent.agentName} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          index === 0 ? 'bg-green-500' : 
+                          index <= 2 ? 'bg-blue-500' : 
+                          'bg-slate-400'
+                        }`}></div>
+                        <span className="font-medium text-slate-800">{agent.agentName}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="font-semibold text-slate-700">{agent.avgDelayFormatted}</span>
+                    </td>
+                    <td className="py-3 px-4 text-center text-slate-600">
+                      {agent.conversationCount}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-32 bg-slate-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              index === 0 ? 'bg-green-500' : 
+                              index <= 2 ? 'bg-blue-500' : 
+                              'bg-slate-400'
+                            }`}
+                            style={{ 
+                              width: `${Math.min(100, (delayData.overallAvgDelaySeconds / agent.avgDelaySeconds) * 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {delayData.agentStats.length > 10 && (
+            <p className="text-sm text-slate-500 mt-4 text-center">
+              Showing top 10 agents. Total: {delayData.agentStats.length} agents
+            </p>
+          )}
+        </div>
+      )}
 
     </div>
   );

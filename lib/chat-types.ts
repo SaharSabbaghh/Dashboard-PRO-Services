@@ -100,3 +100,47 @@ export interface ChatDataResponse {
   data?: ChatAnalysisData;
   error?: string;
 }
+
+// Delay Time Types
+export interface AgentDelayRecord {
+  startDate: string;
+  agentFullName: string;
+  lastSkill: string;
+  avgDelayDdHhMmSs: string; // Format: DD:HH:MM:SS
+  endedWithConsumerNoReply: string; // "Yes" or "No"
+}
+
+export interface AgentDelayStats {
+  agentName: string;
+  avgDelaySeconds: number;
+  avgDelayFormatted: string; // HH:MM:SS format
+  conversationCount: number;
+  noReplyCount: number;
+}
+
+export interface DelayTimeData {
+  lastUpdated: string;
+  analysisDate: string;
+  overallAvgDelaySeconds: number;
+  overallAvgDelayFormatted: string; // HH:MM:SS format
+  medianDelaySeconds: number;
+  medianDelayFormatted: string;
+  totalConversations: number;
+  agentStats: AgentDelayStats[];
+}
+
+export interface DelayTimeRequest {
+  analysisDate: string;
+  records: AgentDelayRecord[];
+}
+
+export interface DelayTimeResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    analysisId: string;
+    processedRecords: number;
+    analysisDate: string;
+  };
+  error?: string;
+}
