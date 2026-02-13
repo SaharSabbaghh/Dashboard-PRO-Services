@@ -126,12 +126,6 @@ export default function ChatsDashboard() {
   const previousFrustration = data.trends.frustration.previous;
   const previousConfusion = data.trends.confusion.previous;
 
-  const frustrationClassification = getScoreClassification(frustrationPercentage);
-  const frustrationRiskLevel = getRiskLevel(frustrationPercentage);
-  
-  const confusionClassification = getScoreClassification(confusionPercentage);
-  const confusionRiskLevel = getRiskLevel(confusionPercentage);
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -175,28 +169,11 @@ export default function ChatsDashboard() {
             
             {/* Percentage Display */}
             <div className="mb-6">
-              <div className={`text-6xl font-bold mb-2 ${frustrationClassification.color}`}>
+              <div className="text-6xl font-bold mb-2 text-red-600">
                 {frustrationPercentage}%
               </div>
               <div className="text-slate-500 text-lg">
                 {frustratedCount} of {data.overallMetrics.totalConversations} conversations
-              </div>
-            </div>
-
-            {/* Classification and Risk Level */}
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className={`px-4 py-2 rounded-full border ${frustrationClassification.bgColor} ${frustrationClassification.borderColor}`}>
-                <span className={`font-medium ${frustrationClassification.color}`}>
-                  {frustrationClassification.label}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">Risk:</span>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${frustrationRiskLevel.color}`}></div>
-                  <span className="font-medium text-slate-800">{frustrationRiskLevel.label}</span>
-                </div>
               </div>
             </div>
 
@@ -221,28 +198,11 @@ export default function ChatsDashboard() {
             
             {/* Percentage Display */}
             <div className="mb-6">
-              <div className={`text-6xl font-bold mb-2 ${confusionClassification.color}`}>
+              <div className="text-6xl font-bold mb-2 text-blue-600">
                 {confusionPercentage}%
               </div>
               <div className="text-slate-500 text-lg">
                 {confusedCount} of {data.overallMetrics.totalConversations} conversations
-              </div>
-            </div>
-
-            {/* Classification and Risk Level */}
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className={`px-4 py-2 rounded-full border ${confusionClassification.bgColor} ${confusionClassification.borderColor}`}>
-                <span className={`font-medium ${confusionClassification.color}`}>
-                  {confusionClassification.label}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">Risk:</span>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${confusionRiskLevel.color}`}></div>
-                  <span className="font-medium text-slate-800">{confusionRiskLevel.label}</span>
-                </div>
               </div>
             </div>
 
