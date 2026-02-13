@@ -66,13 +66,21 @@ export async function GET(request: Request) {
         );
       }
       
-      // Fetch specific date
+      // Fetch specific date using list + fetch pattern
       try {
-        const blobUrl = `${process.env.BLOB_READ_WRITE_TOKEN ? 'https://blob.vercel-storage.com' : ''}/delay-time/daily/${date}.json`;
-        const response = await fetch(blobUrl);
-        
-        if (response.ok) {
-          delayData = await response.json();
+        const { blobs } = await list({
+          prefix: `delay-time/daily/${date}.json`,
+        });
+
+        if (blobs.length === 0) {
+          delayData = null;
+        } else {
+          const response = await fetch(blobs[0].url);
+          if (response.ok) {
+            delayData = await response.json();
+          } else {
+            delayData = null;
+          }
         }
       } catch (error) {
         console.error(`Error fetching delay time data for ${date}:`, error);
