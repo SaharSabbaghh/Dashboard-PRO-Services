@@ -202,8 +202,27 @@ export default function ChatsDashboard() {
   const confusionPercentage = data.overallMetrics.confusionPercentage;
   const totalConversations = data.overallMetrics.totalConversations;
 
+  // Deduplicate conversations by conversation ID, keeping the one with most data
+  const deduplicatedConversations = data.conversationResults.reduce((acc, conv) => {
+    const existing = acc.get(conv.conversationId);
+    
+    if (!existing) {
+      acc.set(conv.conversationId, conv);
+    } else {
+      // Keep the one with more data (issues or phrases)
+      const existingHasData = (existing.mainIssues?.length || 0) + (existing.keyPhrases?.length || 0);
+      const currentHasData = (conv.mainIssues?.length || 0) + (conv.keyPhrases?.length || 0);
+      
+      if (currentHasData > existingHasData) {
+        acc.set(conv.conversationId, conv);
+      }
+    }
+    
+    return acc;
+  }, new Map<string, typeof data.conversationResults[0]>());
+
   // Filter conversations based on selected filter and search
-  const filteredConversations = data.conversationResults.filter(conv => {
+  const filteredConversations = Array.from(deduplicatedConversations.values()).filter(conv => {
     // Only show frustrated or confused conversations (exclude neutral ones)
     const hasIssue = conv.frustrated || conv.confused;
     if (!hasIssue) return false;
@@ -245,11 +264,11 @@ export default function ChatsDashboard() {
               })}
             </p>
           )}
-        </div>
-        
+      </div>
+
         {/* Date Selector */}
-        <div className="relative">
-          <select
+            <div className="relative">
+              <select 
             value={selectedDate || ''}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="appearance-none bg-white border-2 border-slate-200 rounded-xl px-4 py-3 pr-10 text-sm font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
@@ -264,7 +283,7 @@ export default function ChatsDashboard() {
                 })}
               </option>
             ))}
-          </select>
+              </select>
           <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
         </div>
       </div>
@@ -275,11 +294,11 @@ export default function ChatsDashboard() {
         <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <MessageSquare className="w-8 h-8 text-slate-600" />
-          </div>
+              </div>
           <div className="text-3xl font-bold text-slate-900 mb-1">{totalConversations}</div>
           <div className="text-sm font-medium text-slate-600">Total Conversations</div>
-        </div>
-
+              </div>
+              
         {/* Frustrated Clients */}
         <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-6 border border-red-200">
           <div className="flex items-center justify-between mb-3">
@@ -295,11 +314,11 @@ export default function ChatsDashboard() {
           <div className="flex items-center justify-between mb-3">
             <HelpCircle className="w-8 h-8 text-blue-600" />
             <span className="text-2xl font-bold text-blue-600">{confusionPercentage}%</span>
-          </div>
+              </div>
           <div className="text-3xl font-bold text-blue-900 mb-1">{confusedCount}</div>
           <div className="text-sm font-medium text-blue-700">Confused Clients</div>
-        </div>
-
+              </div>
+              
         {/* Average Reply Time */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
           <div className="flex items-center justify-between mb-3">
@@ -328,7 +347,7 @@ export default function ChatsDashboard() {
             <div>
               <h3 className="text-xl font-bold text-slate-900">Problem Conversations</h3>
               <p className="text-sm text-slate-600 mt-1">
-                Showing {filteredConversations.length} frustrated or confused conversations
+                Showing {filteredConversations.length} unique frustrated or confused conversations
               </p>
             </div>
             
@@ -343,8 +362,8 @@ export default function ChatsDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
                 />
-              </div>
-              
+          </div>
+          
               {/* Filter Buttons */}
               <div className="flex gap-2">
                 <button
@@ -355,7 +374,7 @@ export default function ChatsDashboard() {
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  All Issues ({data.conversationResults.filter(c => c.frustrated || c.confused).length})
+                  All Issues ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated || c.confused).length})
                 </button>
                 <button
                   onClick={() => setFilterStatus('frustrated')}
@@ -366,7 +385,7 @@ export default function ChatsDashboard() {
                   }`}
                 >
                   <Frown className="w-4 h-4 inline mr-1" />
-                  Frustrated ({frustratedCount})
+                  Frustrated ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated).length})
                 </button>
                 <button
                   onClick={() => setFilterStatus('confused')}
@@ -377,12 +396,12 @@ export default function ChatsDashboard() {
                   }`}
                 >
                   <HelpCircle className="w-4 h-4 inline mr-1" />
-                  Confused ({confusedCount})
+                  Confused ({Array.from(deduplicatedConversations.values()).filter(c => c.confused).length})
                 </button>
               </div>
-            </div>
           </div>
         </div>
+      </div>
 
         {/* Conversations List */}
         <div className="divide-y divide-slate-100 max-h-[700px] overflow-y-auto">
@@ -410,11 +429,11 @@ export default function ChatsDashboard() {
                     ) : conversation.frustrated ? (
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
                         <Frown className="w-6 h-6 text-white" />
-                      </div>
+          </div>
                     ) : (
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
                         <HelpCircle className="w-6 h-6 text-white" />
-                      </div>
+                    </div>
                     )}
                   </div>
 
@@ -465,8 +484,8 @@ export default function ChatsDashboard() {
                               <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
                               <span className="text-sm text-orange-900 font-medium leading-relaxed">
                                 {issue}
-                              </span>
-                            </div>
+                    </span>
+                  </div>
                           ))}
                         </div>
                       </div>
@@ -486,10 +505,10 @@ export default function ChatsDashboard() {
                               <p className="text-sm text-slate-700 italic leading-relaxed flex-1">
                                 {phrase}
                               </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                </div>
+              ))}
+            </div>
+          </div>
                     )}
 
                     {/* No data message */}
@@ -502,7 +521,7 @@ export default function ChatsDashboard() {
             ))
           )}
         </div>
-      </div>
+            </div>
 
       {/* Agent Performance Breakdown */}
       {delayData && delayData.agentStats && delayData.agentStats.length > 0 && (
@@ -565,8 +584,8 @@ export default function ChatsDashboard() {
                               ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-orange-900 shadow-md'
                               : 'bg-slate-100 text-slate-600'
                           }`}>
-                            {index + 1}
-                          </div>
+                      {index + 1}
+                    </div>
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
@@ -586,7 +605,7 @@ export default function ChatsDashboard() {
                           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 group-hover:bg-slate-200 transition-colors">
                             <Clock className="w-4 h-4 text-slate-500" />
                             <span className="font-bold text-slate-900 text-sm">{agent.avgDelayFormatted}</span>
-                          </div>
+                  </div>
                         </td>
                         <td className="py-4 px-6 text-center">
                           <span className="inline-flex items-center justify-center w-12 h-8 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
@@ -607,8 +626,8 @@ export default function ChatsDashboard() {
                                     : 'bg-gradient-to-r from-red-500 to-red-600'
                                 }`}
                                 style={{ width: `${performanceScore}%` }}
-                              ></div>
-                            </div>
+                      ></div>
+                    </div>
                             <span className={`font-bold text-sm min-w-[60px] text-right ${
                               performanceScore >= 100 
                                 ? 'text-green-600' 
@@ -619,15 +638,15 @@ export default function ChatsDashboard() {
                                 : 'text-red-600'
                             }`}>
                               {performanceScore >= 100 ? 'Excellent' : performanceScore >= 80 ? 'Good' : performanceScore >= 60 ? 'Average' : 'Slow'}
-                            </span>
-                          </div>
+                    </span>
+                  </div>
                         </td>
                       </tr>
                     );
                   })}
               </tbody>
             </table>
-          </div>
+                </div>
           
           {delayData.agentStats.length > 15 && (
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
