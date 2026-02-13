@@ -131,9 +131,6 @@ export default function ChatsDashboard() {
   
   const confusionClassification = getScoreClassification(confusionPercentage);
   const confusionRiskLevel = getRiskLevel(confusionPercentage);
-  
-  const confusionClassification = getScoreClassification(currentConfusion);
-  const confusionRiskLevel = getRiskLevel(currentConfusion);
 
   return (
     <div className="space-y-6">
