@@ -11,7 +11,7 @@ export default function ChatsDashboard() {
   const [delayData, setDelayData] = useState<DelayTimeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'frustrated' | 'confused'>('all');
+  const [filterStatus, setFilterStatus] = useState<'frustrated' | 'confused' | 'both'>('frustrated');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch available dates
@@ -228,8 +228,9 @@ export default function ChatsDashboard() {
     if (!hasIssue) return false;
     
     // Filter by status
-    if (filterStatus === 'frustrated' && !conv.frustrated) return false;
-    if (filterStatus === 'confused' && !conv.confused) return false;
+    if (filterStatus === 'frustrated' && !(conv.frustrated && !conv.confused)) return false;
+    if (filterStatus === 'confused' && !(conv.confused && !conv.frustrated)) return false;
+    if (filterStatus === 'both' && !(conv.frustrated && conv.confused)) return false;
     
     // Filter by search query
     if (searchQuery) {
@@ -367,16 +368,6 @@ export default function ChatsDashboard() {
               {/* Filter Buttons */}
               <div className="flex gap-2">
                 <button
-                  onClick={() => setFilterStatus('all')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                    filterStatus === 'all'
-                      ? 'bg-slate-900 text-white shadow-md'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  All Issues ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated || c.confused).length})
-                </button>
-                <button
                   onClick={() => setFilterStatus('frustrated')}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                     filterStatus === 'frustrated'
@@ -385,7 +376,7 @@ export default function ChatsDashboard() {
                   }`}
                 >
                   <Frown className="w-4 h-4 inline mr-1" />
-                  Frustrated ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated).length})
+                  Frustrated ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated && !c.confused).length})
                 </button>
                 <button
                   onClick={() => setFilterStatus('confused')}
@@ -396,7 +387,18 @@ export default function ChatsDashboard() {
                   }`}
                 >
                   <HelpCircle className="w-4 h-4 inline mr-1" />
-                  Confused ({Array.from(deduplicatedConversations.values()).filter(c => c.confused).length})
+                  Confused ({Array.from(deduplicatedConversations.values()).filter(c => c.confused && !c.frustrated).length})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('both')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    filterStatus === 'both'
+                      ? 'bg-orange-600 text-white shadow-md'
+                      : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4 inline mr-1" />
+                  Both ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated && c.confused).length})
                 </button>
               </div>
           </div>
