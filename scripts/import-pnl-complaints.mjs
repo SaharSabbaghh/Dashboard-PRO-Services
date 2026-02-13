@@ -92,6 +92,7 @@ async function main() {
     'overseas employment certificate': 'oec',
     'overseas': 'oec',
     'oec': 'oec',
+    'contract verification': 'oec', // Contract Verification also counts as OEC
     'client owwa registration': 'owwa',
     'owwa registration': 'owwa',
     'owwa': 'owwa',

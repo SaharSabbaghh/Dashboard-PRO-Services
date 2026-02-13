@@ -2,8 +2,8 @@
 
 export interface ChatAnalysisResult {
   conversationId: string;
-  frustrationScore: number;
-  confusionScore: number;
+  frustrated: boolean; // Is the customer frustrated?
+  confused: boolean; // Is the customer confused?
   mainIssues: string[];
   keyPhrases: string[];
   analysisDate: string;
@@ -11,8 +11,8 @@ export interface ChatAnalysisResult {
 
 export interface ChatTrendData {
   date: string;
-  frustration: number;
-  confusion: number;
+  frustrationPercentage: number; // Percentage of frustrated conversations
+  confusionPercentage: number; // Percentage of confused conversations
 }
 
 export interface ChatDriver {
@@ -32,20 +32,22 @@ export interface ChatAnalysisData {
   lastUpdated: string;
   analysisDate: string; // The specific date this analysis is for (YYYY-MM-DD)
   overallMetrics: {
-    frustrationScore: number;
-    confusionScore: number;
+    frustratedCount: number; // Number of frustrated conversations
+    frustrationPercentage: number; // Percentage of frustrated conversations
+    confusedCount: number; // Number of confused conversations
+    confusionPercentage: number; // Percentage of confused conversations
     totalConversations: number;
     analysedConversations: number;
   };
   trends: {
     frustration: {
-      current: number;
-      previous: number;
+      current: number; // Current frustration percentage
+      previous: number; // Previous frustration percentage
       direction: 'increasing' | 'decreasing' | 'stable';
     };
     confusion: {
-      current: number;
-      previous: number;
+      current: number; // Current confusion percentage
+      previous: number; // Previous confusion percentage
       direction: 'increasing' | 'decreasing' | 'stable';
     };
   };
@@ -68,17 +70,17 @@ export interface ChatAnalysisRequest {
   analysisDate: string; // The date this analysis is for (YYYY-MM-DD)
   conversations: {
     conversationId: string;
-    chatStartDateTime: string;
-    frustrationScore: number; // 0-100 score from LLM analysis
-    confusionScore: number; // 0-100 score from LLM analysis
-    mainIssues: string[]; // Issues identified by LLM
+    chatStartDateTime?: string;
+    contractType?: string;
+    frustrated: boolean; // Is the customer frustrated?
+    confused: boolean; // Is the customer confused?
+    mainIssues: string[]; // Issues identified by LLM (1 primary problem)
     keyPhrases: string[]; // Key phrases extracted by LLM
     maidId?: string;
     clientId?: string;
     contractId?: string;
     maidName?: string;
     clientName?: string;
-    contractType?: string;
   }[];
 }
 

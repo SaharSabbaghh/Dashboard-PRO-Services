@@ -41,14 +41,12 @@ function verifyApiKey(request: Request): boolean {
  *   "analysisDate": "2026-02-13",
  *   "conversations": [
  *     {
- *       "conversationId": "conv_123",
- *       "chatStartDateTime": "2026-02-13T10:30:00Z",
- *       "frustrationScore": 75,
- *       "confusionScore": 45,
- *       "mainIssues": ["Long response times", "Complex process"],
- *       "keyPhrases": ["waiting too long", "don't understand"],
- *       "maidId": "maid_123",
- *       "clientId": "client_456"
+ *       "conversationId": "conv_001",
+ *       "contractType": "CC",
+ *       "frustrated": true,
+ *       "confused": true,
+ *       "mainIssues": ["Long wait time"],
+ *       "keyPhrases": ["waiting too long", "confusing steps"]
  *     }
  *   ]
  * }
@@ -98,15 +96,15 @@ export async function POST(request: Request): Promise<NextResponse<ChatAnalysisR
 
     // Validate each conversation
     const conversations = body.conversations.map((conv: any, index: number) => {
-      if (!conv.conversationId || typeof conv.frustrationScore !== 'number' || typeof conv.confusionScore !== 'number') {
-        throw new Error(`Invalid conversation at index ${index}: missing required fields (conversationId, frustrationScore, confusionScore)`);
+      if (!conv.conversationId || typeof conv.frustrated !== 'boolean' || typeof conv.confused !== 'boolean') {
+        throw new Error(`Invalid conversation at index ${index}: missing required fields (conversationId, frustrated, confused)`);
       }
       
       return {
         conversationId: conv.conversationId,
         chatStartDateTime: conv.chatStartDateTime || new Date().toISOString(),
-        frustrationScore: Math.max(0, Math.min(100, conv.frustrationScore)),
-        confusionScore: Math.max(0, Math.min(100, conv.confusionScore)),
+        frustrated: Boolean(conv.frustrated),
+        confused: Boolean(conv.confused),
         mainIssues: Array.isArray(conv.mainIssues) ? conv.mainIssues : [],
         keyPhrases: Array.isArray(conv.keyPhrases) ? conv.keyPhrases : [],
         maidId: conv.maidId,

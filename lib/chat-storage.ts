@@ -83,8 +83,8 @@ export async function getChatTrendData(endDate: string, days: number = 14): Prom
     if (dayData) {
       trendData.push({
         date: dateStr,
-        frustration: dayData.overallMetrics.frustrationScore,
-        confusion: dayData.overallMetrics.confusionScore,
+        frustrationPercentage: dayData.overallMetrics.frustrationPercentage,
+        confusionPercentage: dayData.overallMetrics.confusionPercentage,
       });
     }
   }
@@ -98,8 +98,8 @@ export async function getChatTrendData(endDate: string, days: number = 14): Prom
 export async function aggregateDailyChatAnalysisResults(
   conversations: Array<{
     conversationId: string;
-    frustrationScore: number;
-    confusionScore: number;
+    frustrated: boolean; // Is customer frustrated?
+    confused: boolean; // Is customer confused?
     mainIssues: string[];
     keyPhrases: string[];
     chatStartDateTime?: string;
@@ -110,17 +110,23 @@ export async function aggregateDailyChatAnalysisResults(
     return createEmptyChatAnalysisData(analysisDate);
   }
 
-  // Calculate overall metrics by averaging individual conversation scores
-  const totalFrustration = conversations.reduce((sum, conv) => sum + conv.frustrationScore, 0);
-  const totalConfusion = conversations.reduce((sum, conv) => sum + conv.confusionScore, 0);
-  const avgFrustration = Math.round(totalFrustration / conversations.length);
-  const avgConfusion = Math.round(totalConfusion / conversations.length);
+  // Calculate frustration as count and percentage
+  const frustratedCount = conversations.filter(conv => conv.frustrated).length;
+  const frustrationPercentage = conversations.length > 0 
+    ? Math.round((frustratedCount / conversations.length) * 100)
+    : 0;
+  
+  // Calculate confusion as count and percentage
+  const confusedCount = conversations.filter(conv => conv.confused).length;
+  const confusionPercentage = conversations.length > 0 
+    ? Math.round((confusedCount / conversations.length) * 100)
+    : 0;
 
   // Convert conversations to ChatAnalysisResult format for storage
   const results: ChatAnalysisResult[] = conversations.map(conv => ({
     conversationId: conv.conversationId,
-    frustrationScore: conv.frustrationScore,
-    confusionScore: conv.confusionScore,
+    frustrated: conv.frustrated,
+    confused: conv.confused,
     mainIssues: conv.mainIssues,
     keyPhrases: conv.keyPhrases,
     analysisDate: conv.chatStartDateTime || new Date().toISOString(),
@@ -134,8 +140,8 @@ export async function aggregateDailyChatAnalysisResults(
   previousDay.setDate(previousDay.getDate() - 1);
   const previousDayData = await getDailyChatAnalysisData(previousDay.toISOString().split('T')[0]);
   
-  const previousFrustration = previousDayData?.overallMetrics.frustrationScore || avgFrustration;
-  const previousConfusion = previousDayData?.overallMetrics.confusionScore || avgConfusion;
+  const previousFrustration = previousDayData?.overallMetrics.frustrationPercentage || frustrationPercentage;
+  const previousConfusion = previousDayData?.overallMetrics.confusionPercentage || confusionPercentage;
 
   // Analyze drivers from all conversations
   const frustrationDrivers = analyzeFrustrationDrivers(results);
@@ -145,23 +151,25 @@ export async function aggregateDailyChatAnalysisResults(
     lastUpdated: new Date().toISOString(),
     analysisDate,
     overallMetrics: {
-      frustrationScore: avgFrustration,
-      confusionScore: avgConfusion,
+      frustratedCount,
+      frustrationPercentage,
+      confusedCount,
+      confusionPercentage,
       totalConversations: results.length,
       analysedConversations: results.length,
     },
     trends: {
       frustration: {
-        current: avgFrustration,
+        current: frustrationPercentage,
         previous: previousFrustration,
-        direction: avgFrustration > previousFrustration ? 'increasing' : 
-                  avgFrustration < previousFrustration ? 'decreasing' : 'stable',
+        direction: frustrationPercentage > previousFrustration ? 'increasing' : 
+                  frustrationPercentage < previousFrustration ? 'decreasing' : 'stable',
       },
       confusion: {
-        current: avgConfusion,
+        current: confusionPercentage,
         previous: previousConfusion,
-        direction: avgConfusion > previousConfusion ? 'increasing' : 
-                  avgConfusion < previousConfusion ? 'decreasing' : 'stable',
+        direction: confusionPercentage > previousConfusion ? 'increasing' : 
+                  confusionPercentage < previousConfusion ? 'decreasing' : 'stable',
       },
     },
     trendData,
@@ -187,8 +195,10 @@ function createEmptyChatAnalysisData(analysisDate: string): ChatAnalysisData {
     lastUpdated: new Date().toISOString(),
     analysisDate,
     overallMetrics: {
-      frustrationScore: 0,
-      confusionScore: 0,
+      frustratedCount: 0,
+      frustrationPercentage: 0,
+      confusedCount: 0,
+      confusionPercentage: 0,
       totalConversations: 0,
       analysedConversations: 0,
     },
@@ -234,14 +244,19 @@ function createEmptyChatAnalysisData(analysisDate: string): ChatAnalysisData {
  * Analyze frustration drivers from conversation results
  */
 function analyzeFrustrationDrivers(results: ChatAnalysisResult[]): ChatDriver[] {
-  const issueMap = new Map<string, { count: number, totalScore: number }>();
+  const issueMap = new Map<string, { count: number, frustratedCount: number }>();
   
-  results.forEach(result => {
+  // Only analyze frustrated conversations
+  const frustratedResults = results.filter(r => r.frustrated);
+  
+  if (frustratedResults.length === 0) return [];
+  
+  frustratedResults.forEach(result => {
     result.mainIssues.forEach(issue => {
-      const current = issueMap.get(issue) || { count: 0, totalScore: 0 };
+      const current = issueMap.get(issue) || { count: 0, frustratedCount: 0 };
       issueMap.set(issue, {
         count: current.count + 1,
-        totalScore: current.totalScore + result.frustrationScore,
+        frustratedCount: current.frustratedCount + 1,
       });
     });
   });
@@ -249,24 +264,29 @@ function analyzeFrustrationDrivers(results: ChatAnalysisResult[]): ChatDriver[] 
   return Array.from(issueMap.entries())
     .map(([issue, data]) => ({
       issue,
-      impact: Math.round((data.count / results.length) * 100),
+      impact: Math.round((data.count / frustratedResults.length) * 100),
       frequency: data.count,
     }))
-    .sort((a, b) => b.impact - a.impact);
+    .sort((a, b) => b.frequency - a.frequency);
 }
 
 /**
  * Analyze confusion drivers from conversation results
  */
 function analyzeConfusionDrivers(results: ChatAnalysisResult[]): ChatDriver[] {
-  const issueMap = new Map<string, { count: number, totalScore: number }>();
+  const issueMap = new Map<string, { count: number, confusedCount: number }>();
   
-  results.forEach(result => {
+  // Only analyze confused conversations
+  const confusedResults = results.filter(r => r.confused);
+  
+  if (confusedResults.length === 0) return [];
+  
+  confusedResults.forEach(result => {
     result.mainIssues.forEach(issue => {
-      const current = issueMap.get(issue) || { count: 0, totalScore: 0 };
+      const current = issueMap.get(issue) || { count: 0, confusedCount: 0 };
       issueMap.set(issue, {
         count: current.count + 1,
-        totalScore: current.totalScore + result.confusionScore,
+        confusedCount: current.confusedCount + 1,
       });
     });
   });
@@ -274,10 +294,10 @@ function analyzeConfusionDrivers(results: ChatAnalysisResult[]): ChatDriver[] {
   return Array.from(issueMap.entries())
     .map(([issue, data]) => ({
       issue,
-      impact: Math.round((data.count / results.length) * 100),
+      impact: Math.round((data.count / confusedResults.length) * 100),
       frequency: data.count,
     }))
-    .sort((a, b) => b.impact - a.impact);
+    .sort((a, b) => b.frequency - a.frequency);
 }
 
 /**

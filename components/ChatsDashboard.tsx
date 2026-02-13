@@ -117,15 +117,20 @@ export default function ChatsDashboard() {
   }
 
   // Extract data for easier access
-  const currentFrustration = data.overallMetrics.frustrationScore;
-  const currentConfusion = data.overallMetrics.confusionScore;
+  const frustratedCount = data.overallMetrics.frustratedCount;
+  const frustrationPercentage = data.overallMetrics.frustrationPercentage;
+  const confusedCount = data.overallMetrics.confusedCount;
+  const confusionPercentage = data.overallMetrics.confusionPercentage;
   const frustrationTrend = data.trends.frustration.direction;
   const confusionTrend = data.trends.confusion.direction;
   const previousFrustration = data.trends.frustration.previous;
   const previousConfusion = data.trends.confusion.previous;
 
-  const frustrationClassification = getScoreClassification(currentFrustration);
-  const frustrationRiskLevel = getRiskLevel(currentFrustration);
+  const frustrationClassification = getScoreClassification(frustrationPercentage);
+  const frustrationRiskLevel = getRiskLevel(frustrationPercentage);
+  
+  const confusionClassification = getScoreClassification(confusionPercentage);
+  const confusionRiskLevel = getRiskLevel(confusionPercentage);
   
   const confusionClassification = getScoreClassification(currentConfusion);
   const confusionRiskLevel = getRiskLevel(currentConfusion);
@@ -169,14 +174,16 @@ export default function ChatsDashboard() {
         {/* Frustration Level Card */}
         <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6">Frustration Level</h2>
+            <h2 className="text-lg font-semibold text-slate-800 mb-6">Frustrated Clients</h2>
             
-            {/* Score Display */}
+            {/* Percentage Display */}
             <div className="mb-6">
               <div className={`text-6xl font-bold mb-2 ${frustrationClassification.color}`}>
-                {currentFrustration}
+                {frustrationPercentage}%
               </div>
-              <div className="text-slate-500 text-lg">out of 100</div>
+              <div className="text-slate-500 text-lg">
+                {frustratedCount} of {data.overallMetrics.totalConversations} conversations
+              </div>
             </div>
 
             {/* Classification and Risk Level */}
@@ -204,7 +211,7 @@ export default function ChatsDashboard() {
               </span>
               <span className="text-slate-500">
                 ({frustrationTrend === 'increasing' ? '+' : frustrationTrend === 'decreasing' ? '-' : ''}
-                {Math.abs(currentFrustration - previousFrustration)} from previous period)
+                {Math.abs(frustrationPercentage - previousFrustration)}% from previous period)
               </span>
             </div>
           </div>
@@ -213,14 +220,16 @@ export default function ChatsDashboard() {
         {/* Confusion Level Card */}
         <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6">Confusion Level</h2>
+            <h2 className="text-lg font-semibold text-slate-800 mb-6">Confused Clients</h2>
             
-            {/* Score Display */}
+            {/* Percentage Display */}
             <div className="mb-6">
               <div className={`text-6xl font-bold mb-2 ${confusionClassification.color}`}>
-                {currentConfusion}
+                {confusionPercentage}%
               </div>
-              <div className="text-slate-500 text-lg">out of 100</div>
+              <div className="text-slate-500 text-lg">
+                {confusedCount} of {data.overallMetrics.totalConversations} conversations
+              </div>
             </div>
 
             {/* Classification and Risk Level */}
@@ -248,7 +257,7 @@ export default function ChatsDashboard() {
               </span>
               <span className="text-slate-500">
                 ({confusionTrend === 'increasing' ? '+' : confusionTrend === 'decreasing' ? '-' : ''}
-                {Math.abs(currentConfusion - previousConfusion)} from previous period)
+                {Math.abs(confusionPercentage - previousConfusion)}% from previous period)
               </span>
             </div>
           </div>
@@ -303,29 +312,29 @@ export default function ChatsDashboard() {
                   month: 'long', 
                   day: 'numeric' 
                 })}
-                formatter={(value, name) => [`${value}/100`, name === 'frustration' ? 'Frustration' : 'Confusion']}
+                formatter={(value, name) => [`${value}%`, name === 'frustrationPercentage' ? 'Frustrated %' : 'Confused %']}
               />
               
               {/* Frustration Line */}
               <Line 
                 type="monotone" 
-                dataKey="frustration" 
+                dataKey="frustrationPercentage" 
                 stroke="#ef4444" 
                 strokeWidth={3}
                 dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
                 activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2, fill: '#fff' }}
-                name="frustration"
+                name="frustrationPercentage"
               />
               
               {/* Confusion Line */}
               <Line 
                 type="monotone" 
-                dataKey="confusion" 
+                dataKey="confusionPercentage" 
                 stroke="#3b82f6" 
                 strokeWidth={3}
                 dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
                 activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
-                name="confusion"
+                name="confusionPercentage"
               />
             </LineChart>
           </ResponsiveContainer>
