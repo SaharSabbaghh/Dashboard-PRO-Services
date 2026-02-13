@@ -15,7 +15,7 @@ export default function AgentsDashboard() {
   useEffect(() => {
     const fetchDates = async () => {
       try {
-        const res = await fetch('/api/chat-analysis/dates');
+        const res = await fetch('/api/delay-time/dates');
         const result = await res.json();
         if (result.success && result.dates) {
           setAvailableDates(result.dates);
