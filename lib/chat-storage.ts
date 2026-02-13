@@ -20,6 +20,16 @@ export async function saveDailyChatAnalysisData(data: ChatAnalysisData): Promise
   // Save with date-specific filename
   const dateBlobName = `${CHAT_BLOB_PREFIX}/daily/${data.analysisDate}.json`;
   
+  // Delete existing blob if it exists, then save new one
+  try {
+    const { blobs } = await list({ prefix: dateBlobName });
+    if (blobs.length > 0) {
+      await del(blobs[0].url);
+    }
+  } catch (error) {
+    // Ignore errors if blob doesn't exist
+  }
+  
   await put(dateBlobName, JSON.stringify(data, null, 2), {
     access: 'public',
     contentType: 'application/json',
@@ -27,6 +37,16 @@ export async function saveDailyChatAnalysisData(data: ChatAnalysisData): Promise
   
   // Also save as latest for dashboard
   const latestBlobName = `${CHAT_BLOB_PREFIX}/latest.json`;
+  
+  try {
+    const { blobs } = await list({ prefix: latestBlobName });
+    if (blobs.length > 0) {
+      await del(blobs[0].url);
+    }
+  } catch (error) {
+    // Ignore errors if blob doesn't exist
+  }
+  
   await put(latestBlobName, JSON.stringify(data, null, 2), {
     access: 'public',
     contentType: 'application/json',
@@ -514,6 +534,16 @@ export async function saveDelayTimeData(data: DelayTimeData): Promise<void> {
   // Save with date-specific filename
   const dateBlobName = `${DELAY_BLOB_PREFIX}/daily/${data.analysisDate}.json`;
   
+  // Delete existing blob if it exists, then save new one
+  try {
+    const { blobs } = await list({ prefix: dateBlobName });
+    if (blobs.length > 0) {
+      await del(blobs[0].url);
+    }
+  } catch (error) {
+    // Ignore errors if blob doesn't exist
+  }
+  
   await put(dateBlobName, JSON.stringify(data, null, 2), {
     access: 'public',
     contentType: 'application/json',
@@ -521,6 +551,16 @@ export async function saveDelayTimeData(data: DelayTimeData): Promise<void> {
   
   // Also save as latest for dashboard
   const latestBlobName = `${DELAY_BLOB_PREFIX}/latest.json`;
+  
+  try {
+    const { blobs } = await list({ prefix: latestBlobName });
+    if (blobs.length > 0) {
+      await del(blobs[0].url);
+    }
+  } catch (error) {
+    // Ignore errors if blob doesn't exist
+  }
+  
   await put(latestBlobName, JSON.stringify(data, null, 2), {
     access: 'public',
     contentType: 'application/json',
