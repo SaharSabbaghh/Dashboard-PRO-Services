@@ -16,6 +16,7 @@ import PnLTable from '@/components/PnLTable';
 import PnLServiceDetail from '@/components/PnLServiceDetail';
 import PnLDatePicker from '@/components/PnLDatePicker';
 import ChatsDashboard from '@/components/ChatsDashboard';
+import AgentsDashboard from '@/components/AgentsDashboard';
 import type { Results, ServiceFilter } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
@@ -831,6 +832,11 @@ export default function Dashboard() {
         {/* Chats Dashboard Tab */}
         {activeTab === 'chats' && (
           <ChatsDashboard />
+        )}
+
+        {/* Agents Dashboard Tab */}
+        {activeTab === 'agents' && (
+          <AgentsDashboard />
         )}
       </main>
     </div>
