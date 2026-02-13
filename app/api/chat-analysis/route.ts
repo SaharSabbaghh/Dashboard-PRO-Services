@@ -100,6 +100,15 @@ export async function POST(request: Request): Promise<NextResponse<ChatAnalysisR
         throw new Error(`Invalid conversation at index ${index}: missing required fields (conversationId, frustrated, confused)`);
       }
       
+      // Log first conversation to verify service/skill are being received
+      if (index === 0) {
+        console.log('[Chat Analysis API] Sample conversation data:', {
+          conversationId: conv.conversationId,
+          service: conv.service,
+          skill: conv.skill,
+        });
+      }
+      
       return {
         conversationId: conv.conversationId,
         chatStartDateTime: conv.chatStartDateTime || new Date().toISOString(),

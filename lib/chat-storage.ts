@@ -182,6 +182,15 @@ export async function aggregateDailyChatAnalysisResults(
     service: conv.service,
     skill: conv.skill,
   }));
+  
+  // Log first result to verify service/skill are preserved
+  if (results.length > 0) {
+    console.log('[Chat Storage] Sample result after mapping:', {
+      conversationId: results[0].conversationId,
+      service: results[0].service,
+      skill: results[0].skill,
+    });
+  }
 
   // Get historical trend data for the last 14 days
   const trendData = await getChatTrendData(analysisDate, 14);
