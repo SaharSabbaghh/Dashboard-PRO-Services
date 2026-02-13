@@ -195,13 +195,6 @@ export default function ChatsDashboard() {
     );
   }
 
-  // Extract data for easier access
-  const frustratedCount = data.overallMetrics.frustratedCount;
-  const frustrationPercentage = data.overallMetrics.frustrationPercentage;
-  const confusedCount = data.overallMetrics.confusedCount;
-  const confusionPercentage = data.overallMetrics.confusionPercentage;
-  const totalConversations = data.overallMetrics.totalConversations;
-
   // Deduplicate conversations by conversation ID, keeping the one with most data
   const deduplicatedConversations = data.conversationResults.reduce((acc, conv) => {
     const existing = acc.get(conv.conversationId);
@@ -215,14 +208,36 @@ export default function ChatsDashboard() {
       
       if (currentHasData > existingHasData) {
         acc.set(conv.conversationId, conv);
+      } else if (currentHasData === existingHasData) {
+        // If data is equal, keep the one with both flags set if available
+        const existingBothFlags = existing.frustrated && existing.confused;
+        const currentBothFlags = conv.frustrated && conv.confused;
+        if (currentBothFlags && !existingBothFlags) {
+          acc.set(conv.conversationId, conv);
+        }
       }
     }
     
     return acc;
   }, new Map<string, typeof data.conversationResults[0]>());
 
+  // Calculate counts from deduplicated data
+  const deduplicatedArray = Array.from(deduplicatedConversations.values());
+  const totalConversations = deduplicatedArray.length;
+  
+  // Count conversations by status (can have both flags)
+  const totalFrustrated = deduplicatedArray.filter(c => c.frustrated).length;
+  const totalConfused = deduplicatedArray.filter(c => c.confused).length;
+  const bothFrustratedAndConfused = deduplicatedArray.filter(c => c.frustrated && c.confused).length;
+  const onlyFrustrated = deduplicatedArray.filter(c => c.frustrated && !c.confused).length;
+  const onlyConfused = deduplicatedArray.filter(c => c.confused && !c.frustrated).length;
+  
+  // Calculate percentages
+  const frustrationPercentage = totalConversations > 0 ? Math.round((totalFrustrated / totalConversations) * 100) : 0;
+  const confusionPercentage = totalConversations > 0 ? Math.round((totalConfused / totalConversations) * 100) : 0;
+
   // Filter conversations based on selected filter and search
-  const filteredConversations = Array.from(deduplicatedConversations.values()).filter(conv => {
+  const filteredConversations = deduplicatedArray.filter(conv => {
     // Only show frustrated or confused conversations (exclude neutral ones)
     const hasIssue = conv.frustrated || conv.confused;
     if (!hasIssue) return false;
@@ -306,8 +321,11 @@ export default function ChatsDashboard() {
             <Frown className="w-8 h-8 text-red-600" />
             <span className="text-2xl font-bold text-red-600">{frustrationPercentage}%</span>
           </div>
-          <div className="text-3xl font-bold text-red-900 mb-1">{frustratedCount}</div>
+          <div className="text-3xl font-bold text-red-900 mb-1">{totalFrustrated}</div>
           <div className="text-sm font-medium text-red-700">Frustrated Clients</div>
+          {bothFrustratedAndConfused > 0 && (
+            <div className="text-xs text-red-600 mt-2">({bothFrustratedAndConfused} also confused)</div>
+          )}
         </div>
 
         {/* Confused Clients */}
@@ -315,10 +333,13 @@ export default function ChatsDashboard() {
           <div className="flex items-center justify-between mb-3">
             <HelpCircle className="w-8 h-8 text-blue-600" />
             <span className="text-2xl font-bold text-blue-600">{confusionPercentage}%</span>
-              </div>
-          <div className="text-3xl font-bold text-blue-900 mb-1">{confusedCount}</div>
+          </div>
+          <div className="text-3xl font-bold text-blue-900 mb-1">{totalConfused}</div>
           <div className="text-sm font-medium text-blue-700">Confused Clients</div>
-              </div>
+          {bothFrustratedAndConfused > 0 && (
+            <div className="text-xs text-blue-600 mt-2">({bothFrustratedAndConfused} also frustrated)</div>
+          )}
+        </div>
               
         {/* Average Reply Time */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
@@ -376,7 +397,7 @@ export default function ChatsDashboard() {
                   }`}
                 >
                   <Frown className="w-4 h-4 inline mr-1" />
-                  Frustrated ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated && !c.confused).length})
+                  Frustrated Only ({onlyFrustrated})
                 </button>
                 <button
                   onClick={() => setFilterStatus('confused')}
@@ -387,7 +408,7 @@ export default function ChatsDashboard() {
                   }`}
                 >
                   <HelpCircle className="w-4 h-4 inline mr-1" />
-                  Confused ({Array.from(deduplicatedConversations.values()).filter(c => c.confused && !c.frustrated).length})
+                  Confused Only ({onlyConfused})
                 </button>
                 <button
                   onClick={() => setFilterStatus('both')}
@@ -398,7 +419,7 @@ export default function ChatsDashboard() {
                   }`}
                 >
                   <AlertTriangle className="w-4 h-4 inline mr-1" />
-                  Both ({Array.from(deduplicatedConversations.values()).filter(c => c.frustrated && c.confused).length})
+                  Both ({bothFrustratedAndConfused})
                 </button>
               </div>
           </div>
