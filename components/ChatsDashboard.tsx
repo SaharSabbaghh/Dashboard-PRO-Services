@@ -1,47 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, TrendingUp, TrendingDown, Minus, AlertTriangle, Clock } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, BarChart, Bar, CartesianGrid, Legend } from 'recharts';
+import { Calendar, AlertTriangle } from 'lucide-react';
 import type { ChatAnalysisData, DelayTimeData } from '@/lib/chat-types';
-
-const getScoreClassification = (score: number) => {
-  if (score <= 30) return { label: 'Low', color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-200' };
-  if (score <= 50) return { label: 'Moderate', color: 'text-yellow-600', bgColor: 'bg-yellow-100', borderColor: 'border-yellow-200' };
-  if (score <= 70) return { label: 'High', color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-200' };
-  return { label: 'Critical', color: 'text-red-600', bgColor: 'bg-red-100', borderColor: 'border-red-200' };
-};
-
-const getRiskLevel = (score: number) => {
-  if (score <= 30) return { label: 'Low', color: 'bg-green-500' };
-  if (score <= 50) return { label: 'Medium', color: 'bg-yellow-500' };
-  if (score <= 70) return { label: 'High', color: 'bg-orange-500' };
-  return { label: 'Critical', color: 'bg-red-500' };
-};
-
-const getTrendIcon = (trend: string) => {
-  switch (trend) {
-    case 'increasing':
-      return <TrendingUp className="w-5 h-5 text-red-500" />;
-    case 'decreasing':
-      return <TrendingDown className="w-5 h-5 text-green-500" />;
-    default:
-      return <Minus className="w-5 h-5 text-slate-500" />;
-  }
-};
-
-const getTrendColor = (trend: string) => {
-  switch (trend) {
-    case 'increasing':
-      return 'text-red-600';
-    case 'decreasing':
-      return 'text-green-600';
-    default:
-      return 'text-slate-600';
-  }
-};
-
-// Classification and utility functions
 
 export default function ChatsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -237,10 +198,7 @@ export default function ChatsDashboard() {
   const frustrationPercentage = data.overallMetrics.frustrationPercentage;
   const confusedCount = data.overallMetrics.confusedCount;
   const confusionPercentage = data.overallMetrics.confusionPercentage;
-  const frustrationTrend = data.trends.frustration.direction;
-  const confusionTrend = data.trends.confusion.direction;
-  const previousFrustration = data.trends.frustration.previous;
-  const previousConfusion = data.trends.confusion.previous;
+  const totalConversations = data.overallMetrics.totalConversations;
 
   return (
     <div className="space-y-6">
@@ -281,60 +239,28 @@ export default function ChatsDashboard() {
 
       {/* Primary Metric Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Frustration Level Card */}
+        {/* Frustration Card */}
         <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
           <div className="text-center">
             <h2 className="text-lg font-semibold text-slate-800 mb-6">Frustrated Clients</h2>
-            
-            {/* Percentage Display */}
-            <div className="mb-6">
-              <div className="text-6xl font-bold mb-2 text-red-600">
-                {frustrationPercentage}%
-              </div>
-              <div className="text-slate-500 text-lg">
-                {frustratedCount} of {data.overallMetrics.totalConversations} conversations
-              </div>
+            <div className="text-6xl font-bold mb-2 text-red-600">
+              {frustrationPercentage}%
             </div>
-
-            {/* Trend Indicator */}
-            <div className="flex items-center justify-center gap-2">
-              {getTrendIcon(frustrationTrend)}
-              <span className={`font-medium capitalize ${getTrendColor(frustrationTrend)}`}>
-                {frustrationTrend}
-              </span>
-              <span className="text-slate-500">
-                ({frustrationTrend === 'increasing' ? '+' : frustrationTrend === 'decreasing' ? '-' : ''}
-                {Math.abs(frustrationPercentage - previousFrustration)}% from previous period)
-              </span>
+            <div className="text-slate-500 text-lg">
+              {frustratedCount} of {totalConversations} conversations
             </div>
           </div>
         </div>
 
-        {/* Confusion Level Card */}
+        {/* Confusion Card */}
         <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
           <div className="text-center">
             <h2 className="text-lg font-semibold text-slate-800 mb-6">Confused Clients</h2>
-            
-            {/* Percentage Display */}
-            <div className="mb-6">
-              <div className="text-6xl font-bold mb-2 text-blue-600">
-                {confusionPercentage}%
-              </div>
-              <div className="text-slate-500 text-lg">
-                {confusedCount} of {data.overallMetrics.totalConversations} conversations
-              </div>
+            <div className="text-6xl font-bold mb-2 text-blue-600">
+              {confusionPercentage}%
             </div>
-
-            {/* Trend Indicator */}
-            <div className="flex items-center justify-center gap-2">
-              {getTrendIcon(confusionTrend)}
-              <span className={`font-medium capitalize ${getTrendColor(confusionTrend)}`}>
-                {confusionTrend}
-              </span>
-              <span className="text-slate-500">
-                ({confusionTrend === 'increasing' ? '+' : confusionTrend === 'decreasing' ? '-' : ''}
-                {Math.abs(confusionPercentage - previousConfusion)}% from previous period)
-              </span>
+            <div className="text-slate-500 text-lg">
+              {confusedCount} of {totalConversations} conversations
             </div>
           </div>
         </div>
@@ -343,8 +269,6 @@ export default function ChatsDashboard() {
         <div className="bg-white rounded-xl p-8 border-2 border-slate-200 shadow-sm">
           <div className="text-center">
             <h2 className="text-lg font-semibold text-slate-800 mb-6">Avg Reply Time</h2>
-            
-            {/* Delay Display */}
             <div className="mb-6">
               {delayData ? (
                 <>
@@ -366,233 +290,130 @@ export default function ChatsDashboard() {
                 </>
               )}
             </div>
-
-            {/* Trend/Info Indicator */}
             {delayData && delayData.medianDelayFormatted && (
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-slate-600">Median:</span>
-                <span className="font-medium text-slate-800">
-                  {delayData.medianDelayFormatted}
-                </span>
+              <div className="text-sm text-slate-600">
+                Median: <span className="font-medium text-slate-800">{delayData.medianDelayFormatted}</span>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Trend Visualization */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Frustration & Confusion Trends</h3>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.trendData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <defs>
-                <linearGradient id="frustrationGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
-                </linearGradient>
-                <linearGradient id="confusionGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              
-              {/* Threshold zones */}
-              <ReferenceLine y={30} stroke="#22c55e" strokeDasharray="5 5" strokeOpacity={0.6} />
-              <ReferenceLine y={50} stroke="#eab308" strokeDasharray="5 5" strokeOpacity={0.6} />
-              <ReferenceLine y={70} stroke="#f97316" strokeDasharray="5 5" strokeOpacity={0.6} />
-              
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12, fill: '#64748b' }}
-                axisLine={{ stroke: '#e2e8f0' }}
-                tickLine={false}
-                tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              />
-              <YAxis 
-                domain={[0, 100]}
-                tick={{ fontSize: 12, fill: '#64748b' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#fff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                }}
-                labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-                formatter={(value, name) => [`${value}%`, name === 'frustrationPercentage' ? 'Frustrated %' : 'Confused %']}
-              />
-              
-              {/* Frustration Line */}
-              <Line 
-                type="monotone" 
-                dataKey="frustrationPercentage" 
-                stroke="#ef4444" 
-                strokeWidth={3}
-                dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2, fill: '#fff' }}
-                name="frustrationPercentage"
-              />
-              
-              {/* Confusion Line */}
-              <Line 
-                type="monotone" 
-                dataKey="confusionPercentage" 
-                stroke="#3b82f6" 
-                strokeWidth={3}
-                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
-                name="confusionPercentage"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-8 mt-4">
-          {/* Metric Lines */}
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-0.5 bg-red-500"></div>
-              <span className="text-slate-600 font-medium">Frustration</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-0.5 bg-blue-500"></div>
-              <span className="text-slate-600 font-medium">Confusion</span>
-            </div>
-          </div>
-          
-          {/* Threshold Legend */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-green-500 opacity-60"></div>
-              <span className="text-slate-600">Low (0-30)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-yellow-500 opacity-60"></div>
-              <span className="text-slate-600">Moderate (31-50)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-orange-500 opacity-60"></div>
-              <span className="text-slate-600">High (51-70)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-red-500 opacity-60"></div>
-              <span className="text-slate-600">Critical (71-100)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Insights Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Frustration Insights */}
-        <div className="space-y-6">
-          {/* Main Frustration Issue */}
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              <h3 className="text-lg font-semibold text-slate-800">Main Frustration Issue</h3>
-            </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h4 className="font-medium text-red-800 mb-2">{data.insights.frustration.mainIssue.title}</h4>
-              <p className="text-red-700 text-sm">
-                {data.insights.frustration.mainIssue.description}
+      {/* Conversation Records Table */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-800">Conversation Records</h3>
+              <p className="text-sm text-slate-600 mt-1">
+                {data.conversationResults.length} conversations analyzed
               </p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded-full">
-                  Impact: {data.insights.frustration.mainIssue.impact}%
-                </span>
-                <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded-full">
-                  Trending {data.insights.frustration.mainIssue.trending === 'up' ? 'Up' : data.insights.frustration.mainIssue.trending === 'down' ? 'Down' : 'Stable'}
-                </span>
-              </div>
             </div>
-          </div>
-
-          {/* Top Frustration Drivers */}
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Top Frustration Drivers</h3>
-            <div className="space-y-3">
-              {data.insights.frustration.topDrivers.map((driver, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center text-xs font-medium text-red-600">
-                      {index + 1}
-                    </div>
-                    <span className="text-slate-800 font-medium">{driver.issue}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-slate-200 rounded-full h-2">
-                      <div 
-                        className="bg-red-500 h-2 rounded-full" 
-                        style={{ width: `${driver.impact}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-medium text-slate-600 w-8">
-                      {driver.impact}%
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="flex gap-2">
+              <button className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100">
+                All ({data.conversationResults.length})
+              </button>
+              <button className="px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100">
+                Frustrated ({frustratedCount})
+              </button>
+              <button className="px-3 py-1.5 text-sm rounded-lg border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                Confused ({confusedCount})
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Confusion Insights */}
-        <div className="space-y-6">
-          {/* Main Confusion Issue */}
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-5 h-5 text-blue-500" />
-              <h3 className="text-lg font-semibold text-slate-800">Main Confusion Issue</h3>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-800 mb-2">{data.insights.confusion.mainIssue.title}</h4>
-              <p className="text-blue-700 text-sm">
-                {data.insights.confusion.mainIssue.description}
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                  Impact: {data.insights.confusion.mainIssue.impact}%
-                </span>
-                <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                  Trending {data.insights.confusion.mainIssue.trending === 'up' ? 'Up' : data.insights.confusion.mainIssue.trending === 'down' ? 'Down' : 'Stable'}
-                </span>
-              </div>
-            </div>
-          </div>
+        <div className="overflow-x-auto">
+          <div className="max-h-[600px] overflow-y-auto">
+            <div className="divide-y divide-slate-100">
+              {data.conversationResults.map((conversation, index) => (
+                <div
+                  key={conversation.conversationId}
+                  className="p-6 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Status Indicators */}
+                    <div className="flex flex-col gap-2 pt-1">
+                      {conversation.frustrated && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                          <AlertTriangle className="w-3 h-3" />
+                          Frustrated
+                        </span>
+                      )}
+                      {conversation.confused && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          <AlertTriangle className="w-3 h-3" />
+                          Confused
+                        </span>
+                      )}
+                      {!conversation.frustrated && !conversation.confused && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          ✓ OK
+                        </span>
+                      )}
+                    </div>
 
-          {/* Top Confusion Drivers */}
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Top Confusion Drivers</h3>
-            <div className="space-y-3">
-              {data.insights.confusion.topDrivers.map((driver, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-600">
-                      {index + 1}
+                    {/* Conversation Details */}
+                    <div className="flex-1 min-w-0">
+                      {/* Conversation ID and Date */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <h4 className="font-mono text-sm font-medium text-slate-700">
+                          {conversation.conversationId}
+                        </h4>
+                        <span className="text-xs text-slate-500">
+                          {new Date(conversation.analysisDate).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+
+                      {/* Main Issues */}
+                      {conversation.mainIssues && conversation.mainIssues.length > 0 && conversation.mainIssues[0] !== '' && (
+                        <div className="mb-3">
+                          <p className="text-xs font-semibold text-slate-600 mb-2">Main Issues:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {conversation.mainIssues.map((issue, idx) => (
+                              issue && issue.trim() !== '' && (
+                                <span
+                                  key={idx}
+                                  className="inline-block px-3 py-1 rounded-lg text-sm bg-orange-50 text-orange-800 border border-orange-200"
+                                >
+                                  {issue}
+                                </span>
+                              )
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Key Phrases */}
+                      {conversation.keyPhrases && conversation.keyPhrases.length > 0 && conversation.keyPhrases[0] !== '' && (
+                        <div>
+                          <p className="text-xs font-semibold text-slate-600 mb-2">Key Phrases:</p>
+                          <div className="space-y-1">
+                            {conversation.keyPhrases.map((phrase, idx) => (
+                              phrase && phrase.trim() !== '' && (
+                                <div
+                                  key={idx}
+                                  className="text-sm text-slate-700 italic pl-3 border-l-2 border-slate-300"
+                                >
+                                  "{phrase}"
+                                </div>
+                              )
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No data message */}
+                      {(!conversation.mainIssues || conversation.mainIssues.length === 0 || conversation.mainIssues[0] === '') &&
+                       (!conversation.keyPhrases || conversation.keyPhrases.length === 0 || conversation.keyPhrases[0] === '') && (
+                        <p className="text-sm text-slate-400 italic">No issues or phrases recorded</p>
+                      )}
                     </div>
-                    <span className="text-slate-800 font-medium">{driver.issue}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-slate-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full" 
-                        style={{ width: `${driver.impact}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-medium text-slate-600 w-8">
-                      {driver.impact}%
-                    </span>
                   </div>
                 </div>
               ))}
