@@ -43,6 +43,8 @@ export default function ServiceSummaryCards({
         case 'oec': return 'isOECProspect';
         case 'owwa': return 'isOWWAProspect';
         case 'travelVisa': return 'isTravelVisaProspect';
+        case 'filipinaPassportRenewal': return 'isFilipinaPassportRenewalProspect';
+        case 'ethiopianPassportRenewal': return 'isEthiopianPassportRenewalProspect';
       }
     };
 
@@ -51,6 +53,8 @@ export default function ServiceSummaryCards({
         case 'oec': return 'isOECProspectConfidence';
         case 'owwa': return 'isOWWAProspectConfidence';
         case 'travelVisa': return 'isTravelVisaProspectConfidence';
+        case 'filipinaPassportRenewal': return 'isFilipinaPassportRenewalProspectConfidence';
+        case 'ethiopianPassportRenewal': return 'isEthiopianPassportRenewalProspectConfidence';
       }
     };
 
