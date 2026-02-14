@@ -97,8 +97,8 @@ export default function Dashboard() {
           totalProcessed: 0,
           totalConversations: 0,
           isProcessing: false,
-          prospects: { oec: 0, owwa: 0, travelVisa: 0 },
-          conversions: { oec: 0, owwa: 0, travelVisa: 0 },
+          prospects: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+          conversions: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
           countryCounts: {},
           byContractType: {
             CC: { oec: 0, owwa: 0, travelVisa: 0 },
@@ -116,11 +116,15 @@ export default function Dashboard() {
           aggregated.prospects.oec += data.prospects?.oec || 0;
           aggregated.prospects.owwa += data.prospects?.owwa || 0;
           aggregated.prospects.travelVisa += data.prospects?.travelVisa || 0;
+          aggregated.prospects.filipinaPassportRenewal += data.prospects?.filipinaPassportRenewal || 0;
+          aggregated.prospects.ethiopianPassportRenewal += data.prospects?.ethiopianPassportRenewal || 0;
           
           if (data.conversions) {
             aggregated.conversions!.oec += data.conversions.oec || 0;
             aggregated.conversions!.owwa += data.conversions.owwa || 0;
             aggregated.conversions!.travelVisa += data.conversions.travelVisa || 0;
+            aggregated.conversions!.filipinaPassportRenewal += data.conversions.filipinaPassportRenewal || 0;
+            aggregated.conversions!.ethiopianPassportRenewal += data.conversions.ethiopianPassportRenewal || 0;
           }
           
           if (data.byContractType) {
