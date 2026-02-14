@@ -43,6 +43,13 @@ export async function POST(request: Request) {
       );
     }
     
+    if (!body.fixedCosts) {
+      return NextResponse.json(
+        { success: false, error: 'fixedCosts configuration is required' },
+        { status: 400 }
+      );
+    }
+    
     // Validate that all required services are present
     const requiredServices = ['oec', 'owwa', 'ttl', 'tte', 'ttj', 'schengen', 'gcc', 'ethiopianPP', 'filipinaPP'];
     for (const service of requiredServices) {
@@ -54,8 +61,20 @@ export async function POST(request: Request) {
       }
     }
     
+    // Validate fixed costs
+    const requiredFixedCosts = ['laborCost', 'llm', 'proTransportation'];
+    for (const cost of requiredFixedCosts) {
+      if (typeof body.fixedCosts[cost] !== 'number') {
+        return NextResponse.json(
+          { success: false, error: `Missing or invalid fixed cost: ${cost}` },
+          { status: 400 }
+        );
+      }
+    }
+    
     const newSnapshot: Omit<PnLConfigSnapshot, 'effectiveDate' | 'updatedAt'> = {
       services: body.services,
+      fixedCosts: body.fixedCosts,
       updatedBy: body.updatedBy,
     };
     

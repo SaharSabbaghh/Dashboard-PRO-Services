@@ -8,6 +8,7 @@ import { getPnLConfigHistory, getConfigForDate } from '@/lib/pnl-config-storage'
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
 import type { ProcessedPayment } from '@/lib/payment-types';
 import type { PnLConfigSnapshot } from '@/lib/pnl-config-types';
+import { DEFAULT_CONFIG_SNAPSHOT } from '@/lib/pnl-config-types';
 
 // Force Node.js runtime for filesystem access (required for fs operations)
 export const runtime = 'nodejs';
@@ -336,12 +337,29 @@ export async function GET(request: Request) {
       const totalCost = Object.values(services).reduce((sum, s) => sum + s.totalCost, 0);
       const totalGrossProfit = Object.values(services).reduce((sum, s) => sum + s.grossProfit, 0);
       
-      // Fixed costs (monthly)
+      // Calculate number of months in the date range
+      let numberOfMonths = 1; // Default to 1 month
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // Calculate number of complete and partial months
+        const yearDiff = end.getFullYear() - start.getFullYear();
+        const monthDiff = end.getMonth() - start.getMonth();
+        numberOfMonths = yearDiff * 12 + monthDiff + 1; // +1 to include both start and end months
+      }
+      
+      // Get fixed costs from configuration (use latest config for current fixed costs)
+      const configHistory = await getPnLConfigHistory();
+      const latestConfig = configHistory.configurations[configHistory.configurations.length - 1] || DEFAULT_CONFIG_SNAPSHOT;
+      const monthlyFixedCosts = latestConfig.fixedCosts;
+      
+      // Multiply fixed costs by number of months in range
       const fixedCosts = {
-        laborCost: 55000,
-        llm: 3650,
-        proTransportation: 2070,
-        total: 60720,
+        laborCost: monthlyFixedCosts.laborCost * numberOfMonths,
+        llm: monthlyFixedCosts.llm * numberOfMonths,
+        proTransportation: monthlyFixedCosts.proTransportation * numberOfMonths,
+        total: (monthlyFixedCosts.laborCost + monthlyFixedCosts.llm + monthlyFixedCosts.proTransportation) * numberOfMonths,
       };
       
       const aggregated: AggregatedPnL = {
@@ -374,6 +392,7 @@ export async function GET(request: Request) {
         paymentData: paymentInfo,
         files: null,
         fileCount: 0,
+        monthsInRange: numberOfMonths, // Include this for debugging
       });
     }
     

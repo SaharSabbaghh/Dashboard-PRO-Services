@@ -8,6 +8,12 @@ export interface ServiceConfig {
   serviceFee?: number; // Optional additional service fee
 }
 
+export interface FixedCosts {
+  laborCost: number; // Monthly labor cost
+  llm: number; // Monthly LLM cost
+  proTransportation: number; // Monthly PRO transportation cost
+}
+
 export interface PnLConfigSnapshot {
   effectiveDate: string; // ISO date string - config applies from this date forward
   updatedAt: string; // When this config was created
@@ -23,6 +29,7 @@ export interface PnLConfigSnapshot {
     ethiopianPP: ServiceConfig;
     filipinaPP: ServiceConfig;
   };
+  fixedCosts: FixedCosts; // Monthly fixed costs
 }
 
 export interface PnLConfigHistory {
@@ -64,6 +71,11 @@ export const DEFAULT_CONFIG_SNAPSHOT: PnLConfigSnapshot = {
     gcc: { unitCost: 220, serviceFee: 0 },
     ethiopianPP: { unitCost: 1330, serviceFee: 0 },
     filipinaPP: { unitCost: 0, serviceFee: 0 }
+  },
+  fixedCosts: {
+    laborCost: 55000,
+    llm: 3650,
+    proTransportation: 2070
   }
 };
 

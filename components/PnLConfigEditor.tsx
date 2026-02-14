@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { PnLConfigSnapshot, ServiceConfig } from '@/lib/pnl-config-types';
+import type { PnLConfigSnapshot, ServiceConfig, FixedCosts } from '@/lib/pnl-config-types';
 
 export default function PnLConfigEditor() {
   const [config, setConfig] = useState<PnLConfigSnapshot | null>(null);
@@ -9,6 +9,7 @@ export default function PnLConfigEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editedConfig, setEditedConfig] = useState<PnLConfigSnapshot['services'] | null>(null);
+  const [editedFixedCosts, setEditedFixedCosts] = useState<FixedCosts | null>(null);
 
   useEffect(() => {
     fetchConfig();
@@ -24,6 +25,7 @@ export default function PnLConfigEditor() {
         setConfig(data.currentConfig);
         setHistory(data.history);
         setEditedConfig(data.currentConfig.services);
+        setEditedFixedCosts(data.currentConfig.fixedCosts);
       }
     } catch (error) {
       console.error('Error fetching config:', error);
@@ -33,14 +35,17 @@ export default function PnLConfigEditor() {
   };
 
   const handleSave = async () => {
-    if (!editedConfig) return;
+    if (!editedConfig || !editedFixedCosts) return;
 
     setSaving(true);
     try {
       const response = await fetch('/api/pnl-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ services: editedConfig }),
+        body: JSON.stringify({ 
+          services: editedConfig,
+          fixedCosts: editedFixedCosts
+        }),
       });
 
       const data = await response.json();
@@ -71,11 +76,20 @@ export default function PnLConfigEditor() {
     });
   };
 
+  const updateFixedCost = (field: keyof FixedCosts, value: number) => {
+    if (!editedFixedCosts) return;
+
+    setEditedFixedCosts({
+      ...editedFixedCosts,
+      [field]: value,
+    });
+  };
+
   if (loading) {
     return <div className="p-8">Loading configuration...</div>;
   }
 
-  if (!config || !editedConfig) {
+  if (!config || !editedConfig || !editedFixedCosts) {
     return <div className="p-8">No configuration found</div>;
   }
 
@@ -140,10 +154,76 @@ export default function PnLConfigEditor() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Monthly Fixed Costs */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6">
+        <h3 className="text-xl font-bold text-slate-800 mb-4">Monthly Fixed Costs</h3>
+        
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-800">
+            These costs are multiplied by the number of months in your selected date range. For example, if you filter by 3 months, labor cost will be multiplied by 3.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-[200px_1fr_auto] items-center gap-4 py-3 border-b border-slate-200">
+            <div className="font-semibold text-slate-700">Labor Cost</div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.01"
+                value={editedFixedCosts.laborCost}
+                onChange={(e) => updateFixedCost('laborCost', parseFloat(e.target.value) || 0)}
+                className="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <span className="text-sm text-slate-600">AED / month</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[200px_1fr_auto] items-center gap-4 py-3 border-b border-slate-200">
+            <div className="font-semibold text-slate-700">LLM Costs</div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.01"
+                value={editedFixedCosts.llm}
+                onChange={(e) => updateFixedCost('llm', parseFloat(e.target.value) || 0)}
+                className="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <span className="text-sm text-slate-600">AED / month</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[200px_1fr_auto] items-center gap-4 py-3 border-b border-slate-200">
+            <div className="font-semibold text-slate-700">PRO Transportation</div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.01"
+                value={editedFixedCosts.proTransportation}
+                onChange={(e) => updateFixedCost('proTransportation', parseFloat(e.target.value) || 0)}
+                className="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <span className="text-sm text-slate-600">AED / month</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[200px_1fr_auto] items-center gap-4 py-3 pt-6 border-t-2 border-slate-300">
+            <div className="font-bold text-slate-800">Total Per Month</div>
+            <div></div>
+            <div className="text-lg font-bold text-slate-800">
+              {(editedFixedCosts.laborCost + editedFixedCosts.llm + editedFixedCosts.proTransportation).toFixed(2)} AED
+            </div>
+          </div>
+        </div>
 
         <div className="mt-6 flex justify-end gap-4">
           <button
-            onClick={() => setEditedConfig(config.services)}
+            onClick={() => {
+              setEditedConfig(config.services);
+              setEditedFixedCosts(config.fixedCosts);
+            }}
             className="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
           >
             Reset
