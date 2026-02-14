@@ -29,10 +29,16 @@ export default function ServiceBreakdownChart({
   const [viewMode, setViewMode] = useState<ViewMode>('asking');
 
   // Calculate "Who is Asking" metrics
-  const calculateAskingMetrics = () => {
+  const calculateAskingMetrics = (): Record<ServiceFilter, AskingMetrics> => {
     const emptyMetrics = { maid: 0, client: 0, household: 0 };
     if (!prospectDetails || prospectDetails.length === 0) {
-      return { oec: emptyMetrics, owwa: emptyMetrics, travelVisa: emptyMetrics };
+      return { 
+        oec: emptyMetrics, 
+        owwa: emptyMetrics, 
+        travelVisa: emptyMetrics,
+        filipinaPassportRenewal: emptyMetrics,
+        ethiopianPassportRenewal: emptyMetrics,
+      };
     }
 
     const householdContractIds = new Set<string>();
