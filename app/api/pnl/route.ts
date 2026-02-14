@@ -46,14 +46,14 @@ function filterPaymentsDataByDate(
   const start = startDate ? new Date(startDate) : new Date(0);
   const end = endDate ? new Date(endDate + 'T23:59:59') : new Date('9999-12-31');
 
-  // Filter payments by date and status
+  // Filter payments by date and status - ONLY RECEIVED
   const filteredPayments = payments.filter(p => {
     if (p.status !== 'received') return false;
     const paymentDate = new Date(p.dateOfPayment);
     return paymentDate >= start && paymentDate <= end;
   });
 
-  // Calculate volumes by service
+  // Calculate volumes (number of payments) and revenues by service
   const volumes: Record<PnLServiceKey, number> = {
     oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
     schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
@@ -65,32 +65,22 @@ function filterPaymentsDataByDate(
   };
   
   const serviceBreakdown: Record<string, {
-    uniqueSales: number;
-    uniqueClients: number;
     totalPayments: number;
     totalRevenue: number;
     avgRevenue: number;
     byMonth: Record<string, number>;
-    contracts: Set<string>;
-    clients: Set<string>;
   }> = {};
 
   // Initialize service breakdown
   ALL_SERVICE_KEYS.forEach(key => {
     serviceBreakdown[key] = {
-      uniqueSales: 0,
-      uniqueClients: 0,
       totalPayments: 0,
       totalRevenue: 0,
       avgRevenue: 0,
       byMonth: {},
-      contracts: new Set(),
-      clients: new Set(),
     };
   });
 
-  const uniqueClients = new Set<string>();
-  const uniqueContracts = new Set<string>();
   let totalRevenue = 0;
 
   // Process each payment
@@ -102,9 +92,12 @@ function filterPaymentsDataByDate(
       serviceKey = 'oec';
     } else if (payment.service === 'owwa') {
       serviceKey = 'owwa';
+    } else if (payment.service === 'filipina_pp') {
+      serviceKey = 'filipinaPP';
+    } else if (payment.service === 'ethiopian_pp') {
+      serviceKey = 'ethiopianPP';
     } else if (payment.service === 'travel_visa') {
-      // Map travel visa to specific destination (default to TTL for now)
-      // In the future, we could parse payment type to determine destination
+      // Map travel visa to specific destination
       const paymentTypeLower = payment.paymentType.toLowerCase();
       if (paymentTypeLower.includes('lebanon')) {
         serviceKey = 'ttl';
@@ -112,6 +105,10 @@ function filterPaymentsDataByDate(
         serviceKey = 'tte';
       } else if (paymentTypeLower.includes('jordan')) {
         serviceKey = 'ttj';
+      } else if (paymentTypeLower.includes('schengen')) {
+        serviceKey = 'schengen';
+      } else if (paymentTypeLower.includes('gcc')) {
+        serviceKey = 'gcc';
       } else {
         // Default to TTL if destination unclear
         serviceKey = 'ttl';
@@ -122,15 +119,6 @@ function filterPaymentsDataByDate(
       volumes[serviceKey]++;
       revenues[serviceKey] += payment.amountOfPayment;
       totalRevenue += payment.amountOfPayment;
-      
-      if (payment.clientId) {
-        uniqueClients.add(payment.clientId);
-        serviceBreakdown[serviceKey].clients.add(payment.clientId);
-      }
-      if (payment.contractId) {
-        uniqueContracts.add(payment.contractId);
-        serviceBreakdown[serviceKey].contracts.add(payment.contractId);
-      }
 
       // Count by month
       const monthKey = payment.dateOfPayment.substring(0, 7); // "YYYY-MM"
@@ -146,14 +134,13 @@ function filterPaymentsDataByDate(
   ALL_SERVICE_KEYS.forEach(key => {
     const service = serviceBreakdown[key];
     finalServiceBreakdown[key] = {
-      uniqueSales: service.contracts.size,
-      uniqueClients: service.clients.size,
+      uniqueSales: service.totalPayments, // Changed from unique contracts to total payments
+      uniqueClients: 0, // Not tracking uniqueness anymore
       totalPayments: service.totalPayments,
       totalRevenue: service.totalRevenue,
-      avgRevenue: service.contracts.size > 0 ? service.totalRevenue / service.contracts.size : 0,
+      avgRevenue: service.totalPayments > 0 ? service.totalRevenue / service.totalPayments : 0,
       byMonth: service.byMonth,
     };
-    volumes[key] = service.contracts.size; // Use unique contracts as volume
   });
 
   const paymentInfo: PaymentInfo = {
@@ -161,9 +148,9 @@ function filterPaymentsDataByDate(
     totalPayments: filteredPayments.length,
     receivedPayments: filteredPayments.length,
     summary: {
-      totalUniqueSales: uniqueContracts.size,
-      totalUniqueClients: uniqueClients.size,
-      totalUniqueContracts: uniqueContracts.size,
+      totalUniqueSales: filteredPayments.length, // Changed to total payments
+      totalUniqueClients: 0, // Not tracking anymore
+      totalUniqueContracts: 0, // Not tracking anymore
       totalRevenue,
     },
     serviceBreakdown: finalServiceBreakdown,
