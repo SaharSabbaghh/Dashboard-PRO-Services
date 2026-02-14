@@ -71,7 +71,6 @@ export interface Conversions {
   ethiopianPassportRenewal: number;
   overseas?: number; // Sales tracked via To Dos
 }
-}
 
 export interface OverseasSalesSummary {
   totalSales: number;

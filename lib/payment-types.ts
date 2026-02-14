@@ -19,7 +19,7 @@ export interface ProcessedPayment {
   clientId: string;
   status: 'received' | 'pre_pdp' | 'other';
   dateOfPayment: string; // ISO date string "2026-01-14"
-  service: 'oec' | 'owwa' | 'travel_visa' | 'other';
+  service: 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | 'other';
   amountOfPayment: number; // Parsed payment amount (0 if not provided)
 }
 
@@ -33,7 +33,7 @@ export interface PaymentData {
 /**
  * Maps payment types to P&L services
  */
-export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'travel_visa' | 'other'> = {
+export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | 'other'> = {
   // OEC payments
   "the maid's overseas employment certificate": 'oec',
   'overseas employment certificate': 'oec',
@@ -54,12 +54,21 @@ export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'travel_visa' | '
   'travel to philippines visa': 'travel_visa',
   'travel visa': 'travel_visa',
   'visa': 'travel_visa',
+  
+  // Passport Renewal payments
+  'filipina passport renewal': 'filipina_pp',
+  'filipino passport renewal': 'filipina_pp',
+  'philippine passport renewal': 'filipina_pp',
+  'philippines passport renewal': 'filipina_pp',
+  
+  'ethiopian passport renewal': 'ethiopian_pp',
+  'ethiopia passport renewal': 'ethiopian_pp',
 };
 
 /**
  * Maps payment type string to service category
  */
-export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | 'travel_visa' | 'other' {
+export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | 'other' {
   const normalized = paymentType.toLowerCase().trim();
   
   // Direct match
@@ -78,6 +87,18 @@ export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | '
   
   if (normalized.includes('visa') || normalized.includes('travel to')) {
     return 'travel_visa';
+  }
+  
+  if (normalized.includes('filipina') || normalized.includes('filipino') || normalized.includes('philippine') || normalized.includes('philippines')) {
+    if (normalized.includes('passport')) {
+      return 'filipina_pp';
+    }
+  }
+  
+  if (normalized.includes('ethiopian') || normalized.includes('ethiopia')) {
+    if (normalized.includes('passport')) {
+      return 'ethiopian_pp';
+    }
   }
   
   return 'other';

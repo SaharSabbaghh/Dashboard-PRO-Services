@@ -177,8 +177,8 @@ export async function getOverseasSalesSummaryBlob(): Promise<{
 // ============================================================
 
 function calculateSummary(results: ProcessedConversation[]) {
-  let oec = 0, owwa = 0, travelVisa = 0;
-  let oecConverted = 0, owwaConverted = 0, travelVisaConverted = 0;
+  let oec = 0, owwa = 0, travelVisa = 0, filipinaPassportRenewal = 0, ethiopianPassportRenewal = 0;
+  let oecConverted = 0, owwaConverted = 0, travelVisaConverted = 0, filipinaPassportRenewalConverted = 0, ethiopianPassportRenewalConverted = 0;
   const countryCounts: Record<string, number> = {};
   const byContractType = {
     CC: { oec: 0, owwa: 0, travelVisa: 0 },
@@ -201,10 +201,14 @@ function calculateSummary(results: ProcessedConversation[]) {
     const hasOEC = members.some(m => m.isOECProspect);
     const hasOWWA = members.some(m => m.isOWWAProspect);
     const hasTravelVisa = members.some(m => m.isTravelVisaProspect);
+    const hasFilipinaPassportRenewal = members.some(m => m.isFilipinaPassportRenewalProspect);
+    const hasEthiopianPassportRenewal = members.some(m => m.isEthiopianPassportRenewalProspect);
     
     const oecConv = members.some(m => m.oecConverted);
     const owwaConv = members.some(m => m.owwaConverted);
     const travelVisaConv = members.some(m => m.travelVisaConverted);
+    const filipinaPassportRenewalConv = members.some(m => m.filipinaPassportRenewalConverted);
+    const ethiopianPassportRenewalConv = members.some(m => m.ethiopianPassportRenewalConverted);
     
     if (hasOEC) {
       oec++;
@@ -236,9 +240,21 @@ function calculateSummary(results: ProcessedConversation[]) {
         countryCounts[country] = (countryCounts[country] || 0) + 1;
       }
     }
+    if (hasFilipinaPassportRenewal) {
+      filipinaPassportRenewal++;
+      if (filipinaPassportRenewalConv) filipinaPassportRenewalConverted++;
+    }
+    if (hasEthiopianPassportRenewal) {
+      ethiopianPassportRenewal++;
+      if (ethiopianPassportRenewalConv) ethiopianPassportRenewalConverted++;
+    }
   }
   
-  return { oec, owwa, travelVisa, oecConverted, owwaConverted, travelVisaConverted, countryCounts, byContractType };
+  return { 
+    oec, owwa, travelVisa, filipinaPassportRenewal, ethiopianPassportRenewal,
+    oecConverted, owwaConverted, travelVisaConverted, filipinaPassportRenewalConverted, ethiopianPassportRenewalConverted,
+    countryCounts, byContractType 
+  };
 }
 
 // ============================================================
@@ -315,8 +331,8 @@ export async function getAggregatedResultsByDateBlob(date: string) {
       totalProcessed: 0,
       totalConversations: 0,
       isProcessing: false,
-      prospects: { oec: 0, owwa: 0, travelVisa: 0 },
-      conversions: { oec: 0, owwa: 0, travelVisa: 0 },
+      prospects: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+      conversions: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
       countryCounts: {},
       byContractType: defaultByContractType,
       latestRun: null,
@@ -335,11 +351,15 @@ export async function getAggregatedResultsByDateBlob(date: string) {
       oec: data.summary.oec,
       owwa: data.summary.owwa,
       travelVisa: data.summary.travelVisa,
+      filipinaPassportRenewal: data.summary.filipinaPassportRenewal || 0,
+      ethiopianPassportRenewal: data.summary.ethiopianPassportRenewal || 0,
     },
     conversions: {
       oec: data.summary.oecConverted,
       owwa: data.summary.owwaConverted,
       travelVisa: data.summary.travelVisaConverted,
+      filipinaPassportRenewal: data.summary.filipinaPassportRenewalConverted || 0,
+      ethiopianPassportRenewal: data.summary.ethiopianPassportRenewalConverted || 0,
     },
     countryCounts: data.summary.countryCounts,
     byContractType: data.summary.byContractType || defaultByContractType,

@@ -12,7 +12,7 @@ export const revalidate = 0;
 async function calculateConversionsForDate(date: string, contractIds: string[]) {
   const paymentData = await getPaymentData();
   if (!paymentData || contractIds.length === 0) {
-    return { oec: 0, owwa: 0, travelVisa: 0 };
+    return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
   }
   
   // Filter payments for this specific date (only RECEIVED payments)
@@ -22,6 +22,8 @@ async function calculateConversionsForDate(date: string, contractIds: string[]) 
     oec: new Set<string>(),
     owwa: new Set<string>(),
     travelVisa: new Set<string>(),
+    filipinaPassportRenewal: new Set<string>(),
+    ethiopianPassportRenewal: new Set<string>(),
   };
   
   // Check each payment on this date
@@ -33,6 +35,10 @@ async function calculateConversionsForDate(date: string, contractIds: string[]) 
         convertedContracts.owwa.add(payment.contractId);
       } else if (payment.service === 'travel_visa') {
         convertedContracts.travelVisa.add(payment.contractId);
+      } else if (payment.service === 'filipina_pp') {
+        convertedContracts.filipinaPassportRenewal.add(payment.contractId);
+      } else if (payment.service === 'ethiopian_pp') {
+        convertedContracts.ethiopianPassportRenewal.add(payment.contractId);
       }
     }
   }
@@ -41,6 +47,8 @@ async function calculateConversionsForDate(date: string, contractIds: string[]) 
     oec: convertedContracts.oec.size,
     owwa: convertedContracts.owwa.size,
     travelVisa: convertedContracts.travelVisa.size,
+    filipinaPassportRenewal: convertedContracts.filipinaPassportRenewal.size,
+    ethiopianPassportRenewal: convertedContracts.ethiopianPassportRenewal.size,
   };
 }
 

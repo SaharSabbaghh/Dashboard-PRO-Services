@@ -12,11 +12,15 @@ interface ConversionResult {
     oec: boolean;
     owwa: boolean;
     travelVisa: boolean;
+    filipinaPassportRenewal: boolean;
+    ethiopianPassportRenewal: boolean;
   };
   paymentDates: {
     oec?: string[];
     owwa?: string[];
     travelVisa?: string[];
+    filipinaPassportRenewal?: string[];
+    ethiopianPassportRenewal?: string[];
   };
 }
 
@@ -52,8 +56,8 @@ export async function GET(
     const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
     
     // Create a lookup map for faster searching: contractId -> Set of services
-    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa'>>();
-    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa', string[]>>();
+    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
+    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
     
     datePayments.forEach(payment => {
       if (!paymentMap.has(payment.contractId)) {
@@ -64,7 +68,7 @@ export async function GET(
       const services = paymentMap.get(payment.contractId)!;
       const dates = paymentDatesMap.get(payment.contractId)!;
       
-      if (payment.service === 'oec' || payment.service === 'owwa' || payment.service === 'travel_visa') {
+      if (payment.service === 'oec' || payment.service === 'owwa' || payment.service === 'travel_visa' || payment.service === 'filipina_pp' || payment.service === 'ethiopian_pp') {
         services.add(payment.service);
         
         if (!dates.has(payment.service)) {
@@ -80,7 +84,8 @@ export async function GET(
     for (const result of dailyData.results) {
       if (!result.contractId) continue;
       
-      const isProspect = result.isOECProspect || result.isOWWAProspect || result.isTravelVisaProspect;
+      const isProspect = result.isOECProspect || result.isOWWAProspect || result.isTravelVisaProspect || 
+                         result.isFilipinaPassportRenewalProspect || result.isEthiopianPassportRenewalProspect;
       if (!isProspect) continue;
       
       const paidServices = paymentMap.get(result.contractId);
@@ -92,6 +97,8 @@ export async function GET(
           oec: false,
           owwa: false,
           travelVisa: false,
+          filipinaPassportRenewal: false,
+          ethiopianPassportRenewal: false,
         },
         paymentDates: {},
       };
@@ -116,8 +123,21 @@ export async function GET(
         conversion.paymentDates.travelVisa = contractDates.get('travel_visa') || [];
       }
       
+      // Check Filipina Passport Renewal payment
+      if (result.isFilipinaPassportRenewalProspect && paidServices.has('filipina_pp')) {
+        conversion.services.filipinaPassportRenewal = true;
+        conversion.paymentDates.filipinaPassportRenewal = contractDates.get('filipina_pp') || [];
+      }
+      
+      // Check Ethiopian Passport Renewal payment
+      if (result.isEthiopianPassportRenewalProspect && paidServices.has('ethiopian_pp')) {
+        conversion.services.ethiopianPassportRenewal = true;
+        conversion.paymentDates.ethiopianPassportRenewal = contractDates.get('ethiopian_pp') || [];
+      }
+      
       // Only add if there was a conversion
-      if (conversion.services.oec || conversion.services.owwa || conversion.services.travelVisa) {
+      if (conversion.services.oec || conversion.services.owwa || conversion.services.travelVisa || 
+          conversion.services.filipinaPassportRenewal || conversion.services.ethiopianPassportRenewal) {
         conversions.push(conversion);
       }
     }
@@ -130,6 +150,8 @@ export async function GET(
         oec: conversions.filter(c => c.services.oec).length,
         owwa: conversions.filter(c => c.services.owwa).length,
         travelVisa: conversions.filter(c => c.services.travelVisa).length,
+        filipinaPassportRenewal: conversions.filter(c => c.services.filipinaPassportRenewal).length,
+        ethiopianPassportRenewal: conversions.filter(c => c.services.ethiopianPassportRenewal).length,
       },
     });
     
