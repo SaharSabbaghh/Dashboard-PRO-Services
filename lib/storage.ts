@@ -249,9 +249,13 @@ export function getOrCreateDailyData(date: string, fileName?: string): DailyData
       oec: 0, 
       owwa: 0, 
       travelVisa: 0, 
+      filipinaPassportRenewal: 0,
+      ethiopianPassportRenewal: 0,
       oecConverted: 0, 
       owwaConverted: 0, 
       travelVisaConverted: 0, 
+      filipinaPassportRenewalConverted: 0,
+      ethiopianPassportRenewalConverted: 0,
       countryCounts: {},
       byContractType: {
         CC: { oec: 0, owwa: 0, travelVisa: 0 },
