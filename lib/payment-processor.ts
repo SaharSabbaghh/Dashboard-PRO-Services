@@ -143,7 +143,7 @@ export function getConversionsByService(
       oecContracts.add(payment.contractId);
     } else if (payment.service === 'owwa') {
       owwaContracts.add(payment.contractId);
-    } else if (payment.service === 'travel_visa') {
+    } else if (['ttl', 'tte', 'ttj', 'schengen', 'gcc'].includes(payment.service)) {
       travelVisaContracts.add(payment.contractId);
     }
   });

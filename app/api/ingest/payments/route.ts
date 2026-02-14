@@ -103,7 +103,14 @@ export async function GET() {
         breakdown: {
           oec: paymentData.payments.filter(p => p.service === 'oec' && p.status === 'received').length,
           owwa: paymentData.payments.filter(p => p.service === 'owwa' && p.status === 'received').length,
-          travel_visa: paymentData.payments.filter(p => p.service === 'travel_visa' && p.status === 'received').length,
+          ttl: paymentData.payments.filter(p => p.service === 'ttl' && p.status === 'received').length,
+          tte: paymentData.payments.filter(p => p.service === 'tte' && p.status === 'received').length,
+          ttj: paymentData.payments.filter(p => p.service === 'ttj' && p.status === 'received').length,
+          schengen: paymentData.payments.filter(p => p.service === 'schengen' && p.status === 'received').length,
+          gcc: paymentData.payments.filter(p => p.service === 'gcc' && p.status === 'received').length,
+          filipina_pp: paymentData.payments.filter(p => p.service === 'filipina_pp' && p.status === 'received').length,
+          ethiopian_pp: paymentData.payments.filter(p => p.service === 'ethiopian_pp' && p.status === 'received').length,
+          other: paymentData.payments.filter(p => p.service === 'other').length,
         },
       },
     });
