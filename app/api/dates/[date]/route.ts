@@ -33,7 +33,7 @@ async function calculateConversionsForDate(date: string, contractIds: string[]) 
         convertedContracts.oec.add(payment.contractId);
       } else if (payment.service === 'owwa') {
         convertedContracts.owwa.add(payment.contractId);
-      } else if (payment.service === 'travel_visa') {
+      } else if (payment.service === 'ttl' || payment.service === 'tte' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
         convertedContracts.travelVisa.add(payment.contractId);
       } else if (payment.service === 'filipina_pp') {
         convertedContracts.filipinaPassportRenewal.add(payment.contractId);

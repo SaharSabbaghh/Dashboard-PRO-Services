@@ -56,6 +56,7 @@ export async function GET(
     const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
     
     // Create a lookup map for faster searching: contractId -> Set of services
+    // For travel visas, we consolidate all types (ttl, tte, ttj, schengen, gcc) into 'travel_visa' for prospect matching
     const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
     const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
     
@@ -68,13 +69,28 @@ export async function GET(
       const services = paymentMap.get(payment.contractId)!;
       const dates = paymentDatesMap.get(payment.contractId)!;
       
-      if (payment.service === 'oec' || payment.service === 'owwa' || payment.service === 'travel_visa' || payment.service === 'filipina_pp' || payment.service === 'ethiopian_pp') {
-        services.add(payment.service);
+      // Map payment services to prospect service types
+      let prospectService: 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | null = null;
+      
+      if (payment.service === 'oec') {
+        prospectService = 'oec';
+      } else if (payment.service === 'owwa') {
+        prospectService = 'owwa';
+      } else if (payment.service === 'ttl' || payment.service === 'tte' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
+        prospectService = 'travel_visa'; // Consolidate all travel visa types
+      } else if (payment.service === 'filipina_pp') {
+        prospectService = 'filipina_pp';
+      } else if (payment.service === 'ethiopian_pp') {
+        prospectService = 'ethiopian_pp';
+      }
+      
+      if (prospectService) {
+        services.add(prospectService);
         
-        if (!dates.has(payment.service)) {
-          dates.set(payment.service, []);
+        if (!dates.has(prospectService)) {
+          dates.set(prospectService, []);
         }
-        dates.get(payment.service)!.push(payment.dateOfPayment);
+        dates.get(prospectService)!.push(payment.dateOfPayment);
       }
     });
     
