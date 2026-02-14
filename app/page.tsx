@@ -276,6 +276,12 @@ export default function Dashboard() {
         return results.prospectDetails.filter(p => p.isOWWAProspect).length;
       case 'travelVisa':
         return results.prospectDetails.filter(p => p.isTravelVisaProspect).length;
+      case 'filipinaPassportRenewal':
+        return results.prospectDetails.filter(p => p.isFilipinaPassportRenewalProspect).length;
+      case 'ethiopianPassportRenewal':
+        return results.prospectDetails.filter(p => p.isEthiopianPassportRenewalProspect).length;
+      default:
+        return 0;
     }
   };
 
@@ -308,6 +314,8 @@ export default function Dashboard() {
                   { id: 'oec', label: 'OEC', icon: '◈' },
                   { id: 'owwa', label: 'OWWA', icon: '◇' },
                   { id: 'travelVisa', label: 'Travel Visa', icon: '✈' },
+                  { id: 'filipinaPassportRenewal', label: 'Filipina PP', icon: '🇵🇭' },
+                  { id: 'ethiopianPassportRenewal', label: 'Ethiopian PP', icon: '🇪🇹' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -458,6 +466,70 @@ export default function Dashboard() {
                       <ServiceProspectTable
                         prospects={results?.prospectDetails || []}
                         service="travelVisa"
+                      />
+                    </CollapsibleSection>
+                  </>
+                )}
+
+                {/* Filipina Passport Renewal Sub-tab */}
+                {dashboardSubTab === 'filipinaPassportRenewal' && (
+                  <>
+                    <ServiceSummaryCards
+                      service="filipinaPassportRenewal"
+                      prospectCount={getProspectCount('filipinaPassportRenewal')}
+                      conversions={results?.conversions}
+                      byContractType={results?.byContractType}
+                      prospectDetails={results?.prospectDetails}
+                    />
+
+                    <CountryBreakdown countryCounts={results?.countryCounts || {}} />
+
+                    <ServiceBreakdownChart 
+                      prospectDetails={results?.prospectDetails} 
+                      households={results?.households}
+                      byContractType={results?.byContractType}
+                      serviceFilter="filipinaPassportRenewal"
+                    />
+
+                    <CollapsibleSection
+                      title="Filipina Passport Renewal Prospect Details"
+                      count={getFilteredProspectCount('filipinaPassportRenewal')}
+                    >
+                      <ServiceProspectTable
+                        prospects={results?.prospectDetails || []}
+                        service="filipinaPassportRenewal"
+                      />
+                    </CollapsibleSection>
+                  </>
+                )}
+
+                {/* Ethiopian Passport Renewal Sub-tab */}
+                {dashboardSubTab === 'ethiopianPassportRenewal' && (
+                  <>
+                    <ServiceSummaryCards
+                      service="ethiopianPassportRenewal"
+                      prospectCount={getProspectCount('ethiopianPassportRenewal')}
+                      conversions={results?.conversions}
+                      byContractType={results?.byContractType}
+                      prospectDetails={results?.prospectDetails}
+                    />
+
+                    <CountryBreakdown countryCounts={results?.countryCounts || {}} />
+
+                    <ServiceBreakdownChart 
+                      prospectDetails={results?.prospectDetails} 
+                      households={results?.households}
+                      byContractType={results?.byContractType}
+                      serviceFilter="ethiopianPassportRenewal"
+                    />
+
+                    <CollapsibleSection
+                      title="Ethiopian Passport Renewal Prospect Details"
+                      count={getFilteredProspectCount('ethiopianPassportRenewal')}
+                    >
+                      <ServiceProspectTable
+                        prospects={results?.prospectDetails || []}
+                        service="ethiopianPassportRenewal"
                       />
                     </CollapsibleSection>
                   </>
@@ -777,7 +849,7 @@ export default function Dashboard() {
                           <p className="text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">Ethiopian PP</p>
                           <div className="flex justify-between text-sm">
                             <span className="text-slate-500">Gov. Fees</span>
-                            <span className="text-slate-700 font-medium">AED 1,350</span>
+                            <span className="text-slate-700 font-medium">AED 1,330</span>
                           </div>
                           {pnlData?.services.ethiopianPP.serviceFees > 0 && (
                             <div className="flex justify-between text-sm">

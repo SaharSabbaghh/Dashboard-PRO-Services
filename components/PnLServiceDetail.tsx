@@ -413,7 +413,7 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
                 ]},
                 schengen: { items: [] },
                 gcc: { items: [{ label: 'Dubai Police', value: 'AED 220' }] },
-                ethiopianPP: { items: [{ label: 'Gov. Fees', value: 'AED 1,350' }] },
+                ethiopianPP: { items: [{ label: 'Gov. Fees', value: 'AED 1,330' }] },
                 filipinaPP: { items: [] },
               };
               

@@ -196,8 +196,8 @@ const SERVICE_UNIT_COSTS: Record<PnLServiceKey, number> = {
   ttj: 320,     // Embassy + facilitator
   schengen: 0,
   gcc: 220,     // Dubai Police
-  ethiopianPP: 1350, // Government fees
-  filipinaPP: 0,
+  ethiopianPP: 1330, // Government fees
+  filipinaPP: 0,     // No cost
 };
 
 // Map service keys to aggregated services keys
