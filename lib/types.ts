@@ -44,11 +44,15 @@ export interface HouseholdGroup {
     oec: boolean;
     owwa: boolean;
     travelVisa: boolean;
+    filipinaPassportRenewal: boolean;
+    ethiopianPassportRenewal: boolean;
   };
   conversions: {
     oec: boolean;
     owwa: boolean;
     travelVisa: boolean;
+    filipinaPassportRenewal: boolean;
+    ethiopianPassportRenewal: boolean;
   };
 }
 
@@ -56,6 +60,8 @@ export interface ContractTypeBreakdown {
   oec: number;
   owwa: number;
   travelVisa: number;
+  filipinaPassportRenewal?: number;
+  ethiopianPassportRenewal?: number;
 }
 
 export interface ByContractType {
@@ -138,5 +144,7 @@ export const SERVICE_LABELS: Record<ServiceFilter, string> = {
   oec: 'OEC',
   owwa: 'OWWA',
   travelVisa: 'Travel Visa',
+  filipinaPassportRenewal: 'Filipina Passport Renewal',
+  ethiopianPassportRenewal: 'Ethiopian Passport Renewal',
 };
 

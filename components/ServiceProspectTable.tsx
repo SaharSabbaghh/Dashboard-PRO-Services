@@ -31,6 +31,12 @@ export default function ServiceProspectTable({ prospects, service }: ServicePros
         return prospects.filter(p => p.isOWWAProspect);
       case 'travelVisa':
         return prospects.filter(p => p.isTravelVisaProspect);
+      case 'filipinaPassportRenewal':
+        return prospects.filter(p => p.isFilipinaPassportRenewalProspect);
+      case 'ethiopianPassportRenewal':
+        return prospects.filter(p => p.isEthiopianPassportRenewalProspect);
+      default:
+        return [];
     }
   };
 
@@ -42,6 +48,12 @@ export default function ServiceProspectTable({ prospects, service }: ServicePros
         return prospect.owwaConverted || false;
       case 'travelVisa':
         return prospect.travelVisaConverted || false;
+      case 'filipinaPassportRenewal':
+        return prospect.filipinaPassportRenewalConverted || false;
+      case 'ethiopianPassportRenewal':
+        return prospect.ethiopianPassportRenewalConverted || false;
+      default:
+        return false;
     }
   };
 
@@ -53,6 +65,8 @@ export default function ServiceProspectTable({ prospects, service }: ServicePros
       oec: 'OEC',
       owwa: 'OWWA',
       travelVisa: 'Travel Visa',
+      filipinaPassportRenewal: 'Filipina Passport Renewal',
+      ethiopianPassportRenewal: 'Ethiopian Passport Renewal',
     };
     return (
       <div className="py-8 text-center text-slate-400">

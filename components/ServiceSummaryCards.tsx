@@ -21,6 +21,8 @@ export default function ServiceSummaryCards({
     oec: 'OEC',
     owwa: 'OWWA',
     travelVisa: 'Travel Visa',
+    filipinaPassportRenewal: 'Filipina Passport Renewal',
+    ethiopianPassportRenewal: 'Ethiopian Passport Renewal',
   };
 
   const conversionCount = conversions?.[service] || 0;

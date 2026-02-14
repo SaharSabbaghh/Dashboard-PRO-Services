@@ -48,12 +48,16 @@ export default function ServiceBreakdownChart({
       oec: { maid: 0, client: 0, household: 0 },
       owwa: { maid: 0, client: 0, household: 0 },
       travelVisa: { maid: 0, client: 0, household: 0 },
+      filipinaPassportRenewal: { maid: 0, client: 0, household: 0 },
+      ethiopianPassportRenewal: { maid: 0, client: 0, household: 0 },
     };
 
     const countedHouseholds: Record<ServiceFilter, Set<string>> = {
       oec: new Set(),
       owwa: new Set(),
       travelVisa: new Set(),
+      filipinaPassportRenewal: new Set(),
+      ethiopianPassportRenewal: new Set(),
     };
 
     prospectDetails.forEach(prospect => {
@@ -80,6 +84,8 @@ export default function ServiceBreakdownChart({
       processService('oec', prospect.isOECProspect);
       processService('owwa', prospect.isOWWAProspect);
       processService('travelVisa', prospect.isTravelVisaProspect);
+      processService('filipinaPassportRenewal', prospect.isFilipinaPassportRenewalProspect || false);
+      processService('ethiopianPassportRenewal', prospect.isEthiopianPassportRenewalProspect || false);
     });
 
     return metrics;
@@ -116,6 +122,24 @@ export default function ServiceBreakdownChart({
         Household: askingMetrics.travelVisa.household,
         CC: byContractType?.CC?.travelVisa || 0,
         MV: byContractType?.MV?.travelVisa || 0,
+      },
+      {
+        name: 'Filipina PP',
+        key: 'filipinaPassportRenewal' as const,
+        Maid: askingMetrics.filipinaPassportRenewal.maid,
+        Client: askingMetrics.filipinaPassportRenewal.client,
+        Household: askingMetrics.filipinaPassportRenewal.household,
+        CC: byContractType?.CC?.filipinaPassportRenewal || 0,
+        MV: byContractType?.MV?.filipinaPassportRenewal || 0,
+      },
+      {
+        name: 'Ethiopian PP',
+        key: 'ethiopianPassportRenewal' as const,
+        Maid: askingMetrics.ethiopianPassportRenewal.maid,
+        Client: askingMetrics.ethiopianPassportRenewal.client,
+        Household: askingMetrics.ethiopianPassportRenewal.household,
+        CC: byContractType?.CC?.ethiopianPassportRenewal || 0,
+        MV: byContractType?.MV?.ethiopianPassportRenewal || 0,
       },
     ];
 
