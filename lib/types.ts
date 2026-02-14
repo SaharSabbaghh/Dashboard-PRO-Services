@@ -110,7 +110,7 @@ export interface Results {
 }
 
 // Service filter type
-export type ServiceFilter = 'oec' | 'owwa' | 'travelVisa';
+export type ServiceFilter = 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal';
 
 // Common chart colors
 export const CHART_COLORS = {
