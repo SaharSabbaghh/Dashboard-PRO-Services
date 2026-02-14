@@ -6,6 +6,8 @@ interface ProspectCardsProps {
   oecCount: number;
   owwaCount: number;
   travelVisaCount: number;
+  filipinaPassportRenewalCount: number;
+  ethiopianPassportRenewalCount: number;
   totalProcessed: number;
   conversions?: Conversions;
   byContractType?: ByContractType;
@@ -17,6 +19,8 @@ export default function ProspectCards({
   oecCount, 
   owwaCount, 
   travelVisaCount, 
+  filipinaPassportRenewalCount,
+  ethiopianPassportRenewalCount,
   totalProcessed,
   conversions,
   byContractType,
@@ -26,7 +30,7 @@ export default function ProspectCards({
   const calcRate = (converted: number, total: number) => 
     total > 0 ? Math.round((converted / total) * 100) : 0;
 
-  const totalProspects = oecCount + owwaCount + travelVisaCount;
+  const totalProspects = oecCount + owwaCount + travelVisaCount + filipinaPassportRenewalCount + ethiopianPassportRenewalCount;
   
   // Calculate CC and MV totals
   const ccTotal = byContractType 
@@ -37,7 +41,7 @@ export default function ProspectCards({
     : 0;
   const ccPercent = totalProspects > 0 ? ((ccTotal / totalProspects) * 100).toFixed(1) : '0';
   const mvPercent = totalProspects > 0 ? ((mvTotal / totalProspects) * 100).toFixed(1) : '0';
-  const totalConverted = (conversions?.oec || 0) + (conversions?.owwa || 0) + (conversions?.travelVisa || 0);
+  const totalConverted = (conversions?.oec || 0) + (conversions?.owwa || 0) + (conversions?.travelVisa || 0) + (conversions?.filipinaPassportRenewal || 0) + (conversions?.ethiopianPassportRenewal || 0);
   const overallRate = calcRate(totalConverted, totalProspects);
 
   // Calculate average confidence across all prospect types
@@ -54,6 +58,12 @@ export default function ProspectCards({
       }
       if (p.isTravelVisaProspect && p.isTravelVisaProspectConfidence !== undefined) {
         allConfidences.push(p.isTravelVisaProspectConfidence);
+      }
+      if (p.isFilipinaPassportRenewalProspect && p.isFilipinaPassportRenewalProspectConfidence !== undefined) {
+        allConfidences.push(p.isFilipinaPassportRenewalProspectConfidence);
+      }
+      if (p.isEthiopianPassportRenewalProspect && p.isEthiopianPassportRenewalProspectConfidence !== undefined) {
+        allConfidences.push(p.isEthiopianPassportRenewalProspectConfidence);
       }
     });
     
@@ -82,12 +92,24 @@ export default function ProspectCards({
       converted: conversions?.travelVisa || 0,
       rate: calcRate(conversions?.travelVisa || 0, travelVisaCount),
     },
+    {
+      title: 'Filipina PP Renewal',
+      count: filipinaPassportRenewalCount,
+      converted: conversions?.filipinaPassportRenewal || 0,
+      rate: calcRate(conversions?.filipinaPassportRenewal || 0, filipinaPassportRenewalCount),
+    },
+    {
+      title: 'Ethiopian PP Renewal',
+      count: ethiopianPassportRenewalCount,
+      converted: conversions?.ethiopianPassportRenewal || 0,
+      rate: calcRate(conversions?.ethiopianPassportRenewal || 0, ethiopianPassportRenewalCount),
+    },
   ];
 
   return (
     <div className="space-y-4">
       {/* Main cards row */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
         {cards.map((card) => (
           <div
             key={card.title}

@@ -336,6 +336,8 @@ export default function Dashboard() {
                   oecCount={results?.prospects?.oec || 0}
                   owwaCount={results?.prospects?.owwa || 0}
                   travelVisaCount={results?.prospects?.travelVisa || 0}
+                  filipinaPassportRenewalCount={results?.prospects?.filipinaPassportRenewal || 0}
+                  ethiopianPassportRenewalCount={results?.prospects?.ethiopianPassportRenewal || 0}
               totalProcessed={results?.totalProcessed || 0}
               conversions={results?.conversions}
               byContractType={results?.byContractType}

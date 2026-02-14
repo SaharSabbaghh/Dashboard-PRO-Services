@@ -23,6 +23,12 @@ export interface ProspectDetail {
   travelVisaCountries: string[];
   travelVisaConverted?: boolean;
   travelVisaConvertedConfidence?: number;
+  isFilipinaPassportRenewalProspect?: boolean;
+  isFilipinaPassportRenewalProspectConfidence?: number;
+  filipinaPassportRenewalConverted?: boolean;
+  isEthiopianPassportRenewalProspect?: boolean;
+  isEthiopianPassportRenewalProspectConfidence?: number;
+  ethiopianPassportRenewalConverted?: boolean;
 }
 
 export interface HouseholdGroup {
@@ -61,7 +67,10 @@ export interface Conversions {
   oec: number;
   owwa: number;
   travelVisa: number;
+  filipinaPassportRenewal: number;
+  ethiopianPassportRenewal: number;
   overseas?: number; // Sales tracked via To Dos
+}
 }
 
 export interface OverseasSalesSummary {
@@ -75,6 +84,8 @@ export interface Prospects {
   oec: number;
   owwa: number;
   travelVisa: number;
+  filipinaPassportRenewal: number;
+  ethiopianPassportRenewal: number;
 }
 
 export interface LatestRun {
