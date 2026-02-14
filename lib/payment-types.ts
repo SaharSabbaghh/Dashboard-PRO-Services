@@ -19,7 +19,7 @@ export interface ProcessedPayment {
   clientId: string;
   status: 'received' | 'pre_pdp' | 'other';
   dateOfPayment: string; // ISO date string "2026-01-14"
-  service: 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | 'other';
+  service: 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other';
   amountOfPayment: number; // Parsed payment amount (0 if not provided)
 }
 
@@ -33,7 +33,7 @@ export interface PaymentData {
 /**
  * Maps payment types to P&L services
  */
-export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | 'other'> = {
+export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other'> = {
   // OEC payments
   "the maid's overseas employment certificate": 'oec',
   'overseas employment certificate': 'oec',
@@ -45,15 +45,20 @@ export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'travel_visa' | '
   'owwa registration': 'owwa',
   'owwa': 'owwa',
   
-  // Travel Visa payments (all countries)
-  'travel to lebanon visa': 'travel_visa',
-  'travel to egypt visa': 'travel_visa',
-  'travel to jordan visa': 'travel_visa',
-  'travel to morocco visa': 'travel_visa',
-  'travel to turkey visa': 'travel_visa',
-  'travel to philippines visa': 'travel_visa',
-  'travel visa': 'travel_visa',
-  'visa': 'travel_visa',
+  // Travel Visa payments - by destination
+  'travel to lebanon visa': 'ttl',
+  'travel to lebanon': 'ttl',
+  
+  'travel to egypt visa': 'tte',
+  'travel to egypt': 'tte',
+  
+  'travel to jordan visa': 'ttj',
+  'travel to jordan': 'ttj',
+  
+  'travel to morocco visa': 'schengen',
+  'travel to morocco': 'schengen',
+  'travel to turkey visa': 'schengen',
+  'travel to turkey': 'schengen',
   
   // Passport Renewal payments
   'filipina passport renewal': 'filipina_pp',
@@ -63,12 +68,13 @@ export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'travel_visa' | '
   
   'ethiopian passport renewal': 'ethiopian_pp',
   'ethiopia passport renewal': 'ethiopian_pp',
+  'passport renewal': 'ethiopian_pp', // Default generic passport renewal to Ethiopian
 };
 
 /**
  * Maps payment type string to service category
  */
-export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | 'other' {
+export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other' {
   const normalized = paymentType.toLowerCase().trim();
   
   // Direct match
@@ -85,10 +91,28 @@ export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | '
     return 'owwa';
   }
   
-  if (normalized.includes('visa') || normalized.includes('travel to')) {
-    return 'travel_visa';
+  // Travel visa fuzzy matching by destination
+  if (normalized.includes('lebanon')) {
+    return 'ttl';
   }
   
+  if (normalized.includes('egypt')) {
+    return 'tte';
+  }
+  
+  if (normalized.includes('jordan')) {
+    return 'ttj';
+  }
+  
+  if (normalized.includes('morocco') || normalized.includes('turkey') || normalized.includes('schengen')) {
+    return 'schengen';
+  }
+  
+  if (normalized.includes('gcc')) {
+    return 'gcc';
+  }
+  
+  // Passport renewal fuzzy matching
   if (normalized.includes('filipina') || normalized.includes('filipino') || normalized.includes('philippine') || normalized.includes('philippines')) {
     if (normalized.includes('passport')) {
       return 'filipina_pp';
@@ -99,6 +123,10 @@ export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | '
     if (normalized.includes('passport')) {
       return 'ethiopian_pp';
     }
+  }
+  
+  if (normalized.includes('passport')) {
+    return 'ethiopian_pp'; // Default generic passport to Ethiopian
   }
   
   return 'other';

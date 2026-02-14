@@ -4,8 +4,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
 import { getPaymentData } from '@/lib/payment-processor';
+import { getPnLConfigHistory, getConfigForDate } from '@/lib/pnl-config-storage';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
 import type { ProcessedPayment } from '@/lib/payment-types';
+import type { PnLConfigSnapshot } from '@/lib/pnl-config-types';
 
 // Force Node.js runtime for filesystem access (required for fs operations)
 export const runtime = 'nodejs';
@@ -38,13 +40,16 @@ interface PaymentInfo {
 }
 
 // Filter payment data by date range and recalculate volumes and revenues
-function filterPaymentsDataByDate(
+async function filterPaymentsDataByDate(
   payments: ProcessedPayment[],
   startDate?: string,
   endDate?: string
-): { volumes: Record<PnLServiceKey, number>; revenues: Record<PnLServiceKey, number>; paymentInfo: PaymentInfo } {
+): Promise<{ volumes: Record<PnLServiceKey, number>; revenues: Record<PnLServiceKey, number>; costs: Record<PnLServiceKey, number>; paymentInfo: PaymentInfo }> {
   const start = startDate ? new Date(startDate) : new Date(0);
   const end = endDate ? new Date(endDate + 'T23:59:59') : new Date('9999-12-31');
+
+  // Get configuration history
+  const configHistory = await getPnLConfigHistory();
 
   // Filter payments by date and status - ONLY RECEIVED
   const filteredPayments = payments.filter(p => {
@@ -53,13 +58,18 @@ function filterPaymentsDataByDate(
     return paymentDate >= start && paymentDate <= end;
   });
 
-  // Calculate volumes (number of payments) and revenues by service
+  // Calculate volumes (number of payments), revenues, and costs by service
   const volumes: Record<PnLServiceKey, number> = {
     oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
     schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
   };
   
   const revenues: Record<PnLServiceKey, number> = {
+    oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
+    schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
+  };
+  
+  const costs: Record<PnLServiceKey, number> = {
     oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
     schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
   };
@@ -96,29 +106,30 @@ function filterPaymentsDataByDate(
       serviceKey = 'filipinaPP';
     } else if (payment.service === 'ethiopian_pp') {
       serviceKey = 'ethiopianPP';
-    } else if (payment.service === 'travel_visa') {
-      // Map travel visa to specific destination
-      const paymentTypeLower = payment.paymentType.toLowerCase();
-      if (paymentTypeLower.includes('lebanon')) {
-        serviceKey = 'ttl';
-      } else if (paymentTypeLower.includes('egypt')) {
-        serviceKey = 'tte';
-      } else if (paymentTypeLower.includes('jordan')) {
-        serviceKey = 'ttj';
-      } else if (paymentTypeLower.includes('schengen')) {
-        serviceKey = 'schengen';
-      } else if (paymentTypeLower.includes('gcc')) {
-        serviceKey = 'gcc';
-      } else {
-        // Default to TTL if destination unclear
-        serviceKey = 'ttl';
-      }
+    } else if (payment.service === 'ttl') {
+      serviceKey = 'ttl';
+    } else if (payment.service === 'tte') {
+      serviceKey = 'tte';
+    } else if (payment.service === 'ttj') {
+      serviceKey = 'ttj';
+    } else if (payment.service === 'schengen') {
+      serviceKey = 'schengen';
+    } else if (payment.service === 'gcc') {
+      serviceKey = 'gcc';
     }
 
     if (serviceKey) {
+      // Get the configuration for this payment's date
+      const config = getConfigForDate(configHistory, payment.dateOfPayment);
+      const serviceConfig = config.services[serviceKey];
+      
       volumes[serviceKey]++;
       revenues[serviceKey] += payment.amountOfPayment;
       totalRevenue += payment.amountOfPayment;
+      
+      // Calculate cost for this payment using the config effective on its date
+      const paymentCost = serviceConfig.unitCost + (serviceConfig.serviceFee || 0);
+      costs[serviceKey] += paymentCost;
 
       // Count by month
       const monthKey = payment.dateOfPayment.substring(0, 7); // "YYYY-MM"
@@ -156,7 +167,7 @@ function filterPaymentsDataByDate(
     serviceBreakdown: finalServiceBreakdown,
   };
 
-  return { volumes, revenues, paymentInfo };
+  return { volumes, revenues, costs, paymentInfo };
 }
 
 const PNL_DIR = path.join(process.cwd(), 'P&L');
@@ -200,15 +211,15 @@ const SERVICE_KEY_MAP: Record<PnLServiceKey, keyof AggregatedPnL['services']> = 
   filipinaPP: 'filipinaPP',
 };
 
-// Create service P&L from actual payment revenue
-function createServiceFromRevenue(
+// Create service P&L from actual payment revenue and calculated costs
+function createServiceFromPayments(
   name: string, 
   volume: number, 
   actualRevenue: number,
-  unitCost: number
+  actualCost: number
 ): ServicePnL {
   const totalRevenue = actualRevenue;
-  const totalCost = volume * unitCost;
+  const totalCost = actualCost;
   const grossProfit = totalRevenue - totalCost;
   const avgPrice = volume > 0 ? actualRevenue / volume : 0;
   
@@ -259,12 +270,14 @@ export async function GET(request: Request) {
     // Apply date filter if provided
     let volumes: Record<PnLServiceKey, number>;
     let revenues: Record<PnLServiceKey, number>;
+    let costs: Record<PnLServiceKey, number>;
     let paymentInfo: PaymentInfo | null = null;
     
     if (hasPaymentData && paymentData) {
-      const filtered = filterPaymentsDataByDate(paymentData.payments, startDate, endDate);
+      const filtered = await filterPaymentsDataByDate(paymentData.payments, startDate, endDate);
       volumes = filtered.volumes;
       revenues = filtered.revenues;
+      costs = filtered.costs;
       paymentInfo = filtered.paymentInfo;
     } else {
       volumes = {
@@ -272,6 +285,10 @@ export async function GET(request: Request) {
         schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
       };
       revenues = {
+        oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
+        schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
+      };
+      costs = {
         oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
         schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
       };
@@ -302,17 +319,17 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
-      // Use actual revenue from payments (not fixed prices)
+      // Use actual revenue from payments and actual calculated costs
       const services: AggregatedPnL['services'] = {
-        oec: createServiceFromRevenue(serviceNames.oec, volumes.oec, revenues.oec, SERVICE_UNIT_COSTS.oec),
-        owwa: createServiceFromRevenue(serviceNames.owwa, volumes.owwa, revenues.owwa, SERVICE_UNIT_COSTS.owwa),
-        ttl: createServiceFromRevenue(serviceNames.ttl, volumes.ttl, revenues.ttl, SERVICE_UNIT_COSTS.ttl),
-        tte: createServiceFromRevenue(serviceNames.tte, volumes.tte, revenues.tte, SERVICE_UNIT_COSTS.tte),
-        ttj: createServiceFromRevenue(serviceNames.ttj, volumes.ttj, revenues.ttj, SERVICE_UNIT_COSTS.ttj),
-        schengen: createServiceFromRevenue(serviceNames.schengen, volumes.schengen, revenues.schengen, SERVICE_UNIT_COSTS.schengen),
-        gcc: createServiceFromRevenue(serviceNames.gcc, volumes.gcc, revenues.gcc, SERVICE_UNIT_COSTS.gcc),
-        ethiopianPP: createServiceFromRevenue(serviceNames.ethiopianPP, volumes.ethiopianPP, revenues.ethiopianPP, SERVICE_UNIT_COSTS.ethiopianPP),
-        filipinaPP: createServiceFromRevenue(serviceNames.filipinaPP, volumes.filipinaPP, revenues.filipinaPP, SERVICE_UNIT_COSTS.filipinaPP),
+        oec: createServiceFromPayments(serviceNames.oec, volumes.oec, revenues.oec, costs.oec),
+        owwa: createServiceFromPayments(serviceNames.owwa, volumes.owwa, revenues.owwa, costs.owwa),
+        ttl: createServiceFromPayments(serviceNames.ttl, volumes.ttl, revenues.ttl, costs.ttl),
+        tte: createServiceFromPayments(serviceNames.tte, volumes.tte, revenues.tte, costs.tte),
+        ttj: createServiceFromPayments(serviceNames.ttj, volumes.ttj, revenues.ttj, costs.ttj),
+        schengen: createServiceFromPayments(serviceNames.schengen, volumes.schengen, revenues.schengen, costs.schengen),
+        gcc: createServiceFromPayments(serviceNames.gcc, volumes.gcc, revenues.gcc, costs.gcc),
+        ethiopianPP: createServiceFromPayments(serviceNames.ethiopianPP, volumes.ethiopianPP, revenues.ethiopianPP, costs.ethiopianPP),
+        filipinaPP: createServiceFromPayments(serviceNames.filipinaPP, volumes.filipinaPP, revenues.filipinaPP, costs.filipinaPP),
       };
       
       const totalRevenue = Object.values(services).reduce((sum, s) => sum + s.totalRevenue, 0);

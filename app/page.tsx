@@ -17,6 +17,7 @@ import PnLServiceDetail from '@/components/PnLServiceDetail';
 import PnLDatePicker from '@/components/PnLDatePicker';
 import ChatsDashboard from '@/components/ChatsDashboard';
 import AgentsDashboard from '@/components/AgentsDashboard';
+import PnLConfigEditor from '@/components/PnLConfigEditor';
 import type { Results, ServiceFilter } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
@@ -605,18 +606,6 @@ export default function Dashboard() {
                       <p className="text-2xl font-bold text-emerald-700">{paymentInfo.totalPayments.toLocaleString()}</p>
                       <p className="text-xs text-emerald-600">Total Payments</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-emerald-700">{paymentInfo.summary.totalUniqueSales.toLocaleString()}</p>
-                      <p className="text-xs text-emerald-600">Unique Sales</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-emerald-700">{paymentInfo.summary.totalUniqueClients.toLocaleString()}</p>
-                      <p className="text-xs text-emerald-600">Unique Clients</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-emerald-700">{paymentInfo.summary.totalUniqueContracts.toLocaleString()}</p>
-                      <p className="text-xs text-emerald-600">Unique Contracts</p>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -914,6 +903,11 @@ export default function Dashboard() {
         {/* Agents Dashboard Tab */}
         {activeTab === 'agents' && (
           <AgentsDashboard />
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <PnLConfigEditor />
         )}
       </main>
     </div>
