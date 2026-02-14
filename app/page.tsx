@@ -171,6 +171,8 @@ export default function Dashboard() {
             oec: data.prospects.oec,
             owwa: data.prospects.owwa,
             travelVisa: data.prospects.travelVisa,
+            filipinaPassportRenewal: data.prospects.filipinaPassportRenewal,
+            ethiopianPassportRenewal: data.prospects.ethiopianPassportRenewal,
           },
           conversions: data.conversions,
           countryCounts: data.countryCounts || {},
