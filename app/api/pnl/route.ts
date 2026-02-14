@@ -305,7 +305,7 @@ export async function GET(request: Request) {
       (source === 'auto' && !hasPaymentData && hasExcelFiles);
     
     // If using payment data
-    if (usePayments && hasPaymentData && paymentInfo) {
+    if (usePayments && hasPaymentData && paymentInfo && paymentData) {
       // Build P&L from actual payment revenues
       const serviceNames: Record<PnLServiceKey, string> = {
         oec: 'OEC',
@@ -356,12 +356,14 @@ export async function GET(request: Request) {
         },
       };
       
-      // Collect all available months from payment data for the date picker
+      // Collect all available months from ORIGINAL payment data (not filtered)
+      // This ensures the date picker always shows all available months regardless of current filter
       const allAvailableMonths = new Set<string>();
-      Object.values(paymentInfo.serviceBreakdown).forEach(service => {
-        Object.keys(service.byMonth).forEach(month => {
-          allAvailableMonths.add(month);
-        });
+      paymentData.payments.forEach(payment => {
+        if (payment.status === 'received' && payment.dateOfPayment) {
+          const monthKey = payment.dateOfPayment.substring(0, 7); // "YYYY-MM"
+          allAvailableMonths.add(monthKey);
+        }
       });
 
       return NextResponse.json({

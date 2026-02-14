@@ -8,8 +8,8 @@ export interface RawPayment {
   CONTRACT_ID: string;
   CLIENT_ID: string;
   STATUS: string; // "RECEIVED", "PRE_PDP", etc.
-  DATE_OF_PAYMENT: string; // "2026-01-14"
-  AMOUNT_OF_PAYMENT?: string | number; // Payment amount (optional for backward compatibility)
+  AMOUNT_OF_PAYMENT?: string | number; // Payment amount (can be in position 5 or 6 depending on CSV format)
+  DATE_OF_PAYMENT: string; // "2026-01-14" (can be in position 6 or 7 depending on CSV format)
 }
 
 export interface ProcessedPayment {
