@@ -482,8 +482,6 @@ export default function Dashboard() {
                       prospectDetails={results?.prospectDetails}
                     />
 
-                    <CountryBreakdown countryCounts={results?.countryCounts || {}} />
-
                     <ServiceBreakdownChart 
                       prospectDetails={results?.prospectDetails} 
                       households={results?.households}
@@ -513,8 +511,6 @@ export default function Dashboard() {
                       byContractType={results?.byContractType}
                       prospectDetails={results?.prospectDetails}
                     />
-
-                    <CountryBreakdown countryCounts={results?.countryCounts || {}} />
 
                     <ServiceBreakdownChart 
                       prospectDetails={results?.prospectDetails} 
