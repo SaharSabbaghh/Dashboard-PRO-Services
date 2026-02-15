@@ -113,10 +113,10 @@ export default function ProspectCards({
         {cards.map((card) => (
           <div
             key={card.title}
-            className="bg-white rounded-xl p-5 border-2 border-gray-600"
+            className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm"
           >
             <p className="text-sm font-medium text-slate-600">{card.title}</p>
-            <p className="text-4xl font-bold mt-1 text-slate-800">
+            <p className="text-3xl font-bold mt-2 text-slate-800">
               {isLoading ? '...' : card.count}
             </p>
             {conversions && card.count > 0 && (
@@ -128,9 +128,9 @@ export default function ProspectCards({
         ))}
         
         {/* Total Prospects */}
-        <div className="bg-white border-2 border-gray-600 rounded-xl p-5">
+        <div className="bg-white border-2 border-slate-200 rounded-xl p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-600">Total Prospects</p>
-          <p className="text-4xl font-bold mt-1 text-slate-800">
+          <p className="text-3xl font-bold mt-2 text-slate-800">
             {isLoading ? '...' : totalProspects}
           </p>
           {conversions && totalProspects > 0 && (
@@ -144,12 +144,12 @@ export default function ProspectCards({
         </div>
 
         {/* Average Confidence */}
-        <div className="bg-slate-800 rounded-xl p-5 text-white">
+        <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white">
           <p className="text-sm font-medium text-slate-300">Avg LLM Confidence</p>
-          <p className="text-4xl font-bold mt-1">
+          <p className="text-3xl font-bold mt-2">
             {isLoading ? '...' : avgConfidence !== null ? `${avgConfidence}%` : '—'}
           </p>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-slate-400 mt-2">
             AI detection certainty
           </p>
         </div>
@@ -158,9 +158,9 @@ export default function ProspectCards({
       {/* CC and MV cards row */}
       {byContractType && (
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
+          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
             <p className="text-sm font-medium text-slate-600">CC Contract</p>
-            <p className="text-4xl font-bold mt-1 text-slate-800">
+            <p className="text-3xl font-bold mt-2 text-slate-800">
               {isLoading ? '...' : ccTotal}
             </p>
             <p className="text-sm text-slate-500 mt-2">
@@ -168,9 +168,9 @@ export default function ProspectCards({
             </p>
           </div>
 
-          <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
+          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
             <p className="text-sm font-medium text-slate-600">MV Contract</p>
-            <p className="text-4xl font-bold mt-1 text-slate-800">
+            <p className="text-3xl font-bold mt-2 text-slate-800">
               {isLoading ? '...' : mvTotal}
             </p>
             <p className="text-sm text-slate-500 mt-2">

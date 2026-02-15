@@ -294,52 +294,52 @@ export default function ChatsDashboard() {
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Conversations */}
-        <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <MessageSquare className="w-8 h-8 text-slate-600" />
+        <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <MessageSquare className="w-6 h-6 text-slate-600" />
               </div>
           <div className="text-3xl font-bold text-slate-900 mb-1">{totalConversations}</div>
           <div className="text-sm font-medium text-slate-600">Total Conversations</div>
               </div>
               
         {/* Frustrated Clients */}
-        <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-6 border border-red-200">
-          <div className="flex items-center justify-between mb-3">
-            <Frown className="w-8 h-8 text-red-600" />
-            <span className="text-2xl font-bold text-red-600">{frustrationPercentage}%</span>
+        <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <Frown className="w-6 h-6 text-red-600" />
+            <span className="text-xl font-bold text-red-600">{frustrationPercentage}%</span>
           </div>
-          <div className="text-3xl font-bold text-red-900 mb-1">{totalFrustrated}</div>
-          <div className="text-sm font-medium text-red-700">Frustrated Clients</div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{totalFrustrated}</div>
+          <div className="text-sm font-medium text-slate-600">Frustrated Clients</div>
           {bothFrustratedAndConfused > 0 && (
-            <div className="text-xs text-red-600 mt-2">({bothFrustratedAndConfused} also confused)</div>
+            <div className="text-xs text-slate-500 mt-2">({bothFrustratedAndConfused} also confused)</div>
           )}
         </div>
 
         {/* Confused Clients */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
-          <div className="flex items-center justify-between mb-3">
-            <HelpCircle className="w-8 h-8 text-blue-600" />
-            <span className="text-2xl font-bold text-blue-600">{confusionPercentage}%</span>
+        <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <HelpCircle className="w-6 h-6 text-blue-600" />
+            <span className="text-xl font-bold text-blue-600">{confusionPercentage}%</span>
           </div>
-          <div className="text-3xl font-bold text-blue-900 mb-1">{totalConfused}</div>
-          <div className="text-sm font-medium text-blue-700">Confused Clients</div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{totalConfused}</div>
+          <div className="text-sm font-medium text-slate-600">Confused Clients</div>
           {bothFrustratedAndConfused > 0 && (
-            <div className="text-xs text-blue-600 mt-2">({bothFrustratedAndConfused} also frustrated)</div>
+            <div className="text-xs text-slate-500 mt-2">({bothFrustratedAndConfused} also frustrated)</div>
           )}
         </div>
       </div>
 
       {/* Conversations Section */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
         {/* Header with Filters and Search */}
-        <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-900">Problem Conversations</h3>
+              <h3 className="text-lg font-bold text-slate-900">Problem Conversations</h3>
               <p className="text-sm text-slate-600 mt-1">
-                Showing {filteredConversations.length} unique frustrated or confused conversations
+                {filteredConversations.length} conversations
               </p>
             </div>
             
@@ -349,10 +349,10 @@ export default function ChatsDashboard() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search conversations..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                  className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
                 />
           </div>
           
@@ -360,35 +360,32 @@ export default function ChatsDashboard() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setFilterStatus('frustrated')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                     filterStatus === 'frustrated'
-                      ? 'bg-red-600 text-white shadow-md'
-                      : 'bg-red-50 text-red-700 hover:bg-red-100'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <Frown className="w-4 h-4 inline mr-1" />
-                  Frustrated Only ({onlyFrustrated})
+                  Frustrated ({onlyFrustrated})
                 </button>
                 <button
                   onClick={() => setFilterStatus('confused')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                     filterStatus === 'confused'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <HelpCircle className="w-4 h-4 inline mr-1" />
-                  Confused Only ({onlyConfused})
+                  Confused ({onlyConfused})
                 </button>
                 <button
                   onClick={() => setFilterStatus('both')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                     filterStatus === 'both'
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <AlertTriangle className="w-4 h-4 inline mr-1" />
                   Both ({bothFrustratedAndConfused})
                 </button>
             </div>
@@ -400,32 +397,32 @@ export default function ChatsDashboard() {
         <div className="divide-y divide-slate-100 max-h-[700px] overflow-y-auto">
           {filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <MessageSquare className="w-16 h-16 text-slate-300 mb-4" />
-              <p className="text-slate-500 text-lg font-medium">No problem conversations found</p>
+              <MessageSquare className="w-12 h-12 text-slate-300 mb-3" />
+              <p className="text-slate-600 font-medium">No conversations found</p>
               <p className="text-slate-400 text-sm">
-                {searchQuery ? 'Try adjusting your search query' : 'All conversations are running smoothly! 🎉'}
+                {searchQuery ? 'Try adjusting your search' : 'All clear! 🎉'}
               </p>
             </div>
           ) : (
             filteredConversations.map((conversation, index) => (
               <div
                 key={conversation.conversationId}
-                className="p-6 hover:bg-slate-50 transition-colors group"
+                className="p-5 hover:bg-slate-50 transition-colors"
               >
-                <div className="flex gap-6">
+                <div className="flex gap-4">
                   {/* Left: Status Badge */}
                   <div className="flex-shrink-0">
                     {conversation.frustrated && conversation.confused ? (
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg">
-                        <AlertTriangle className="w-6 h-6 text-white" />
+                      <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center border border-orange-200">
+                        <AlertTriangle className="w-5 h-5 text-orange-600" />
                       </div>
                     ) : conversation.frustrated ? (
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
-                        <Frown className="w-6 h-6 text-white" />
+                      <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center border border-red-200">
+                        <Frown className="w-5 h-5 text-red-600" />
           </div>
                     ) : (
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-                        <HelpCircle className="w-6 h-6 text-white" />
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center border border-blue-200">
+                        <HelpCircle className="w-5 h-5 text-blue-600" />
                     </div>
                     )}
                   </div>
@@ -433,12 +430,11 @@ export default function ChatsDashboard() {
                   {/* Right: Content */}
                   <div className="flex-1 min-w-0">
                     {/* Header Row */}
-                    <div className="flex items-center gap-3 mb-3 flex-wrap">
-                      <span className="font-mono text-sm font-semibold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      <span className="font-mono text-sm font-semibold text-slate-900">
                         {conversation.conversationId}
                       </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                      <span className="text-xs text-slate-400">
                         {new Date(conversation.analysisDate).toLocaleString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -450,28 +446,26 @@ export default function ChatsDashboard() {
                       {/* Status Pills */}
                       <div className="flex gap-2 flex-wrap">
                         {conversation.frustrated && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
-                            <Frown className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
                             Frustrated
                           </span>
                         )}
                         {conversation.confused && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                            <HelpCircle className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
                             Confused
                           </span>
                         )}
                         
                         {/* Service Tag */}
                         {conversation.service && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
                             {conversation.service}
                           </span>
                         )}
                         
                         {/* Skill Tag */}
                         {conversation.skill && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs text-slate-600">
                             {conversation.skill}
                           </span>
                         )}
@@ -480,16 +474,16 @@ export default function ChatsDashboard() {
 
                     {/* Main Issues */}
                     {hasValidContent(conversation.mainIssues) && (
-                      <div className="mb-4">
+                      <div className="mb-3">
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Issues</p>
                         <div className="flex flex-wrap gap-2">
                           {conversation.mainIssues!.filter(issue => issue && issue.trim() !== '').map((issue, idx) => (
                             <div
                               key={idx}
-                              className="flex items-start gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 group-hover:shadow-sm transition-shadow"
+                              className="flex items-start gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200"
                             >
                               <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm text-orange-900 font-medium leading-relaxed">
+                              <span className="text-sm text-slate-700">
                                 {issue}
                     </span>
                   </div>
@@ -506,10 +500,10 @@ export default function ChatsDashboard() {
                           {conversation.keyPhrases!.filter(phrase => phrase && phrase.trim() !== '').map((phrase, idx) => (
                             <div
                               key={idx}
-                              className="flex gap-3 items-start pl-4 border-l-3 border-slate-300 group-hover:border-slate-400 transition-colors"
+                              className="flex gap-2 items-start pl-3 border-l-2 border-slate-200"
                             >
-                              <span className="text-slate-400 text-lg leading-none">"</span>
-                              <p className="text-sm text-slate-700 italic leading-relaxed flex-1">
+                              <span className="text-slate-400 text-sm">"</span>
+                              <p className="text-sm text-slate-600 italic">
                                 {phrase}
                               </p>
                 </div>
@@ -520,7 +514,7 @@ export default function ChatsDashboard() {
 
                     {/* No data message */}
                     {!hasValidContent(conversation.mainIssues) && !hasValidContent(conversation.keyPhrases) && (
-                      <p className="text-sm text-slate-400 italic">No issues or phrases recorded for this conversation</p>
+                      <p className="text-sm text-slate-400 italic">No details recorded</p>
                     )}
                   </div>
                 </div>

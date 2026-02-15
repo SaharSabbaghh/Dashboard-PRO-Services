@@ -143,53 +143,49 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200 shadow-sm">
-          <p className="text-sm font-medium text-blue-700">Total Revenue</p>
-          <p className="text-3xl font-bold mt-2 text-blue-900">
+        <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
+          <p className="text-sm font-medium text-slate-600">Total Revenue</p>
+          <p className="text-3xl font-bold mt-2 text-slate-800">
             {formatCurrency(totals.revenue)}
           </p>
-          <p className="text-xs text-blue-600 mt-2">
+          <p className="text-xs text-slate-500 mt-2">
             {totals.volume} orders{perOrderServiceFee > 0 && ' + fees'}
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-5 border border-orange-200 shadow-sm">
-          <p className="text-sm font-medium text-orange-700">Total Cost</p>
-          <p className="text-3xl font-bold mt-2 text-orange-900">
+        <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
+          <p className="text-sm font-medium text-slate-600">Total Cost</p>
+          <p className="text-3xl font-bold mt-2 text-slate-800">
             {formatCurrency(totals.cost)}
           </p>
-          <p className="text-xs text-orange-600 mt-2">
+          <p className="text-xs text-slate-500 mt-2">
             Direct costs
           </p>
         </div>
 
-        <div className={`bg-gradient-to-br rounded-xl p-5 border shadow-sm ${
-          totals.grossProfit >= 0 
-            ? 'from-green-50 to-green-100 border-green-200' 
-            : 'from-red-50 to-red-100 border-red-200'
-        }`}>
-          <p className={`text-sm font-medium ${totals.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+        <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
+          <p className="text-sm font-medium text-slate-600">
             Gross Profit
           </p>
-          <p className={`text-3xl font-bold mt-2 ${totals.grossProfit >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+          <p className={`text-3xl font-bold mt-2 ${totals.grossProfit >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
             {formatCurrency(totals.grossProfit)}
           </p>
-          <p className={`text-xs mt-2 ${totals.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <p className="text-xs text-slate-500 mt-2">
             {totals.revenue > 0 ? `${((totals.grossProfit / totals.revenue) * 100).toFixed(1)}% margin` : '—'}
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200 shadow-sm">
-          <p className="text-sm font-medium text-purple-700">Service Fee</p>
-          <p className="text-3xl font-bold mt-2 text-purple-900">
+        <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
+          <p className="text-sm font-medium text-slate-600">Service Fee</p>
+          <p className="text-3xl font-bold mt-2 text-slate-800">
             {perOrderServiceFee > 0 ? formatCurrency(perOrderServiceFee) : '—'}
           </p>
-          <p className="text-xs text-purple-600 mt-2">
+          <p className="text-xs text-slate-500 mt-2">
             Per order
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl p-5 border border-slate-600 shadow-lg text-white">
+        <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white">
           <p className="text-sm font-medium text-slate-300">Avg. Price</p>
           <p className="text-3xl font-bold mt-2 text-white">
             {formatCurrency(totals.volume > 0 ? totals.revenue / totals.volume : 0)}

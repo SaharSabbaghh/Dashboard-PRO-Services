@@ -78,43 +78,43 @@ export default function ServiceSummaryCards({
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       {/* Prospects Count */}
-      <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
         <p className="text-sm font-medium text-slate-600">Unique {serviceLabels[service]} Prospects</p>
-        <p className="text-4xl font-bold text-slate-800 mt-1">{prospectCount}</p>
+        <p className="text-3xl font-bold text-slate-800 mt-2">{prospectCount}</p>
       </div>
 
       {/* Conversions */}
-      <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
         <p className="text-sm font-medium text-slate-600">Unique Conversions</p>
-        <p className="text-4xl font-bold text-slate-800 mt-1">{conversionCount}</p>
+        <p className="text-3xl font-bold text-slate-800 mt-2">{conversionCount}</p>
         <p className="text-sm text-slate-500 mt-2">
           {prospectCount > 0 ? `${((conversionCount / prospectCount) * 100).toFixed(1)}% CVR` : '—'}
         </p>
       </div>
 
       {/* CC Contract */}
-      <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
         <p className="text-sm font-medium text-slate-600">CC Contract</p>
-        <p className="text-4xl font-bold text-slate-800 mt-1">{ccCount}</p>
+        <p className="text-3xl font-bold text-slate-800 mt-2">{ccCount}</p>
         <p className="text-sm text-slate-500 mt-2">
           {totalContract > 0 ? `${((ccCount / totalContract) * 100).toFixed(1)}% of total` : '—'}
         </p>
       </div>
 
       {/* MV Contract */}
-      <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
         <p className="text-sm font-medium text-slate-600">MV Contract</p>
-        <p className="text-4xl font-bold text-slate-800 mt-1">{mvCount}</p>
+        <p className="text-3xl font-bold text-slate-800 mt-2">{mvCount}</p>
         <p className="text-sm text-slate-500 mt-2">
           {totalContract > 0 ? `${((mvCount / totalContract) * 100).toFixed(1)}% of total` : '—'}
         </p>
       </div>
 
       {/* Avg Confidence */}
-      <div className="bg-slate-800 rounded-xl p-5 text-white">
+      <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white">
         <p className="text-sm font-medium text-slate-300">Avg LLM Confidence</p>
-        <p className="text-4xl font-bold mt-1">{calculateAvgConfidence()}</p>
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-3xl font-bold mt-2">{calculateAvgConfidence()}</p>
+        <p className="text-xs text-slate-400 mt-2">
           AI detection certainty
         </p>
       </div>
