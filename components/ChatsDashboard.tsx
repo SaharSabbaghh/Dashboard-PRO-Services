@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, AlertTriangle, MessageSquare, Frown, HelpCircle, Clock, Search } from 'lucide-react';
+import { Calendar, AlertTriangle, MessageSquare, Frown, HelpCircle, Clock } from 'lucide-react';
 import type { ChatAnalysisData } from '@/lib/chat-types';
 
 export default function ChatsDashboard() {
@@ -11,7 +11,6 @@ export default function ChatsDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'frustrated' | 'confused' | 'both'>('frustrated');
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch available dates
   useEffect(() => {
@@ -225,7 +224,7 @@ export default function ChatsDashboard() {
   const frustrationPercentage = totalConversations > 0 ? Math.round((totalFrustrated / totalConversations) * 100) : 0;
   const confusionPercentage = totalConversations > 0 ? Math.round((totalConfused / totalConversations) * 100) : 0;
 
-  // Filter conversations based on selected filter and search
+  // Filter conversations based on selected filter
   const filteredConversations = deduplicatedArray.filter(conv => {
     // Only show frustrated or confused conversations (exclude neutral ones)
     const hasIssue = conv.frustrated || conv.confused;
@@ -235,15 +234,6 @@ export default function ChatsDashboard() {
     if (filterStatus === 'frustrated' && !(conv.frustrated && !conv.confused)) return false;
     if (filterStatus === 'confused' && !(conv.confused && !conv.frustrated)) return false;
     if (filterStatus === 'both' && !(conv.frustrated && conv.confused)) return false;
-    
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesId = conv.conversationId.toLowerCase().includes(query);
-      const matchesIssues = conv.mainIssues?.some(issue => issue && issue.toLowerCase().includes(query));
-      const matchesPhrases = conv.keyPhrases?.some(phrase => phrase && phrase.toLowerCase().includes(query));
-      return matchesId || matchesIssues || matchesPhrases;
-    }
     
     return true;
   });
@@ -333,7 +323,7 @@ export default function ChatsDashboard() {
 
       {/* Conversations Section */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
-        {/* Header with Filters and Search */}
+        {/* Header with Filters */}
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -341,54 +331,40 @@ export default function ChatsDashboard() {
               <p className="text-sm text-slate-600 mt-1">
                 {filteredConversations.length} conversations
               </p>
-            </div>
-            
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-                />
           </div>
           
-              {/* Filter Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setFilterStatus('frustrated')}
-                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                    filterStatus === 'frustrated'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  Frustrated ({onlyFrustrated})
-                </button>
-                <button
-                  onClick={() => setFilterStatus('confused')}
-                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                    filterStatus === 'confused'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  Confused ({onlyConfused})
-                </button>
-                <button
-                  onClick={() => setFilterStatus('both')}
-                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                    filterStatus === 'both'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  Both ({bothFrustratedAndConfused})
-                </button>
-            </div>
+            {/* Filter Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilterStatus('frustrated')}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                  filterStatus === 'frustrated'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Frustrated ({onlyFrustrated})
+              </button>
+              <button
+                onClick={() => setFilterStatus('confused')}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                  filterStatus === 'confused'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Confused ({onlyConfused})
+              </button>
+              <button
+                onClick={() => setFilterStatus('both')}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                  filterStatus === 'both'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                Both ({bothFrustratedAndConfused})
+              </button>
           </div>
         </div>
       </div>
@@ -399,9 +375,7 @@ export default function ChatsDashboard() {
             <div className="flex flex-col items-center justify-center py-16">
               <MessageSquare className="w-12 h-12 text-slate-300 mb-3" />
               <p className="text-slate-600 font-medium">No conversations found</p>
-              <p className="text-slate-400 text-sm">
-                {searchQuery ? 'Try adjusting your search' : 'All clear! 🎉'}
-              </p>
+              <p className="text-slate-400 text-sm">All clear! 🎉</p>
             </div>
           ) : (
             filteredConversations.map((conversation, index) => (

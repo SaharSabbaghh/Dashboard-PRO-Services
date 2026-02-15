@@ -143,52 +143,52 @@ export default function AgentsDashboard() {
 
       {/* Stats Cards */}
       {delayData && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Total Agents */}
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
-            <div className="flex items-center justify-between mb-3">
-              <Users className="w-8 h-8 text-slate-600" />
+          <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <Users className="w-6 h-6 text-slate-600" />
             </div>
             <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.agentStats.length}</div>
             <div className="text-sm font-medium text-slate-600">Active Agents</div>
           </div>
 
           {/* Total Conversations */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
-            <div className="flex items-center justify-between mb-3">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
+          <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <TrendingUp className="w-6 h-6 text-blue-600" />
             </div>
-            <div className="text-3xl font-bold text-blue-900 mb-1">{delayData.totalConversations}</div>
-            <div className="text-sm font-medium text-blue-700">Total Conversations</div>
+            <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.totalConversations}</div>
+            <div className="text-sm font-medium text-slate-600">Total Conversations</div>
           </div>
 
           {/* Average Reply Time */}
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
-            <div className="flex items-center justify-between mb-3">
-              <Clock className="w-8 h-8 text-green-600" />
+          <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-6 h-6 text-green-600" />
             </div>
-            <div className="text-3xl font-bold text-green-900 mb-1">{delayData.overallAvgDelayFormatted}</div>
-            <div className="text-sm font-medium text-green-700">Avg Reply Time</div>
+            <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.overallAvgDelayFormatted}</div>
+            <div className="text-sm font-medium text-slate-600">Avg Reply Time</div>
           </div>
 
           {/* Median Reply Time */}
-          <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6 border border-purple-200">
-            <div className="flex items-center justify-between mb-3">
-              <Award className="w-8 h-8 text-purple-600" />
+          <div className="bg-slate-800 rounded-xl p-6 border-2 border-slate-700 shadow-sm text-white">
+            <div className="flex items-center justify-between mb-2">
+              <Award className="w-6 h-6 text-slate-300" />
             </div>
-            <div className="text-3xl font-bold text-purple-900 mb-1">{delayData.medianDelayFormatted}</div>
-            <div className="text-sm font-medium text-purple-700">Median Reply Time</div>
+            <div className="text-3xl font-bold text-white mb-1">{delayData.medianDelayFormatted}</div>
+            <div className="text-sm font-medium text-slate-300">Median Reply Time</div>
           </div>
         </div>
       )}
 
       {/* Agent Performance Table */}
       {delayData && delayData.agentStats && delayData.agentStats.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+        <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Agent Rankings</h3>
+                <h3 className="text-lg font-bold text-slate-900">Agent Rankings</h3>
                 <p className="text-sm text-slate-600 mt-1">
                   Response time breakdown by agent
                 </p>
@@ -204,21 +204,21 @@ export default function AgentsDashboard() {
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+              <thead className="bg-slate-50 border-b-2 border-slate-200">
+                <tr>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Rank
                   </th>
-                  <th className="text-left py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Agent Name
                   </th>
-                  <th className="text-center py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Avg Response
                   </th>
-                  <th className="text-center py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Conversations
                   </th>
-                  <th className="text-left py-4 px-6 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Performance
                   </th>
                 </tr>
@@ -231,62 +231,62 @@ export default function AgentsDashboard() {
                     const performanceScore = Math.min(100, (delayData.overallAvgDelaySeconds / agent.avgDelaySeconds) * 100);
                     
                     return (
-                      <tr key={agent.agentName} className="hover:bg-slate-50 transition-colors group">
+                      <tr key={agent.agentName} className="hover:bg-slate-50 transition-colors">
                         <td className="py-4 px-6">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
                             index === 0 
-                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-yellow-900 shadow-lg' 
+                              ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' 
                               : index === 1 
-                              ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-slate-900 shadow-md' 
+                              ? 'bg-slate-100 text-slate-700 border border-slate-200' 
                               : index === 2
-                              ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-orange-900 shadow-md'
-                              : 'bg-slate-100 text-slate-600'
+                              ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                              : 'bg-slate-50 text-slate-600'
                           }`}>
                             {index + 1}
                           </div>
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm ${
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${
                               isTopPerformer 
-                                ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg' 
-                                : 'bg-gradient-to-br from-slate-400 to-slate-500'
+                                ? 'bg-green-100 text-green-700 border border-green-200' 
+                                : 'bg-slate-100 text-slate-700 border border-slate-200'
                             }`}>
                               {agent.agentName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                             </div>
-                            <span className="font-semibold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">
+                            <span className="font-semibold text-slate-900 text-sm">
                               {agent.agentName}
                             </span>
                           </div>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100">
                             <Clock className="w-4 h-4 text-slate-500" />
                             <span className="font-bold text-slate-900 text-sm">{agent.avgDelayFormatted}</span>
                           </div>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <span className="inline-flex items-center justify-center w-12 h-8 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
+                          <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
                             {agent.conversationCount}
                           </span>
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner">
+                            <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
                               <div 
-                                className={`h-3 rounded-full transition-all duration-500 ${
+                                className={`h-2 rounded-full transition-all duration-500 ${
                                   performanceScore >= 100 
-                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+                                    ? 'bg-green-500' 
                                     : performanceScore >= 80 
-                                    ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                                    ? 'bg-blue-500'
                                     : performanceScore >= 60
-                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
-                                    : 'bg-gradient-to-r from-red-500 to-red-600'
+                                    ? 'bg-yellow-500'
+                                    : 'bg-red-500'
                                 }`}
                                 style={{ width: `${performanceScore}%` }}
                               ></div>
                             </div>
-                            <span className={`font-bold text-sm min-w-[60px] text-right ${
+                            <span className={`font-medium text-sm min-w-[60px] text-right ${
                               performanceScore >= 100 
                                 ? 'text-green-600' 
                                 : performanceScore >= 80 
