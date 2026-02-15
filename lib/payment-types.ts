@@ -69,6 +69,11 @@ export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'ttl' | 'tte' | '
   'ethiopian passport renewal': 'ethiopian_pp',
   'ethiopia passport renewal': 'ethiopian_pp',
   'passport renewal': 'ethiopian_pp', // Default generic passport renewal to Ethiopian
+  
+  // GCC payments
+  'good conduct certificate application': 'gcc',
+  'good conduct certificate': 'gcc',
+  'gcc': 'gcc',
 };
 
 /**

@@ -2,453 +2,683 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>PRO Services Daily Report - Feb 11</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO Services Daily Report - Feb 14</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
+        * {
+            margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+            line-height: 1.5;
+            width: 100%;
         }
         .header {
-            background: linear-gradient(135deg, #4285f4 0%, #1967d2 100%);
-            color: white;
-            padding: 24px 20px;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
-            margin-bottom: 0;
-        }
-        .header h1 {
-            margin: 0 0 6px 0;
-            font-size: 24px;
-            font-weight: 600;
-            color: white;
-        }
-        .header p {
-            margin: 2px 0;
-            font-size: 13px;
-            opacity: 0.95;
-        }
-        .container {
-            background-color: #ffffff;
-            padding: 0;
-        }
-        .section {
-            margin: 16px 20px;
-            background-color: #e8f0fe;
-            border-radius: 6px;
+            margin-bottom: 30px;
+            border-bottom: none;
+            padding-bottom: 15px;
+            clear: both;
             overflow: hidden;
         }
-        h2 {
+        .header-label {
             color: #1967d2;
-            margin: 0;
-            padding: 10px 14px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            background-color: #e8f0fe;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 32px;
+            font-weight: 700;
+            color: #202124;
+            line-height: 1.2;
+            display: block;
+        }
+        .header-date {
+            color: #5f6368;
+            font-size: 16px;
+            font-weight: 400;
+            margin-top: 8px;
+            display: block;
+            line-height: 1.4;
+        }
+        .section-header {
+            margin-top: 32px;
+            margin-bottom: 16px;
+            clear: both;
+            overflow: hidden;
+        }
+        .section-number {
+            color: #1967d2;
+            font-size: 20px;
+            font-weight: 700;
+            border-left: 4px solid #1967d2;
+            padding-left: 10px;
+            line-height: 1.4;
+            display: block;
+        }
+        .table-wrapper {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-bottom: 8px;
+            clear: both;
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
         }
         table {
             width: 100%;
+            min-width: 600px;
             border-collapse: collapse;
-            background-color: #ffffff;
-            font-size: 12px;
+            font-size: 13px;
+            margin: 0;
+            padding: 0;
+            border: none;
+            table-layout: auto;
         }
         th {
             background-color: #f8f9fa;
-            color: #5f6368;
-            font-weight: 600;
+            color: #202124;
+            font-weight: 700;
             padding: 8px 10px;
-            text-align: center;
-            vertical-align: middle;
-            border: 1px solid #e0e0e0;
+            text-align: left;
+            border-bottom: 2px solid #e8eaed;
             font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            line-height: 1.4;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        th.center {
+            text-align: center;
         }
         td {
-            padding: 7px 10px;
-            border: 1px solid #f0f0f0;
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f0f0;
             color: #202124;
-            font-size: 12px;
-            text-align: center;
+            font-size: 13px;
+            line-height: 1.4;
             vertical-align: middle;
         }
-        tbody tr:nth-child(even) {
+        td.center {
+            text-align: center;
+        }
+        td.bold {
+            font-weight: 700;
+        }
+        td.muted {
+            color: #9aa0a6;
+            font-style: italic;
+            font-size: 11px;
+        }
+        .table-note {
+            font-size: 10px;
+            color: #5f6368;
+            font-style: italic;
+            margin-top: 8px;
+            padding-left: 4px;
+            line-height: 1.4;
+            display: block;
+        }
+        .table-note-right {
+            font-size: 10px;
+            color: #5f6368;
+            font-style: italic;
+            margin-top: 8px;
+            padding-right: 4px;
+            line-height: 1.4;
+            display: block;
+            text-align: right;
+        }
+        tbody tr:hover {
             background-color: #f8f9fa;
-        }
-        tbody tr:nth-child(odd) {
-            background-color: #ffffff;
-        }
-        tr:last-child td {
-            border-bottom: 1px solid #f0f0f0;
-        }
-        tr:hover {
-            background-color: #e8f0fe !important;
         }
         .total-row {
             font-weight: 700;
-            background-color: #e0e4e8 !important;
+            background-color: #f8f9fa !important;
+            border-top: 2px solid #e0e0e0;
         }
         .total-row td {
             color: #202124;
-            border-top: 2px solid #dadce0;
-            padding: 9px 10px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .trend-up {
+            color: #0f9d58;
+            font-weight: 600;
+        }
+        .trend-down {
+            color: #d93025;
+            font-weight: 600;
+        }
+        .trend-neutral {
+            color: #5f6368;
+        }
+        .percentage {
+            font-size: 12px;
+            margin-left: 4px;
+        }
+        .subcol-header {
+            font-size: 9px;
+            color: #5f6368;
+            display: block;
+            margin-top: 1px;
+            font-weight: 400;
+            text-transform: none;
+            line-height: 1.2;
+        }
+        .value-with-trend {
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+        }
+        .main-value {
+            font-size: 13px;
+            font-weight: 700;
+            display: block;
+            line-height: 1.3;
+        }
+        .trend-indicator {
+            font-size: 10px;
+            font-weight: 600;
+            display: block;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+
+        /* Responsive Design for Mobile */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .header-label {
+                font-size: 10px;
+            }
+            .header-date {
+                font-size: 14px;
+            }
+            .section-number {
+                font-size: 18px;
+            }
+            .table-wrapper {
+                border-radius: 8px;
+                margin-bottom: 6px;
+            }
+            table {
+                min-width: 500px;
+                font-size: 11px;
+            }
+            th {
+                padding: 6px 8px;
+                font-size: 9px;
+            }
+            td {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+            .main-value {
+                font-size: 11px;
+            }
+            .trend-indicator {
+                font-size: 9px;
+            }
+            .subcol-header {
+                font-size: 8px;
+            }
+            .table-note, .table-note-right {
+                font-size: 8px;
+                padding-left: 2px;
+                padding-right: 2px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+            .section-number {
+                font-size: 16px;
+            }
+            table {
+                min-width: 450px;
+                font-size: 10px;
+            }
+            th {
+                padding: 5px 6px;
+                font-size: 8px;
+            }
+            td {
+                padding: 5px 6px;
+                font-size: 10px;
+            }
+            .table-note, .table-note-right {
+                font-size: 7px;
+                padding-left: 2px;
+                padding-right: 2px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>PRO Services - Daily Report</h1>
-        <p>Feb 11, 2026</p>
+        <div class="header-label">PRO Services</div>
+        <h1>Daily Report</h1>
+        <div class="header-date">February 14, 2026</div>
     </div>
-    <div class="container">
-    
-        <div class="section">
-            <h2>Daily Sales Report</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Chats</th>
-                    <th>Prospects</th>
-                    <th>Sales</th>
-                    <th>Sales Conversion</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>OEC</td>
-                    <td>54</td>
-                    <td>54</td>
-                    <td>14</td>
-                    <td>26.00%</td>
-                </tr>
-                <tr>
-                    <td>OWWA</td>
-                    <td>41</td>
-                    <td>41</td>
-                    <td>9</td>
-                    <td>22.00%</td>
-                </tr>
-                <tr>
-                    <td>Visa to Lebanon</td>
-                    <td>9</td>
-                    <td>7</td>
-                    <td>2</td>
-                    <td>28.57%</td>
-                </tr>
-                <tr>
-                    <td>Visa to Egypt</td>
-                    <td>4</td>
-                    <td>4</td>
-                    <td>3</td>
-                    <td>75.00%</td>
-                </tr>
-                <tr>
-                    <td>Travel to Jordan</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>Schengen</td>
-                    <td>4</td>
-                    <td>4</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>Golden Visa</td>
-                    <td>7</td>
-                    <td>6</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>Family Visa</td>
-                    <td>2</td>
-                    <td>2</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>Ethiopian Passport Renewal</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>0</td>
-                    <td>0.00%</td>
-                </tr>
-                <tr>
-                    <td>Filipina Passport Renewal</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>GCC</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr class="total-row">
-                    <td><strong>Total</strong></td>
-                    <td><strong>122</strong></td>
-                    <td><strong>119</strong></td>
-                    <td><strong>28</strong></td>
-                    <td><strong>23.53%</strong></td>
-                </tr>
-            </tbody>
-        </table>
+
+    <!-- 1. Prospects Section -->
+    <div class="section-header">
+        <div class="section-number">1. Prospects</div>
     </div>
-    
-    <div class="section">
-        <h2>Weekly Sales Report (Feb 5 - Feb 11)</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Chats</th>
-                    <th>Prospects</th>
-                    <th>Sales</th>
-                    <th>Sales Conversion</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>OEC</td>
-                    <td>182</td>
-                    <td>182</td>
-                    <td>97</td>
-                    <td>53.30%</td>
-                </tr>
-                <tr>
-                    <td>OWWA</td>
-                    <td>122</td>
-                    <td>101</td>
-                    <td>39</td>
-                    <td>38.61%</td>
-                </tr>
-                <tr>
-                    <td>Visa to Lebanon</td>
-                    <td>26</td>
-                    <td>21</td>
-                    <td>3</td>
-                    <td>14.29%</td>
-                </tr>
-                <tr>
-                    <td>Visa to Egypt</td>
-                    <td>14</td>
-                    <td>13</td>
-                    <td>9</td>
-                    <td>69.23%</td>
-                </tr>
-                <tr>
-                    <td>Travel to Jordan</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>Schengen</td>
-                    <td>29</td>
-                    <td>26</td>
-                    <td>7</td>
-                    <td>26.92%</td>
-                </tr>
-                <tr>
-                    <td>Golden Visa</td>
-                    <td>22</td>
-                    <td>20</td>
-                    <td>0</td>
-                    <td>0.00%</td>
-                </tr>
-                <tr>
-                    <td>Family Visa</td>
-                    <td>6</td>
-                    <td>5</td>
-                    <td>0</td>
-                    <td>0.00%</td>
-                </tr>
-                <tr>
-                    <td>Ethiopian Passport Renewal</td>
-                    <td>8</td>
-                    <td>7</td>
-                    <td>1</td>
-                    <td>14.29%</td>
-                </tr>
-                <tr>
-                    <td>Filipina Passport Renewal</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>GCC</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr class="total-row">
-                    <td><strong>Total</strong></td>
-                    <td><strong>409</strong></td>
-                    <td><strong>375</strong></td>
-                    <td><strong>156</strong></td>
-                    <td><strong>41.60%</strong></td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th class="center">Feb 14</th>
+                <th class="center">MTD<span class="subcol-header">(Month-to-Date)</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>OEC</td>
+                <td class="center muted">currently unavailable due to n8n server crash</td>
+                <td class="center muted">currently unavailable due to n8n server crash</td>
+            </tr>
+            <tr>
+                <td>OWWA</td>
+                <td class="center muted">currently unavailable due to n8n server crash</td>
+                <td class="center muted">currently unavailable due to n8n server crash</td>
+            </tr>
+            <tr>
+                <td>Visa to Lebanon</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">2</span>
+                        <span class="trend-indicator trend-down">▼ -33%</span>
+                    </div>
+                </td>
+                <td class="center">42</td>
+            </tr>
+            <tr>
+                <td>Visa to Egypt</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">1</span>
+                        <span class="trend-indicator trend-down">▼ -75%</span>
+                    </div>
+                </td>
+                <td class="center">29</td>
+            </tr>
+            <tr>
+                <td>Travel to Jordan</td>
+                <td class="center">-</td>
+                <td class="center">1</td>
+            </tr>
+            <tr>
+                <td>Schengen</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">1</span>
+                        <span class="trend-indicator trend-down">▼ -50%</span>
+                    </div>
+                </td>
+                <td class="center">37</td>
+            </tr>
+            <tr>
+                <td>Golden Visa</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">1</span>
+                        <span class="trend-indicator trend-down">▼ -67%</span>
+                    </div>
+                </td>
+                <td class="center">43</td>
+            </tr>
+            <tr>
+                <td>Family Visa</td>
+                <td class="center">-</td>
+                <td class="center">11</td>
+            </tr>
+            <tr>
+                <td>Ethiopian Passport Renewal</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">2</span>
+                    </div>
+                </td>
+                <td class="center">18</td>
+            </tr>
+            <tr>
+                <td>Filipina Passport Renewal</td>
+                <td class="center">-</td>
+                <td class="center">1</td>
+            </tr>
+            <tr>
+                <td>GCC</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>TOTALS</strong></td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">7</span>
+                        <span class="trend-indicator trend-down">▼ -53%</span>
+                    </div>
+                </td>
+                <td class="center"><strong>182</strong></td>
+            </tr>
+        </tbody>
+    </table>
     </div>
-    
-        <div class="section">
-            <h2>Operations Report</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Service Type</th>
-                    <th>Pending Us</th>
-                    <th>Pending Client</th>
-                    <th>Pending PRO's Visit</th>
-                    <th>Pending Gov</th>
-                    <th>Done Today</th>
-                    <th>Done Since First of Month</th>
-                    <th>Since 7 Days Ago</th>
-                    <th>Cases Delayed</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>OEC</td>
-                    <td>47</td>
-                    <td>22</td>
-                    <td>11</td>
-                    <td>59</td>
-                    <td>24</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Contract Verification</td>
-                    <td>2</td>
-                    <td>3</td>
-                    <td>11</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>GCC</td>
-                    <td>16</td>
-                    <td>12</td>
-                    <td>17</td>
-                    <td>14</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>14 missing info</td>
-                </tr>
-                <tr>
-                    <td>OWWA</td>
-                    <td>38</td>
-                    <td>34</td>
-                    <td>7</td>
-                    <td>7</td>
-                    <td>7</td>
-                    <td></td>
-                    <td></td>
-                    <td>23 (GCash Error)</td>
-                </tr>
-                <tr>
-                    <td>Travel to Lebanon</td>
-                    <td>2</td>
-                    <td>2</td>
-                    <td>2</td>
-                    <td>1</td>
-                    <td>4</td>
-                    <td></td>
-                    <td></td>
-                    <td>4</td>
-                </tr>
-                <tr>
-                    <td>Travel to Egypt</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td>3</td>
-                    <td>7</td>
-                    <td>4</td>
-                    <td></td>
-                    <td></td>
-                    <td>3</td>
-                </tr>
-                <tr>
-                    <td>Travel to Jordan</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Ethiopian Passport Renewal</td>
-                    <td>1</td>
-                    <td>12</td>
-                    <td></td>
-                    <td></td>
-                    <td>1</td>
-                    <td>2</td>
-                    <td></td>
-                    <td>2</td>
-                </tr>
-                <tr>
-                    <td>Filipina Passport Renewal</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Schengen Visa</td>
-                    <td>1</td>
-                    <td>1</td>
-                    <td></td>
-                    <td></td>
-                    <td>5</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr class="total-row">
-                    <td><strong>Total</strong></td>
-                    <td><strong>88</strong></td>
-                    <td><strong>5</strong></td>
-                    <td><strong>6</strong></td>
-                    <td><strong>98</strong></td>
-                    <td><strong>35</strong></td>
-                    <td><strong>93</strong></td>
-                    <td><strong>51</strong></td>
-                    <td><strong>37</strong></td>
-                </tr>
-            </tbody>
-        </table>
+
+    <!-- 2. Sales Section -->
+    <div class="section-header">
+        <div class="section-number">2. Sales</div>
     </div>
-    
-</div>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th class="center">Feb 14</th>
+                <th class="center">Daily Conv.<span class="subcol-header">(Conversion Rate)</span></th>
+                <th class="center">MTD<span class="subcol-header">(Month-to-Date)</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>OEC</td>
+                <td class="center">0</td>
+                <td class="center">0</td>
+                <td class="center">-</td>
+            </tr>
+            <tr>
+                <td>OWWA</td>
+                <td class="center">0</td>
+                <td class="center">0</td>
+                <td class="center">-</td>
+            </tr>
+            <tr>
+                <td>Visa to Lebanon</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">0</span>
+                        <span class="trend-indicator trend-down">▼ -100%</span>
+                    </div>
+                </td>
+                <td class="center">0.0%</td>
+                <td class="center">14</td>
+            </tr>
+            <tr>
+                <td>Visa to Egypt</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">0</span>
+                        <span class="trend-indicator trend-down">▼ -100%</span>
+                    </div>
+                </td>
+                <td class="center">0.0%</td>
+                <td class="center">14</td>
+            </tr>
+            <tr>
+                <td>Travel to Jordan</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">0</td>
+            </tr>
+            <tr>
+                <td>Schengen</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">0</span>
+                    </div>
+                </td>
+                <td class="center">0.0%</td>
+                <td class="center">7</td>
+            </tr>
+            <tr>
+                <td>Golden Visa</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">0</td>
+            </tr>
+            <tr>
+                <td>Family Visa</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">0</td>
+            </tr>
+            <tr>
+                <td>Ethiopian Passport Renewal</td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">0</span>
+                    </div>
+                </td>
+                <td class="center">0.0%</td>
+                <td class="center">3</td>
+            </tr>
+            <tr>
+                <td>Filipina Passport Renewal</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">0</td>
+            </tr>
+            <tr>
+                <td>GCC</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>TOTALS</strong></td>
+                <td class="center">
+                    <div class="value-with-trend">
+                        <span class="main-value">0</span>
+                        <span class="trend-indicator trend-down">▼ -100%</span>
+                    </div>
+                </td>
+                <td class="center"><strong>0.0%</strong></td>
+                <td class="center"><strong>38</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+
+    <!-- 3. Operations Section -->
+    <div class="section-header">
+        <div class="section-number">3. Operations</div>
+    </div>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Service Type</th>
+                <th class="center">Pending Us</th>
+                <th class="center">Pending Client</th>
+                <th class="center">Pending PRO's Visit</th>
+                <th class="center">Pending Gov</th>
+                <th class="center">DTD</th>
+                <th class="center">WTD</th>
+                <th class="center">MTD</th>
+                <th class="center">Cases Delayed</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>OEC</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">43</td>
+                <td class="center">-</td>
+                <td class="center">16</td>
+                <td class="center">87</td>
+                <td class="center">36</td>
+            </tr>
+            <tr>
+                <td>Contract Verification</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">39</td>
+                <td class="center bold">5</td>
+                <td class="center">12</td>
+                <td class="center">-</td>
+                <td class="center">7</td>
+            </tr>
+            <tr>
+                <td>GCC</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">17</td>
+                <td class="center bold">1</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">5 missing info</td>
+            </tr>
+            <tr>
+                <td>OWWA</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">51</td>
+                <td class="center">-</td>
+                <td class="center">18</td>
+                <td class="center">18</td>
+                <td class="center">30 (GCash Error)</td>
+            </tr>
+            <tr>
+                <td>Travel to Lebanon</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">6</td>
+                <td class="center">4</td>
+                <td class="center">-</td>
+                <td class="center">7</td>
+                <td class="center">5</td>
+                <td class="center">-</td>
+            </tr>
+            <tr>
+                <td>Travel to Egypt</td>
+                <td class="center">1</td>
+                <td class="center">-</td>
+                <td class="center">2</td>
+                <td class="center">4</td>
+                <td class="center">-</td>
+                <td class="center">1</td>
+                <td class="center">4</td>
+                <td class="center">-</td>
+            </tr>
+            <tr>
+                <td>Travel to Jordan</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+            </tr>
+            <tr>
+                <td>Ethiopian Passport Renewal</td>
+                <td class="center">1</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">8</td>
+                <td class="center">-</td>
+                <td class="center">6</td>
+                <td class="center">6</td>
+                <td class="center">-</td>
+            </tr>
+            <tr>
+                <td>Filipina Passport Renewal</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+            </tr>
+            <tr>
+                <td>Schengen Visa</td>
+                <td class="center">1</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">7</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>TOTALS</strong></td>
+                <td class="center"><strong>3</strong></td>
+                <td class="center"><strong>-</strong></td>
+                <td class="center"><strong>8</strong></td>
+                <td class="center"><strong>173</strong></td>
+                <td class="center"><strong>6</strong></td>
+                <td class="center"><strong>60</strong></td>
+                <td class="center"><strong>120</strong></td>
+                <td class="center"><strong>78</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+
+    <!-- 4. Chat Analysis Section -->
+    <div class="section-header">
+        <div class="section-number">4. Chat Analysis</div>
+    </div>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th class="center">Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Frustration</td>
+                <td class="center bold">26%</td>
+            </tr>
+            <tr>
+                <td>Confusion</td>
+                <td class="center bold">19%</td>
+            </tr>
+            <tr>
+                <td>Average Delay</td>
+                <td class="center bold">2 minutes and 11 seconds</td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+
 </body>
 </html>
 
