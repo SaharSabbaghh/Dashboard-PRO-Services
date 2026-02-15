@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'>('overview');
   const [pnlSubTab, setPnlSubTab] = useState<'overview' | 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP'>('overview');
+  const [pnlViewMode, setPnlViewMode] = useState<'daily' | 'monthly'>('monthly'); // New state for view mode
   const [results, setResults] = useState<Results | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -547,6 +548,8 @@ export default function Dashboard() {
                   selectedStartDate={pnlStartDate}
                   selectedEndDate={pnlEndDate}
                   onDateSelect={handlePnLDateSelect}
+                  viewMode={pnlViewMode}
+                  onViewModeChange={setPnlViewMode}
                 />
                 <button
                   onClick={() => fetchPnLData(pnlStartDate, pnlEndDate)}

@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read the CSV file from Downloads
-const csvPath = '/Users/saharsabbagh/Downloads/ALL PAYMENTS_2026-02-13-2214.csv';
+const csvPath = '/Users/saharsabbagh/Downloads/Untitled 16_2026-02-15-1717.csv';
 const csvContent = fs.readFileSync(csvPath, 'utf-8');
 
 // Parse CSV
@@ -16,7 +16,7 @@ const lines = csvContent.trim().split('\n');
 const headers = lines[0].split(',');
 
 console.log('CSV Headers:', headers);
-console.log('Expected format: PAYMENT_TYPE,CREATION_DATE,CONTRACT_ID,CLIENT_ID,STATUS,AMOUNT_OF_PAYMENT,DATE_OF_PAYMENT\n');
+console.log('Expected format: PAYMENT_TYPE,CREATION_DATE,CONTRACT_ID,CLIENT_ID,STATUS,DATE_OF_PAYMENT,AMOUNT_OF_PAYMENT\n');
 
 const payments = [];
 let skippedLines = 0;
@@ -24,7 +24,7 @@ let skippedLines = 0;
 for (let i = 1; i < lines.length; i++) {
   const values = lines[i].split(',');
   
-  // Expected format: PAYMENT_TYPE,CREATION_DATE,CONTRACT_ID,CLIENT_ID,STATUS,AMOUNT_OF_PAYMENT,DATE_OF_PAYMENT
+  // Expected format: PAYMENT_TYPE,CREATION_DATE,CONTRACT_ID,CLIENT_ID,STATUS,DATE_OF_PAYMENT,AMOUNT_OF_PAYMENT
   if (values.length >= 7) {
     payments.push({
       PAYMENT_TYPE: values[0].trim(),
@@ -32,8 +32,8 @@ for (let i = 1; i < lines.length; i++) {
       CONTRACT_ID: values[2].trim(),
       CLIENT_ID: values[3].trim(),
       STATUS: values[4].trim(),
-      AMOUNT_OF_PAYMENT: values[5].trim(), // Column 6 (index 5)
-      DATE_OF_PAYMENT: values[6].trim(), // Column 7 (index 6)
+      DATE_OF_PAYMENT: values[5].trim(), // Column 6 (index 5)
+      AMOUNT_OF_PAYMENT: values[6].trim(), // Column 7 (index 6)
     });
   } else {
     skippedLines++;

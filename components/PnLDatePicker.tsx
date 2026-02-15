@@ -8,6 +8,8 @@ interface PnLDatePickerProps {
   selectedStartDate: string | null;
   selectedEndDate: string | null;
   onDateSelect: (startDate: string | null, endDate?: string | null) => void;
+  viewMode?: 'daily' | 'monthly'; // New prop for view mode
+  onViewModeChange?: (mode: 'daily' | 'monthly') => void; // Callback for mode change
 }
 
 export default function PnLDatePicker({
@@ -15,13 +17,17 @@ export default function PnLDatePicker({
   selectedStartDate,
   selectedEndDate,
   onDateSelect,
+  viewMode = 'monthly',
+  onViewModeChange,
 }: PnLDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mode, setMode] = useState<'month' | 'range'>('month');
+  const [mode, setMode] = useState<'month' | 'range' | 'day'>('month');
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null); // For daily view
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -38,7 +44,11 @@ export default function PnLDatePicker({
 
   // Sync with props
   useEffect(() => {
-    if (selectedStartDate && selectedEndDate && selectedStartDate !== selectedEndDate) {
+    if (viewMode === 'daily' && selectedStartDate && selectedStartDate === selectedEndDate) {
+      setMode('day');
+      setSelectedDay(selectedStartDate);
+      setCurrentMonth(selectedStartDate.substring(0, 7));
+    } else if (selectedStartDate && selectedEndDate && selectedStartDate !== selectedEndDate) {
       setMode('range');
       setRangeStart(selectedStartDate.substring(0, 7));
       setRangeEnd(selectedEndDate.substring(0, 7));
@@ -46,8 +56,7 @@ export default function PnLDatePicker({
       setMode('month');
       setSelectedMonth(selectedStartDate.substring(0, 7));
     }
-    // If no dates selected, keep current mode but clear selections
-  }, [selectedStartDate, selectedEndDate]);
+  }, [selectedStartDate, selectedEndDate, viewMode]);
 
   const months = [
     { key: '01', label: 'Jan' },
@@ -162,9 +171,55 @@ export default function PnLDatePicker({
     setIsOpen(false);
   };
 
+  const handleDayClick = (day: string) => {
+    setMode('day');
+    setSelectedDay(day);
+    onDateSelect(day, day); // Same start and end date for daily view
+    setIsOpen(false);
+  };
+
+  const handleToday = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    setMode('day');
+    setSelectedDay(today);
+    setCurrentMonth(format(new Date(), 'yyyy-MM'));
+    onDateSelect(today, today);
+    setIsOpen(false);
+  };
+
+  // Get days in current month
+  const getDaysInMonth = () => {
+    const monthDate = parse(`${currentMonth}-01`, 'yyyy-MM-dd', new Date());
+    const daysInMonth = endOfMonth(monthDate).getDate();
+    const firstDayOfWeek = monthDate.getDay(); // 0 = Sunday
+    
+    const days: (string | null)[] = [];
+    
+    // Add empty cells for days before the month starts
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // Add actual days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayStr = day.toString().padStart(2, '0');
+      days.push(`${currentMonth}-${dayStr}`);
+    }
+    
+    return days;
+  };
+
   const getDisplayText = () => {
     if (!selectedStartDate && !selectedEndDate) {
       return 'Select Date';
+    }
+    if (mode === 'day' && selectedDay) {
+      try {
+        const date = parse(selectedDay, 'yyyy-MM-dd', new Date());
+        return format(date, 'MMM dd, yyyy');
+      } catch {
+        return selectedDay;
+      }
     }
     if (mode === 'month' && selectedMonth) {
       try {
@@ -231,128 +286,247 @@ export default function PnLDatePicker({
       {/* Dropdown */}
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-xl border border-slate-200 shadow-lg p-4 min-w-[320px]">
+          {/* View Mode Toggle (Daily/Monthly) */}
+          {onViewModeChange && (
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg mb-4">
+              <button
+                onClick={() => {
+                  onViewModeChange('daily');
+                  setMode('day');
+                  setSelectedMonth(null);
+                  setRangeStart(null);
+                  setRangeEnd(null);
+                }}
+                className={`flex-1 px-3 py-1.5 text-xs rounded-md font-medium transition-all ${
+                  viewMode === 'daily'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                Daily
+              </button>
+              <button
+                onClick={() => {
+                  onViewModeChange('monthly');
+                  setMode('month');
+                  setSelectedDay(null);
+                }}
+                className={`flex-1 px-3 py-1.5 text-xs rounded-md font-medium transition-all ${
+                  viewMode === 'monthly'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                Monthly
+              </button>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-slate-100">
-            <button
-              onClick={handleThisMonth}
-              className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-            >
-              This Month
-            </button>
-            <button
-              onClick={handleLastMonth}
-              className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-            >
-              Last Month
-            </button>
-            <button
-              onClick={handleLast3Months}
-              className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-            >
-              Last 3 Months
-            </button>
-          </div>
-
-          {/* Mode Toggle */}
-          <div className="flex items-center gap-2 mb-4">
-            <button
-              onClick={() => {
-                setMode('month');
-                setRangeStart(null);
-                setRangeEnd(null);
-              }}
-              className={`px-2 py-1 text-xs rounded transition-colors ${
-                mode === 'month'
-                  ? 'bg-slate-100 text-slate-700 font-medium'
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Single Month
-            </button>
-            <button
-              onClick={() => {
-                setMode('range');
-                setSelectedMonth(null);
-              }}
-              className={`px-2 py-1 text-xs rounded transition-colors ${
-                mode === 'range'
-                  ? 'bg-slate-100 text-slate-700 font-medium'
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Date Range
-            </button>
-            {mode === 'range' && rangeStart && !rangeEnd && (
-              <span className="text-xs text-blue-600 ml-2">Select end month</span>
+            {viewMode === 'daily' ? (
+              <button
+                onClick={handleToday}
+                className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Today
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleThisMonth}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                >
+                  This Month
+                </button>
+                <button
+                  onClick={handleLastMonth}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                >
+                  Last Month
+                </button>
+                <button
+                  onClick={handleLast3Months}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                >
+                  Last 3 Months
+                </button>
+              </>
             )}
           </div>
 
-          {/* Year Navigation */}
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => setCurrentYear(y => y - 1)}
-              disabled={!yearsWithData.includes(currentYear - 1)}
-              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
-            >
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div className="text-base font-semibold text-slate-800">
-              {currentYear}
-            </div>
-            <button
-              onClick={() => setCurrentYear(y => y + 1)}
-              disabled={!yearsWithData.includes(currentYear + 1)}
-              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
-            >
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Month Grid */}
-          <div className="grid grid-cols-4 gap-2">
-            {months.map((month) => {
-              const monthKey = `${currentYear}-${month.key}`;
-              const available = isMonthAvailable(monthKey);
-              const selected = isMonthSelected(monthKey);
-              const inRange = isInRange(monthKey);
-
-              return (
+          {viewMode === 'daily' ? (
+            /* Daily View - Calendar */
+            <>
+              {/* Month Navigation */}
+              <div className="flex items-center justify-between mb-3">
                 <button
-                  key={month.key}
-                  onClick={() => handleMonthClick(monthKey)}
-                  disabled={!available}
-                  className={`
-                    py-2 px-3 text-sm rounded-lg transition-all
-                    ${!available ? 'text-slate-300 cursor-default' : ''}
-                    ${available && !selected && !inRange ? 'text-slate-700 hover:bg-slate-100' : ''}
-                    ${selected ? 'bg-blue-600 text-white font-medium' : ''}
-                    ${inRange ? 'bg-blue-100 text-blue-700' : ''}
-                    ${available ? 'font-medium' : ''}
-                  `}
+                  onClick={() => {
+                    const prevMonth = format(subMonths(parse(`${currentMonth}-01`, 'yyyy-MM-dd', new Date()), 1), 'yyyy-MM');
+                    setCurrentMonth(prevMonth);
+                  }}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
                 >
-                  {month.label}
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
-              );
-            })}
-          </div>
+                <div className="text-base font-semibold text-slate-800">
+                  {format(parse(`${currentMonth}-01`, 'yyyy-MM-dd', new Date()), 'MMMM yyyy')}
+                </div>
+                <button
+                  onClick={() => {
+                    const nextMonth = format(addMonths(parse(`${currentMonth}-01`, 'yyyy-MM-dd', new Date()), 1), 'yyyy-MM');
+                    setCurrentMonth(nextMonth);
+                  }}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
 
-          {/* Range Info */}
-          {mode === 'range' && rangeStart && rangeEnd && (
-            <div className="mt-3 p-2 bg-blue-50 rounded-lg text-xs text-blue-700 text-center">
-              {(() => {
-                try {
-                  const startDate = parse(`${rangeStart}-01`, 'yyyy-MM-dd', new Date());
-                  const endDate = parse(`${rangeEnd}-01`, 'yyyy-MM-dd', new Date());
-                  return `${format(startDate, 'MMM yyyy')} → ${format(endDate, 'MMM yyyy')}`;
-                } catch {
-                  return `${rangeStart} → ${rangeEnd}`;
-                }
-              })()}
-            </div>
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                  <div key={i} className="text-center text-xs font-medium text-slate-500 py-1">
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {/* Days Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {getDaysInMonth().map((day, i) => {
+                  if (!day) {
+                    return <div key={i} className="py-2"></div>;
+                  }
+                  const isSelected = selectedDay === day;
+                  const isToday = day === format(new Date(), 'yyyy-MM-dd');
+
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => handleDayClick(day)}
+                      className={`
+                        py-2 px-1 text-sm rounded-lg transition-all
+                        ${isSelected ? 'bg-blue-600 text-white font-medium' : ''}
+                        ${!isSelected && isToday ? 'bg-blue-100 text-blue-700 font-medium' : ''}
+                        ${!isSelected && !isToday ? 'text-slate-700 hover:bg-slate-100' : ''}
+                      `}
+                    >
+                      {parseInt(day.split('-')[2])}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            /* Monthly View - Existing monthly picker */
+            <>
+              {/* Mode Toggle */}
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => {
+                    setMode('month');
+                    setRangeStart(null);
+                    setRangeEnd(null);
+                  }}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    mode === 'month'
+                      ? 'bg-slate-100 text-slate-700 font-medium'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Single Month
+                </button>
+                <button
+                  onClick={() => {
+                    setMode('range');
+                    setSelectedMonth(null);
+                  }}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    mode === 'range'
+                      ? 'bg-slate-100 text-slate-700 font-medium'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Date Range
+                </button>
+                {mode === 'range' && rangeStart && !rangeEnd && (
+                  <span className="text-xs text-blue-600 ml-2">Select end month</span>
+                )}
+              </div>
+
+              {/* Year Navigation */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setCurrentYear(y => y - 1)}
+                  disabled={!yearsWithData.includes(currentYear - 1)}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="text-base font-semibold text-slate-800">
+                  {currentYear}
+                </div>
+                <button
+                  onClick={() => setCurrentYear(y => y + 1)}
+                  disabled={!yearsWithData.includes(currentYear + 1)}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Month Grid */}
+              <div className="grid grid-cols-4 gap-2">
+                {months.map((month) => {
+                  const monthKey = `${currentYear}-${month.key}`;
+                  const available = isMonthAvailable(monthKey);
+                  const selected = isMonthSelected(monthKey);
+                  const inRange = isInRange(monthKey);
+
+                  return (
+                    <button
+                      key={month.key}
+                      onClick={() => handleMonthClick(monthKey)}
+                      disabled={!available}
+                      className={`
+                        py-2 px-3 text-sm rounded-lg transition-all
+                        ${!available ? 'text-slate-300 cursor-default' : ''}
+                        ${available && !selected && !inRange ? 'text-slate-700 hover:bg-slate-100' : ''}
+                        ${selected ? 'bg-blue-600 text-white font-medium' : ''}
+                        ${inRange ? 'bg-blue-100 text-blue-700' : ''}
+                        ${available ? 'font-medium' : ''}
+                      `}
+                    >
+                      {month.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Range Info */}
+              {mode === 'range' && rangeStart && rangeEnd && (
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg text-xs text-blue-700 text-center">
+                  {(() => {
+                    try {
+                      const startDate = parse(`${rangeStart}-01`, 'yyyy-MM-dd', new Date());
+                      const endDate = parse(`${rangeEnd}-01`, 'yyyy-MM-dd', new Date());
+                      return `${format(startDate, 'MMM yyyy')} → ${format(endDate, 'MMM yyyy')}`;
+                    } catch {
+                      return `${rangeStart} → ${rangeEnd}`;
+                    }
+                  })()}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
