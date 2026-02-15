@@ -608,7 +608,7 @@ export default function Dashboard() {
             {/* Overview Sub-tab */}
             {pnlSubTab === 'overview' && (
               <>
-                <PnLSummaryCards data={pnlData} isLoading={pnlLoading} />
+                <PnLSummaryCards data={pnlData} isLoading={pnlLoading} viewMode={pnlViewMode} />
                 <PnLServiceChart data={pnlData} />
                 
                 {/* Monthly Sales Breakdown - Only show for payment data */}
