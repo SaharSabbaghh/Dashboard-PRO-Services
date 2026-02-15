@@ -143,52 +143,58 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
-          <p className="text-sm font-medium text-slate-600">Total Revenue</p>
-          <p className="text-3xl font-bold mt-1 text-slate-800">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200 shadow-sm">
+          <p className="text-sm font-medium text-blue-700">Total Revenue</p>
+          <p className="text-3xl font-bold mt-2 text-blue-900">
             {formatCurrency(totals.revenue)}
           </p>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-blue-600 mt-2">
             {totals.volume} orders{perOrderServiceFee > 0 && ' + fees'}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
-          <p className="text-sm font-medium text-slate-600">Total Cost</p>
-          <p className="text-3xl font-bold mt-1 text-slate-800">
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-5 border border-orange-200 shadow-sm">
+          <p className="text-sm font-medium text-orange-700">Total Cost</p>
+          <p className="text-3xl font-bold mt-2 text-orange-900">
             {formatCurrency(totals.cost)}
           </p>
-          <p className="text-xs text-slate-400 mt-2">
-            Direct costs (COGS)
+          <p className="text-xs text-orange-600 mt-2">
+            Direct costs
           </p>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
-          <p className="text-sm font-medium text-slate-600">Gross Profit</p>
-          <p className={`text-3xl font-bold mt-1 ${totals.grossProfit >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
+        <div className={`bg-gradient-to-br rounded-xl p-5 border shadow-sm ${
+          totals.grossProfit >= 0 
+            ? 'from-green-50 to-green-100 border-green-200' 
+            : 'from-red-50 to-red-100 border-red-200'
+        }`}>
+          <p className={`text-sm font-medium ${totals.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+            Gross Profit
+          </p>
+          <p className={`text-3xl font-bold mt-2 ${totals.grossProfit >= 0 ? 'text-green-900' : 'text-red-900'}`}>
             {formatCurrency(totals.grossProfit)}
           </p>
-          <p className="text-xs text-slate-400 mt-2">
-            Revenue - COGS
+          <p className={`text-xs mt-2 ${totals.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {totals.revenue > 0 ? `${((totals.grossProfit / totals.revenue) * 100).toFixed(1)}% margin` : '—'}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border-2 border-gray-600">
-          <p className="text-sm font-medium text-slate-600">Service Fee</p>
-          <p className="text-3xl font-bold mt-1 text-slate-800">
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200 shadow-sm">
+          <p className="text-sm font-medium text-purple-700">Service Fee</p>
+          <p className="text-3xl font-bold mt-2 text-purple-900">
             {perOrderServiceFee > 0 ? formatCurrency(perOrderServiceFee) : '—'}
           </p>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-purple-600 mt-2">
             Per order
           </p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-5 text-white">
+        <div className="bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl p-5 border border-slate-600 shadow-lg text-white">
           <p className="text-sm font-medium text-slate-300">Avg. Price</p>
-          <p className="text-3xl font-bold mt-1 text-white">
+          <p className="text-3xl font-bold mt-2 text-white">
             {formatCurrency(totals.volume > 0 ? totals.revenue / totals.volume : 0)}
           </p>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-slate-400 mt-2">
             Per order
           </p>
         </div>
@@ -287,59 +293,98 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
       )}
 
       {/* Service Details Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <h3 className="text-base font-semibold text-slate-800">{filterLabels[filter]} Details</h3>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-gray-50 border-b border-slate-200">
+          <h3 className="text-lg font-semibold text-slate-800">{filterLabels[filter]} Details</h3>
+          <p className="text-xs text-slate-500 mt-1">Complete breakdown of revenue and costs</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-50">
+            <thead className="bg-slate-50 border-b-2 border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Service</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Volume</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Price</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Service Fee</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Revenue</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Cost</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Gross Profit</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Service</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Volume</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Avg. Price</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Service Fee</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Revenue</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Cost</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Gross Profit</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Margin %</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {services.map(({ key, service }) => (
-                <tr key={key} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm font-medium text-slate-800">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded" 
-                        style={{ backgroundColor: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] }}
-                      />
-                      {SERVICE_LABELS[key]}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-600">{service.volume}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-600">{formatCurrency(service.price)}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-600">
-                    {service.serviceFees > 0 ? formatCurrency(service.serviceFees) : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-800 font-medium">{formatCurrency(service.totalRevenue)}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-600">{formatCurrency(service.totalCost)}</td>
-                  <td className={`px-4 py-3 text-sm text-right font-semibold ${service.grossProfit >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
-                    {formatCurrency(service.grossProfit)}
-                  </td>
-                </tr>
-              ))}
+              {services.map(({ key, service }) => {
+                const margin = service.totalRevenue > 0 ? ((service.grossProfit / service.totalRevenue) * 100) : 0;
+                return (
+                  <tr key={key} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-slate-800">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-3 h-3 rounded-full shadow-sm" 
+                          style={{ backgroundColor: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] }}
+                        />
+                        {SERVICE_LABELS[key]}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right">
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 font-medium">
+                        {service.volume}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right text-slate-600 font-medium">{formatCurrency(service.price)}</td>
+                    <td className="px-6 py-4 text-sm text-right text-slate-600">
+                      {service.serviceFees > 0 ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">
+                          {formatCurrency(service.serviceFees)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right">
+                      <span className="text-slate-800 font-semibold">{formatCurrency(service.totalRevenue)}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right text-slate-600">{formatCurrency(service.totalCost)}</td>
+                    <td className={`px-6 py-4 text-sm text-right font-bold ${service.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(service.grossProfit)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-right">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md font-medium ${
+                        margin >= 50 ? 'bg-green-100 text-green-700' :
+                        margin >= 25 ? 'bg-yellow-100 text-yellow-700' :
+                        margin >= 0 ? 'bg-orange-100 text-orange-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {margin.toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             {services.length > 1 && (
-              <tfoot className="bg-slate-100 font-semibold">
+              <tfoot className="bg-slate-100 border-t-2 border-slate-200 font-semibold">
                 <tr>
-                  <td className="px-4 py-3 text-sm text-slate-800">Total</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-800">{totals.volume}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-500">—</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-500">—</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-800">{formatCurrency(totals.revenue)}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-600">{formatCurrency(totals.cost)}</td>
-                  <td className={`px-4 py-3 text-sm text-right ${totals.grossProfit >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
+                  <td className="px-6 py-4 text-sm text-slate-800">Total</td>
+                  <td className="px-6 py-4 text-sm text-right">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-200 text-slate-800 font-bold">
+                      {totals.volume}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-right text-slate-500">—</td>
+                  <td className="px-6 py-4 text-sm text-right text-slate-500">—</td>
+                  <td className="px-6 py-4 text-sm text-right text-slate-800 font-bold">{formatCurrency(totals.revenue)}</td>
+                  <td className="px-6 py-4 text-sm text-right text-slate-600 font-bold">{formatCurrency(totals.cost)}</td>
+                  <td className={`px-6 py-4 text-sm text-right font-bold ${totals.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(totals.grossProfit)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-right">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md font-bold ${
+                      totals.revenue > 0 && ((totals.grossProfit / totals.revenue) * 100) >= 50 ? 'bg-green-200 text-green-800' :
+                      totals.revenue > 0 && ((totals.grossProfit / totals.revenue) * 100) >= 25 ? 'bg-yellow-200 text-yellow-800' :
+                      totals.revenue > 0 && ((totals.grossProfit / totals.revenue) * 100) >= 0 ? 'bg-orange-200 text-orange-800' :
+                      'bg-red-200 text-red-800'
+                    }`}>
+                      {totals.revenue > 0 ? ((totals.grossProfit / totals.revenue) * 100).toFixed(1) : '0.0'}%
+                    </span>
                   </td>
                 </tr>
               </tfoot>
@@ -350,34 +395,47 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
 
       {/* Entry Types Breakdown - for travel visas with single/double/multiple entry types */}
       {services.some(({ service }) => service.entryTypes && service.entryTypes.length > 0) && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100">
-            <h3 className="text-base font-semibold text-slate-800">Entry Types Breakdown</h3>
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+            <h3 className="text-lg font-semibold text-slate-800">Entry Types Breakdown</h3>
+            <p className="text-xs text-slate-500 mt-1">Detailed breakdown by visa entry type</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-amber-50">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-amber-700 uppercase">Service</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-amber-700 uppercase">Entry Type</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-amber-700 uppercase">Volume</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-amber-700 uppercase">Price</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-amber-700 uppercase">Embassy Fee</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-amber-700 uppercase">Revenue</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Service</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Entry Type</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Volume</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Price</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Embassy Fee</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Revenue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {services.map(({ key, service }) => 
                   service.entryTypes?.map((entry, idx) => (
-                    <tr key={`${key}-${idx}`} className="hover:bg-amber-50/50">
-                      <td className="px-4 py-3 text-sm font-medium text-slate-800">
-                        {idx === 0 ? SERVICE_LABELS[key] : ''}
+                    <tr key={`${key}-${idx}`} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-slate-800">
+                        {idx === 0 && (
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] }}
+                            />
+                            {SERVICE_LABELS[key]}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{entry.type}</td>
-                      <td className="px-4 py-3 text-sm text-right text-slate-600">{entry.volume}</td>
-                      <td className="px-4 py-3 text-sm text-right text-slate-600">{formatCurrency(entry.price)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-amber-600">{formatCurrency(entry.embassyFee)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-slate-800 font-medium">{formatCurrency(entry.revenue)}</td>
+                      <td className="px-6 py-4 text-sm text-slate-700 font-medium">{entry.type}</td>
+                      <td className="px-6 py-4 text-sm text-right text-slate-600">{entry.volume}</td>
+                      <td className="px-6 py-4 text-sm text-right text-slate-600">{formatCurrency(entry.price)}</td>
+                      <td className="px-6 py-4 text-sm text-right">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-amber-50 text-amber-700 font-medium">
+                          {formatCurrency(entry.embassyFee)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right text-slate-800 font-semibold">{formatCurrency(entry.revenue)}</td>
                     </tr>
                   ))
                 )}
@@ -386,71 +444,6 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
           </div>
         </div>
       )}
-
-      {/* Cost Per Order - Unit Costs */}
-      <div className="bg-white rounded-xl border-2 border-gray-600 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <h3 className="text-base font-semibold text-slate-800">Cost Per Order (COGS)</h3>
-        </div>
-        <div className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {services.map(({ key, service }) => {
-              // Per-order unit costs for each service
-              const unitCostData: Record<string, { items: { label: string; value: string; note?: string }[] }> = {
-                oec: { items: [{ label: 'DMW Fees', value: 'AED 61.5' }] },
-                owwa: { items: [{ label: 'OWWA Fees', value: 'AED 92' }] },
-                ttl: { items: [
-                  { label: 'Embassy Fees', value: 'Varies*', note: 'Single: 425, Double: 565, Multiple: 745' },
-                  { label: 'Transport', value: 'AED 100' }
-                ]},
-                tte: { items: [
-                  { label: 'Embassy Fees', value: 'Varies*', note: 'Single: 370, Multiple: 470' },
-                  { label: 'Transport', value: 'AED 100' }
-                ]},
-                ttj: { items: [
-                  { label: 'Embassy Fees', value: 'AED 220' },
-                  { label: '3rd Party', value: 'AED 100' }
-                ]},
-                schengen: { items: [] },
-                gcc: { items: [{ label: 'Dubai Police', value: 'AED 220' }] },
-                ethiopianPP: { items: [{ label: 'Gov. Fees', value: 'AED 1,330' }] },
-                filipinaPP: { items: [] },
-              };
-              
-              const costs = unitCostData[key];
-              const hasServiceFee = service.serviceFees > 0;
-              const hasAnyCosts = (costs && costs.items.length > 0) || hasServiceFee;
-              
-              if (!hasAnyCosts) return null;
-              
-              return (
-                <div key={key} className="bg-slate-50 rounded-lg p-3 space-y-2">
-                  <p className="text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
-                    {SERVICE_LABELS[key]}
-                  </p>
-                  {costs?.items.map((item, idx) => (
-                    <div key={idx}>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">{item.label}</span>
-                        <span className="text-slate-700 font-medium">{item.value}</span>
-                      </div>
-                      {item.note && (
-                        <p className="text-xs text-slate-400 mt-1">*{item.note}</p>
-                      )}
-                    </div>
-                  ))}
-                  {hasServiceFee && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">Service Fee</span>
-                      <span className="text-slate-700 font-medium">AED {service.serviceFees}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
