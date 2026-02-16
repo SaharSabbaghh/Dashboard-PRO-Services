@@ -51,9 +51,14 @@ export async function GET(request: Request) {
         byContractType.CC.oec += dailyData.summary.byContractType.CC?.oec || 0;
         byContractType.CC.owwa += dailyData.summary.byContractType.CC?.owwa || 0;
         byContractType.CC.travelVisa += dailyData.summary.byContractType.CC?.travelVisa || 0;
+        byContractType.CC.filipinaPassportRenewal += dailyData.summary.byContractType.CC?.filipinaPassportRenewal || 0;
+        byContractType.CC.ethiopianPassportRenewal += dailyData.summary.byContractType.CC?.ethiopianPassportRenewal || 0;
+        
         byContractType.MV.oec += dailyData.summary.byContractType.MV?.oec || 0;
         byContractType.MV.owwa += dailyData.summary.byContractType.MV?.owwa || 0;
         byContractType.MV.travelVisa += dailyData.summary.byContractType.MV?.travelVisa || 0;
+        byContractType.MV.filipinaPassportRenewal += dailyData.summary.byContractType.MV?.filipinaPassportRenewal || 0;
+        byContractType.MV.ethiopianPassportRenewal += dailyData.summary.byContractType.MV?.ethiopianPassportRenewal || 0;
       }
     }
     
