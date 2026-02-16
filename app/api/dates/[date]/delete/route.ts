@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { deleteBlob } from '@vercel/blob';
+import { del } from '@vercel/blob';
 
 // Verify API key from Authorization header
 function verifyApiKey(request: NextRequest): boolean {
@@ -44,7 +44,7 @@ export async function DELETE(
     const blobPath = `daily/${date}.json`;
     
     try {
-      await deleteBlob(blobPath);
+      await del(blobPath);
       console.log(`[Delete] Successfully deleted blob: ${blobPath}`);
       
       return NextResponse.json({
