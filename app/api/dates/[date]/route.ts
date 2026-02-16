@@ -90,8 +90,8 @@ export async function GET(
     
     // Calculate summary counts
     const defaultByContractType = {
-      CC: { oec: 0, owwa: 0, travelVisa: 0 },
-      MV: { oec: 0, owwa: 0, travelVisa: 0 },
+      CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+      MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
     };
     
     return NextResponse.json({

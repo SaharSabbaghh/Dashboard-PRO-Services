@@ -34,10 +34,10 @@ export default function ProspectCards({
   
   // Calculate CC and MV totals
   const ccTotal = byContractType 
-    ? (byContractType.CC.oec + byContractType.CC.owwa + byContractType.CC.travelVisa) 
+    ? (byContractType.CC.oec + byContractType.CC.owwa + byContractType.CC.travelVisa + (byContractType.CC.filipinaPassportRenewal || 0) + (byContractType.CC.ethiopianPassportRenewal || 0)) 
     : 0;
   const mvTotal = byContractType 
-    ? (byContractType.MV.oec + byContractType.MV.owwa + byContractType.MV.travelVisa) 
+    ? (byContractType.MV.oec + byContractType.MV.owwa + byContractType.MV.travelVisa + (byContractType.MV.filipinaPassportRenewal || 0) + (byContractType.MV.ethiopianPassportRenewal || 0)) 
     : 0;
   const ccPercent = totalProspects > 0 ? ((ccTotal / totalProspects) * 100).toFixed(1) : '0';
   const mvPercent = totalProspects > 0 ? ((mvTotal / totalProspects) * 100).toFixed(1) : '0';

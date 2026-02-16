@@ -149,8 +149,8 @@ function calculateSummary(results: ProcessedConversation[]) {
   let oecConverted = 0, owwaConverted = 0, travelVisaConverted = 0, filipinaPassportRenewalConverted = 0, ethiopianPassportRenewalConverted = 0;
   const countryCounts: Record<string, number> = {};
   const byContractType = {
-    CC: { oec: 0, owwa: 0, travelVisa: 0 },
-    MV: { oec: 0, owwa: 0, travelVisa: 0 },
+    CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+    MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
   };
   
   // Group results by household (CONTRACT_ID) - standalone entries get their own group
@@ -219,10 +219,14 @@ function calculateSummary(results: ProcessedConversation[]) {
     if (hasFilipinaPassportRenewal) {
       filipinaPassportRenewal++;
       if (filipinaPassportRenewalConv) filipinaPassportRenewalConverted++;
+      if (contractType === 'CC') byContractType.CC.filipinaPassportRenewal = (byContractType.CC.filipinaPassportRenewal || 0) + 1;
+      else if (contractType === 'MV') byContractType.MV.filipinaPassportRenewal = (byContractType.MV.filipinaPassportRenewal || 0) + 1;
     }
     if (hasEthiopianPassportRenewal) {
       ethiopianPassportRenewal++;
       if (ethiopianPassportRenewalConv) ethiopianPassportRenewalConverted++;
+      if (contractType === 'CC') byContractType.CC.ethiopianPassportRenewal = (byContractType.CC.ethiopianPassportRenewal || 0) + 1;
+      else if (contractType === 'MV') byContractType.MV.ethiopianPassportRenewal = (byContractType.MV.ethiopianPassportRenewal || 0) + 1;
     }
   }
   
@@ -258,8 +262,8 @@ export function getOrCreateDailyData(date: string, fileName?: string): DailyData
       ethiopianPassportRenewalConverted: 0,
       countryCounts: {},
       byContractType: {
-        CC: { oec: 0, owwa: 0, travelVisa: 0 },
-        MV: { oec: 0, owwa: 0, travelVisa: 0 },
+        CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+        MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
       },
     },
   };
@@ -328,8 +332,8 @@ export function getAggregatedResultsByDate(date: string) {
   const data = getDailyData(date);
   
   const defaultByContractType = {
-    CC: { oec: 0, owwa: 0, travelVisa: 0 },
-    MV: { oec: 0, owwa: 0, travelVisa: 0 },
+    CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+    MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
   };
   
   if (!data) {
@@ -338,8 +342,8 @@ export function getAggregatedResultsByDate(date: string) {
       totalProcessed: 0,
       totalConversations: 0,
       isProcessing: false,
-      prospects: { oec: 0, owwa: 0, travelVisa: 0 },
-      conversions: { oec: 0, owwa: 0, travelVisa: 0 },
+      prospects: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+      conversions: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
       countryCounts: {},
       byContractType: defaultByContractType,
       latestRun: null,
@@ -356,11 +360,15 @@ export function getAggregatedResultsByDate(date: string) {
       oec: data.summary.oec,
       owwa: data.summary.owwa,
       travelVisa: data.summary.travelVisa,
+      filipinaPassportRenewal: data.summary.filipinaPassportRenewal,
+      ethiopianPassportRenewal: data.summary.ethiopianPassportRenewal,
     },
     conversions: {
       oec: data.summary.oecConverted,
       owwa: data.summary.owwaConverted,
       travelVisa: data.summary.travelVisaConverted,
+      filipinaPassportRenewal: data.summary.filipinaPassportRenewalConverted,
+      ethiopianPassportRenewal: data.summary.ethiopianPassportRenewalConverted,
     },
     countryCounts: data.summary.countryCounts,
     byContractType: data.summary.byContractType || defaultByContractType,
