@@ -15,7 +15,42 @@ export const runtime = 'nodejs';
  * Authentication:
  *   Header: Authorization: Bearer <your-api-key>
  * 
- * Request Body:
+ * Request Body (New Format - from n8n):
+ * [
+ *   {
+ *     "current_data": {
+ *       "date": "2026-02-09",
+ *       "conversations": [
+ *         {
+ *           "conversationId": "CH12345...",
+ *           "chatStartDateTime": "2026-02-09T10:30:00.000Z",
+ *           "maidId": "12345",
+ *           "clientId": "67890",
+ *           "contractId": "1086364",
+ *           "maidName": "Maria Santos",
+ *           "clientName": "John Doe",
+ *           "contractType": "CC",
+ *           "messages": "Conversation text...",
+ *           "isOECProspect": true,
+ *           "isOECProspectConfidence": 0.95,
+ *           "isOWWAProspect": false,
+ *           "isOWWAProspectConfidence": 0.90,
+ *           "isTravelVisaProspect": false,
+ *           "isTravelVisaProspectConfidence": 0.85,
+ *           "travelVisaCountries": [],
+ *           "isFilipinaPassportRenewalProspect": false,
+ *           "isFilipinaPassportRenewalProspectConfidence": 0.90,
+ *           "isEthiopianPassportRenewalProspect": false,
+ *           "isEthiopianPassportRenewalProspectConfidence": 0.90,
+ *           "processingStatus": "succeeded",
+ *           "processedAt": "2026-02-09T10:35:00.000Z"
+ *         }
+ *       ]
+ *     }
+ *   }
+ * ]
+ * 
+ * Request Body (Old Format - backward compatible):
  * {
  *   "date": "2026-02-09",  // Optional, defaults to today
  *   "batchInfo": {          // Optional, for batched uploads
@@ -23,20 +58,7 @@ export const runtime = 'nodejs';
  *     "totalBatches": 5,
  *     "isLast": false
  *   },
- *   "conversations": [
- *     {
- *       "conversationId": "CH12345...",
- *       "chatStartDateTime": "2026-02-09T10:30:00.000Z",
- *       "maidId": "12345",
- *       "clientId": "67890",
- *       "contractId": "1086364",
- *       "maidName": "Maria Santos",
- *       "clientName": "John Doe",
- *       "contractType": "CC",  // "CC" or "MV"
- *       "messages": "Conversation text..."
- *     },
- *     ...
- *   ]
+ *   "conversations": [...]
  * }
  * 
  * Response:
@@ -44,7 +66,7 @@ export const runtime = 'nodejs';
  *   "success": true,
  *   "date": "2026-02-09",
  *   "imported": 150,
- *   "duplicates": 5,
+ *   "merged": 5,
  *   "totalConversations": 155
  * }
  */
@@ -118,7 +140,31 @@ export async function POST(request: Request) {
       );
     }
     
-    const body: IngestRequest = await request.json();
+    let rawBody = await request.json();
+    
+    // Handle new format: array with current_data wrapper
+    // New format: [{ current_data: { date: "...", conversations: [...] } }]
+    // Old format: { date: "...", conversations: [...] }
+    let body: IngestRequest;
+    
+    if (Array.isArray(rawBody) && rawBody.length > 0 && rawBody[0].current_data) {
+      // New format from n8n
+      const currentData = rawBody[0].current_data;
+      body = {
+        date: currentData.date,
+        conversations: currentData.conversations || [],
+        batchInfo: currentData.batchInfo,
+      };
+    } else if (Array.isArray(rawBody)) {
+      // Handle array without current_data wrapper (backward compatibility)
+      return NextResponse.json(
+        { error: 'Invalid format. Expected array with current_data wrapper or direct object.' },
+        { status: 400 }
+      );
+    } else {
+      // Old format (direct object) - keep for backward compatibility
+      body = rawBody as IngestRequest;
+    }
     
     // Validate request
     if (!body.conversations || !Array.isArray(body.conversations)) {
