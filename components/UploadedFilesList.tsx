@@ -11,6 +11,8 @@ interface DateInfo {
     oec: number;
     owwa: number;
     travelVisa: number;
+    filipinaPassportRenewal: number;
+    ethiopianPassportRenewal: number;
   };
   lastUpdated?: string;
 }
