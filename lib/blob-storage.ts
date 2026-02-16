@@ -374,7 +374,13 @@ export async function getAggregatedResultsByDateBlob(date: string) {
 export async function getProspectDetailsByDateBlob(date: string) {
   const data = await getDailyDataBlob(date);
   if (!data) return [];
-  return data.results.filter(r => r.isOECProspect || r.isOWWAProspect || r.isTravelVisaProspect);
+  return data.results.filter(r => 
+    r.isOECProspect || 
+    r.isOWWAProspect || 
+    r.isTravelVisaProspect || 
+    r.isFilipinaPassportRenewalProspect || 
+    r.isEthiopianPassportRenewalProspect
+  );
 }
 
 export interface HouseholdGroup {
@@ -403,7 +409,11 @@ export async function getProspectsGroupedByHouseholdBlob(date: string): Promise<
   if (!data) return [];
   
   const prospects = data.results.filter(r => 
-    r.isOECProspect || r.isOWWAProspect || r.isTravelVisaProspect
+    r.isOECProspect || 
+    r.isOWWAProspect || 
+    r.isTravelVisaProspect || 
+    r.isFilipinaPassportRenewalProspect || 
+    r.isEthiopianPassportRenewalProspect
   );
   
   const householdMap = new Map<string, ProcessedConversation[]>();
