@@ -69,16 +69,13 @@ export default function PnLTable({ data }: PnLTableProps) {
               Volume
             </th>
             <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Avg. Price
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Service Fee
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
               Revenue
             </th>
             <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
               Cost
+            </th>
+            <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Service Fee
             </th>
             <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
               Gross Profit
@@ -110,8 +107,11 @@ export default function PnLTable({ data }: PnLTableProps) {
                     {service.volume.toLocaleString()}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-right text-slate-600 font-medium">
-                  {formatCurrency(service.price)}
+                <td className="px-6 py-4 text-sm text-right text-slate-800 font-semibold">
+                  {formatCurrency(service.totalRevenue)}
+                </td>
+                <td className="px-6 py-4 text-sm text-right text-slate-600">
+                  {formatCurrency(service.totalCost)}
                 </td>
                 <td className="px-6 py-4 text-sm text-right text-slate-600">
                   {service.serviceFees > 0 ? (
@@ -119,12 +119,6 @@ export default function PnLTable({ data }: PnLTableProps) {
                       {formatCurrency(service.serviceFees)}
                     </span>
                   ) : '—'}
-                </td>
-                <td className="px-6 py-4 text-sm text-right text-slate-800 font-semibold">
-                  {formatCurrency(service.totalRevenue)}
-                </td>
-                <td className="px-6 py-4 text-sm text-right text-slate-600">
-                  {formatCurrency(service.totalCost)}
                 </td>
                 <td className={`px-6 py-4 text-sm text-right font-bold ${
                   service.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'
@@ -155,17 +149,14 @@ export default function PnLTable({ data }: PnLTableProps) {
                 {totals.volume.toLocaleString()}
               </span>
             </td>
-            <td className="px-6 py-4 text-sm text-right text-slate-500">
-              —
-            </td>
-            <td className="px-6 py-4 text-sm text-right text-slate-500">
-              —
-            </td>
             <td className="px-6 py-4 text-sm text-right text-slate-800 font-bold">
               {formatCurrency(totals.totalRevenue)}
             </td>
             <td className="px-6 py-4 text-sm text-right text-slate-600 font-bold">
               {formatCurrency(totals.totalCost)}
+            </td>
+            <td className="px-6 py-4 text-sm text-right text-slate-500">
+              —
             </td>
             <td className={`px-6 py-4 text-sm text-right font-bold ${
               totals.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'

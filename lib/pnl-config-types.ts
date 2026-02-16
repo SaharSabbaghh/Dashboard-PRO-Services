@@ -4,8 +4,10 @@
  */
 
 export interface ServiceConfig {
-  unitCost: number; // Cost per payment/transaction
-  serviceFee?: number; // Optional additional service fee
+  unitCost: number; // Base price charged to customer
+  serviceFee?: number; // Optional additional fee charged to customer
+  // Revenue = unitCost + serviceFee
+  // Actual costs are defined separately in SERVICE_COSTS
 }
 
 export interface FixedCosts {
@@ -57,20 +59,22 @@ export function getConfigForDate(history: PnLConfigHistory, date: string): PnLCo
 
 /**
  * Default initial configuration
+ * unitCost + serviceFee = what customer pays (revenue)
+ * Actual costs are defined in SERVICE_COSTS in the P&L API
  */
 export const DEFAULT_CONFIG_SNAPSHOT: PnLConfigSnapshot = {
   effectiveDate: '2024-01-01', // Apply to all historical data before any custom config
   updatedAt: new Date().toISOString(),
   services: {
-    oec: { unitCost: 61.5, serviceFee: 0 },
-    owwa: { unitCost: 92, serviceFee: 0 },
-    ttl: { unitCost: 400, serviceFee: 0 },
-    tte: { unitCost: 370, serviceFee: 0 },
-    ttj: { unitCost: 320, serviceFee: 0 },
-    schengen: { unitCost: 0, serviceFee: 0 },
-    gcc: { unitCost: 220, serviceFee: 0 },
-    ethiopianPP: { unitCost: 1330, serviceFee: 0 },
-    filipinaPP: { unitCost: 0, serviceFee: 0 }
+    oec: { unitCost: 61.5, serviceFee: 0 },      // Customer pays 61.5
+    owwa: { unitCost: 92, serviceFee: 0 },       // Customer pays 92
+    ttl: { unitCost: 500, serviceFee: 0 },       // Customer pays 500
+    tte: { unitCost: 420, serviceFee: 0 },       // Customer pays 420
+    ttj: { unitCost: 320, serviceFee: 0 },       // Customer pays 320
+    schengen: { unitCost: 450, serviceFee: 0 },  // Customer pays 450
+    gcc: { unitCost: 220, serviceFee: 0 },       // Customer pays 220
+    ethiopianPP: { unitCost: 1350, serviceFee: 0 }, // Customer pays 1350
+    filipinaPP: { unitCost: 600, serviceFee: 0 } // Customer pays 600
   },
   fixedCosts: {
     laborCost: 55000,
