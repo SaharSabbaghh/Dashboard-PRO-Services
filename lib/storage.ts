@@ -387,7 +387,13 @@ export function getAllDatesWithSummary() {
 export function getProspectDetailsByDate(date: string) {
   const data = getDailyData(date);
   if (!data) return [];
-  return data.results.filter(r => r.isOECProspect || r.isOWWAProspect || r.isTravelVisaProspect);
+  return data.results.filter(r => 
+    r.isOECProspect || 
+    r.isOWWAProspect || 
+    r.isTravelVisaProspect || 
+    r.isFilipinaPassportRenewalProspect || 
+    r.isEthiopianPassportRenewalProspect
+  );
 }
 
 export interface HouseholdGroup {
@@ -417,7 +423,11 @@ export function getProspectsGroupedByHousehold(date: string): HouseholdGroup[] {
   
   // Filter to only prospects
   const prospects = data.results.filter(r => 
-    r.isOECProspect || r.isOWWAProspect || r.isTravelVisaProspect
+    r.isOECProspect || 
+    r.isOWWAProspect || 
+    r.isTravelVisaProspect ||
+    r.isFilipinaPassportRenewalProspect ||
+    r.isEthiopianPassportRenewalProspect
   );
   
   // Group by contractId

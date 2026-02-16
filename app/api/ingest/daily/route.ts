@@ -88,6 +88,10 @@ interface IngestConversation {
   isTravelVisaProspect?: boolean;
   isTravelVisaProspectConfidence?: number;
   travelVisaCountries?: string[];
+  isFilipinaPassportRenewalProspect?: boolean;
+  isFilipinaPassportRenewalProspectConfidence?: number;
+  isEthiopianPassportRenewalProspect?: boolean;
+  isEthiopianPassportRenewalProspectConfidence?: number;
   processingStatus?: string;
   processedAt?: string;
 }
@@ -295,6 +299,10 @@ export async function POST(request: Request) {
           isTravelVisaProspect: entity.conversations[0].isTravelVisaProspect ?? false,
           isTravelVisaProspectConfidence: entity.conversations[0].isTravelVisaProspectConfidence,
           travelVisaCountries: entity.conversations[0].travelVisaCountries || [],
+          isFilipinaPassportRenewalProspect: entity.conversations[0].isFilipinaPassportRenewalProspect ?? false,
+          isFilipinaPassportRenewalProspectConfidence: entity.conversations[0].isFilipinaPassportRenewalProspectConfidence,
+          isEthiopianPassportRenewalProspect: entity.conversations[0].isEthiopianPassportRenewalProspect ?? false,
+          isEthiopianPassportRenewalProspectConfidence: entity.conversations[0].isEthiopianPassportRenewalProspectConfidence,
           // Conversions will be calculated from complaints data, not stored here
           processingStatus: entity.conversations[0].processingStatus || 'pending',
           processedAt: entity.conversations[0].processedAt || '',
