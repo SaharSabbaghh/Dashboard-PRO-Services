@@ -82,12 +82,14 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">OWWA</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Visa</th>
             <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Countries</th>
+            <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">🇵🇭 PP</th>
+            <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">🇪🇹 PP</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Converted</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {displayedProspects.map((p, index) => {
-            const converted = p.oecConverted || p.owwaConverted || p.travelVisaConverted;
+            const converted = p.oecConverted || p.owwaConverted || p.travelVisaConverted || p.filipinaPassportRenewalConverted || p.ethiopianPassportRenewalConverted;
             const displayName = p.clientName || p.maidName || '—';
             const personType = p.clientId ? 'Client' : p.maidId ? 'Maid' : '';
             
@@ -149,6 +151,20 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                 </td>
                 <td className="px-3 py-2 text-slate-600 text-xs">
                   {p.travelVisaCountries?.length > 0 ? p.travelVisaCountries.join(', ') : '—'}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {p.isFilipinaPassportRenewalProspect ? (
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-pink-100 text-pink-700">
+                      {p.filipinaPassportRenewalConverted ? '✓' : '•'}
+                    </span>
+                  ) : '—'}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {p.isEthiopianPassportRenewalProspect ? (
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">
+                      {p.ethiopianPassportRenewalConverted ? '✓' : '•'}
+                    </span>
+                  ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {converted ? (

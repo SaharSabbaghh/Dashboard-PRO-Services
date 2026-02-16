@@ -104,6 +104,8 @@ export async function GET(
         oec: data.summary?.oec || 0,
         owwa: data.summary?.owwa || 0,
         travelVisa: data.summary?.travelVisa || 0,
+        filipinaPassportRenewal: data.summary?.filipinaPassportRenewal || 0,
+        ethiopianPassportRenewal: data.summary?.ethiopianPassportRenewal || 0,
         details: prospects,
       },
       conversions, // Now dynamically calculated from complaints

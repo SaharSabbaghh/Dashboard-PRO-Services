@@ -16,8 +16,8 @@ export async function GET(request: Request) {
     const dates = getAvailableDates();
     
     let totalProcessed = 0;
-    let oec = 0, owwa = 0, travelVisa = 0;
-    let oecConverted = 0, owwaConverted = 0, travelVisaConverted = 0;
+    let oec = 0, owwa = 0, travelVisa = 0, filipinaPassportRenewal = 0, ethiopianPassportRenewal = 0;
+    let oecConverted = 0, owwaConverted = 0, travelVisaConverted = 0, filipinaPassportRenewalConverted = 0, ethiopianPassportRenewalConverted = 0;
     const countryCounts: Record<string, number> = {};
     const byContractType = {
       CC: { oec: 0, owwa: 0, travelVisa: 0 },
@@ -31,9 +31,13 @@ export async function GET(request: Request) {
       oec += summary.prospects.oec;
       owwa += summary.prospects.owwa;
       travelVisa += summary.prospects.travelVisa;
+      filipinaPassportRenewal += summary.prospects.filipinaPassportRenewal || 0;
+      ethiopianPassportRenewal += summary.prospects.ethiopianPassportRenewal || 0;
       oecConverted += summary.prospects.oecConverted || 0;
       owwaConverted += summary.prospects.owwaConverted || 0;
       travelVisaConverted += summary.prospects.travelVisaConverted || 0;
+      filipinaPassportRenewalConverted += summary.prospects.filipinaPassportRenewalConverted || 0;
+      ethiopianPassportRenewalConverted += summary.prospects.ethiopianPassportRenewalConverted || 0;
       
       for (const [country, count] of Object.entries(summary.prospects.countryCounts)) {
         countryCounts[country] = (countryCounts[country] || 0) + count;
@@ -57,8 +61,20 @@ export async function GET(request: Request) {
       totalProcessed,
       totalConversations: totalProcessed,
       isProcessing: false,
-      prospects: { oec, owwa, travelVisa },
-      conversions: { oec: oecConverted, owwa: owwaConverted, travelVisa: travelVisaConverted },
+      prospects: { 
+        oec, 
+        owwa, 
+        travelVisa, 
+        filipinaPassportRenewal, 
+        ethiopianPassportRenewal 
+      },
+      conversions: { 
+        oec: oecConverted, 
+        owwa: owwaConverted, 
+        travelVisa: travelVisaConverted,
+        filipinaPassportRenewal: filipinaPassportRenewalConverted,
+        ethiopianPassportRenewal: ethiopianPassportRenewalConverted
+      },
       countryCounts,
       byContractType,
     };

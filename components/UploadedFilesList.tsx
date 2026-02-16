@@ -167,7 +167,7 @@ export default function UploadedFilesList({
                 
                 {/* Prospect Stats */}
                 {file.processedCount > 0 && file.prospects && (
-                  <div className="flex gap-3 text-xs">
+                  <div className="flex gap-3 text-xs flex-wrap">
                     <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
                       OEC: {file.prospects.oec || 0}
                     </span>
@@ -176,6 +176,12 @@ export default function UploadedFilesList({
                     </span>
                     <span className="text-violet-600 bg-violet-50 px-2 py-0.5 rounded">
                       Visa: {file.prospects.travelVisa || 0}
+                    </span>
+                    <span className="text-pink-600 bg-pink-50 px-2 py-0.5 rounded">
+                      🇵🇭 PP: {file.prospects.filipinaPassportRenewal || 0}
+                    </span>
+                    <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                      🇪🇹 PP: {file.prospects.ethiopianPassportRenewal || 0}
                     </span>
                   </div>
                 )}
