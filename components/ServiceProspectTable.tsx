@@ -10,6 +10,18 @@ interface ServiceProspectTableProps {
 
 export default function ServiceProspectTable({ prospects, service }: ServiceProspectTableProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(text);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const toggleIdExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -95,13 +107,30 @@ export default function ServiceProspectTable({ prospects, service }: ServicePros
           {filteredProspects.map((prospect, idx) => (
             <tr key={`${prospect.conversationId}-${idx}`} className="hover:bg-slate-50 transition-colors">
               <td className="py-3 px-5 font-mono text-xs text-slate-500">
-                <button
-                  onClick={() => toggleIdExpand(prospect.conversationId)}
-                  className="text-left hover:text-blue-600 transition-colors cursor-pointer"
-                  title={expandedIds.has(prospect.conversationId) ? 'Click to collapse' : 'Click to expand'}
-                >
-                  {expandedIds.has(prospect.conversationId) ? prospect.conversationId : `${prospect.conversationId?.slice(0, 8)}...`}
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => toggleIdExpand(prospect.conversationId)}
+                    className="text-left hover:text-blue-600 transition-colors cursor-pointer flex-1"
+                    title={expandedIds.has(prospect.conversationId) ? 'Click to collapse' : 'Click to expand'}
+                  >
+                    {expandedIds.has(prospect.conversationId) ? prospect.conversationId : `${prospect.conversationId?.slice(0, 8)}...`}
+                  </button>
+                  <button
+                    onClick={(e) => copyToClipboard(prospect.conversationId, e)}
+                    className="p-1 hover:bg-slate-200 rounded transition-colors group relative"
+                    title="Copy ID"
+                  >
+                    {copiedId === prospect.conversationId ? (
+                      <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </td>
               <td className="py-3 px-5 text-slate-700">{prospect.clientName || '—'}</td>
               <td className="py-3 px-5 text-slate-700">{prospect.maidName || '—'}</td>

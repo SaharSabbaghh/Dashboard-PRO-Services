@@ -17,6 +17,18 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
   const [viewMode, setViewMode] = useState<ViewMode>('flat');
   const [expandedHouseholds, setExpandedHouseholds] = useState<Set<string>>(new Set());
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(text);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const toggleIdExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -96,13 +108,30 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
             return (
               <tr key={`flat-${p.conversationId}-${startIndex + index}`} className="hover:bg-slate-50">
                 <td className="px-3 py-2 text-slate-600 font-mono text-xs">
-                  <button
-                    onClick={() => toggleIdExpand(p.conversationId)}
-                    className="text-left hover:text-blue-600 transition-colors cursor-pointer"
-                    title={expandedIds.has(p.conversationId) ? 'Click to collapse' : 'Click to expand'}
-                  >
-                    {expandedIds.has(p.conversationId) ? p.conversationId : `${p.conversationId?.slice(0, 8)}...`}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => toggleIdExpand(p.conversationId)}
+                      className="text-left hover:text-blue-600 transition-colors cursor-pointer flex-1"
+                      title={expandedIds.has(p.conversationId) ? 'Click to collapse' : 'Click to expand'}
+                    >
+                      {expandedIds.has(p.conversationId) ? p.conversationId : `${p.conversationId?.slice(0, 8)}...`}
+                    </button>
+                    <button
+                      onClick={(e) => copyToClipboard(p.conversationId, e)}
+                      className="p-1 hover:bg-slate-200 rounded transition-colors group relative"
+                      title="Copy ID"
+                    >
+                      {copiedId === p.conversationId ? (
+                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </td>
                 <td className="px-3 py-2 text-slate-600 text-xs">
                   {p.contractId ? (
@@ -307,13 +336,30 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                         return (
                           <tr key={`member-${household.householdId}-${member.conversationId}-${idx}`} className="hover:bg-slate-100">
                             <td className="px-4 py-2 text-slate-600 font-mono text-xs">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleIdExpand(member.conversationId); }}
-                                className="text-left hover:text-blue-600 transition-colors cursor-pointer"
-                                title={expandedIds.has(member.conversationId) ? 'Click to collapse' : 'Click to expand'}
-                              >
-                                {expandedIds.has(member.conversationId) ? member.conversationId : `${member.conversationId?.slice(0, 8)}...`}
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleIdExpand(member.conversationId); }}
+                                  className="text-left hover:text-blue-600 transition-colors cursor-pointer flex-1"
+                                  title={expandedIds.has(member.conversationId) ? 'Click to collapse' : 'Click to expand'}
+                                >
+                                  {expandedIds.has(member.conversationId) ? member.conversationId : `${member.conversationId?.slice(0, 8)}...`}
+                                </button>
+                                <button
+                                  onClick={(e) => copyToClipboard(member.conversationId, e)}
+                                  className="p-1 hover:bg-slate-300 rounded transition-colors group relative"
+                                  title="Copy ID"
+                                >
+                                  {copiedId === member.conversationId ? (
+                                    <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-3 h-3 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </div>
                             </td>
                             <td className="px-4 py-2 text-xs">
                               <div className="flex items-center gap-2">
