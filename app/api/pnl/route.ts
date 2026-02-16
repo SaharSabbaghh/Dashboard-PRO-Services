@@ -1,12 +1,10 @@
-
 import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
-import { getPaymentData } from '@/lib/payment-processor';
-import { getPnLConfigHistory, getConfigForDate } from '@/lib/pnl-config-storage';
+import { getPnLConfigHistory } from '@/lib/pnl-config-storage';
+import { aggregateDailyComplaints } from '@/lib/daily-complaints-storage';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
-import type { ProcessedPayment } from '@/lib/payment-types';
 import type { PnLConfigSnapshot } from '@/lib/pnl-config-types';
 import { DEFAULT_CONFIG_SNAPSHOT } from '@/lib/pnl-config-types';
 
@@ -20,222 +18,9 @@ export const revalidate = 0;
 type PnLServiceKey = 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP';
 const ALL_SERVICE_KEYS: PnLServiceKey[] = ['oec', 'owwa', 'ttl', 'tte', 'ttj', 'schengen', 'gcc', 'ethiopianPP', 'filipinaPP'];
 
-interface PaymentInfo {
-  lastUpdated: string;
-  totalPayments: number;
-  receivedPayments: number;
-  summary: {
-    totalUniqueSales: number;
-    totalUniqueClients: number;
-    totalUniqueContracts: number;
-    totalRevenue: number; // Sum of all payment amounts
-  };
-  serviceBreakdown: Record<string, {
-    uniqueSales: number;
-    uniqueClients: number;
-    totalPayments: number;
-    totalRevenue: number; // Sum of payment amounts for this service
-    avgRevenue: number; // Average payment amount
-    byMonth: Record<string, number>;
-  }>;
-}
-
-// Filter payment data by date range and recalculate volumes and revenues
-async function filterPaymentsDataByDate(
-  payments: ProcessedPayment[],
-  startDate?: string,
-  endDate?: string
-): Promise<{ volumes: Record<PnLServiceKey, number>; revenues: Record<PnLServiceKey, number>; costs: Record<PnLServiceKey, number>; paymentInfo: PaymentInfo }> {
-  const start = startDate ? new Date(startDate) : new Date(0);
-  const end = endDate ? new Date(endDate + 'T23:59:59') : new Date('9999-12-31');
-
-  // Get configuration history
-  const configHistory = await getPnLConfigHistory();
-
-  // Filter payments by date and status - ONLY RECEIVED
-  const filteredPayments = payments.filter(p => {
-    if (p.status !== 'received') return false;
-    const paymentDate = new Date(p.dateOfPayment);
-    return paymentDate >= start && paymentDate <= end;
-  });
-
-  // Calculate volumes (number of payments), revenues, and costs by service
-  const volumes: Record<PnLServiceKey, number> = {
-    oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
-    schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
-  };
-  
-  const revenues: Record<PnLServiceKey, number> = {
-    oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
-    schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
-  };
-  
-  const costs: Record<PnLServiceKey, number> = {
-    oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
-    schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
-  };
-  
-  const serviceBreakdown: Record<string, {
-    totalPayments: number;
-    totalRevenue: number;
-    avgRevenue: number;
-    byMonth: Record<string, number>;
-  }> = {};
-
-  // Initialize service breakdown
-  ALL_SERVICE_KEYS.forEach(key => {
-    serviceBreakdown[key] = {
-      totalPayments: 0,
-      totalRevenue: 0,
-      avgRevenue: 0,
-      byMonth: {},
-    };
-  });
-
-  let totalRevenue = 0;
-
-  // Process each payment
-  filteredPayments.forEach(payment => {
-    let serviceKey: PnLServiceKey | null = null;
-
-    // Map payment service to P&L service key
-    if (payment.service === 'oec') {
-      serviceKey = 'oec';
-    } else if (payment.service === 'owwa') {
-      serviceKey = 'owwa';
-    } else if (payment.service === 'filipina_pp') {
-      serviceKey = 'filipinaPP';
-    } else if (payment.service === 'ethiopian_pp') {
-      serviceKey = 'ethiopianPP';
-    } else if (payment.service === 'ttl') {
-      serviceKey = 'ttl';
-    } else if (payment.service === 'tte') {
-      serviceKey = 'tte';
-    } else if (payment.service === 'ttj') {
-      serviceKey = 'ttj';
-    } else if (payment.service === 'schengen') {
-      serviceKey = 'schengen';
-    } else if (payment.service === 'gcc') {
-      serviceKey = 'gcc';
-    }
-
-    if (serviceKey) {
-      // Get the configuration for this payment's date
-      const config = getConfigForDate(configHistory, payment.dateOfPayment);
-      const serviceConfig = config.services[serviceKey];
-      
-      volumes[serviceKey]++;
-      revenues[serviceKey] += payment.amountOfPayment;
-      totalRevenue += payment.amountOfPayment;
-      
-      // Calculate cost for this payment using the config effective on its date
-      const paymentCost = serviceConfig.unitCost + (serviceConfig.serviceFee || 0);
-      costs[serviceKey] += paymentCost;
-
-      // Count by month
-      const monthKey = payment.dateOfPayment.substring(0, 7); // "YYYY-MM"
-      serviceBreakdown[serviceKey].byMonth[monthKey] = 
-        (serviceBreakdown[serviceKey].byMonth[monthKey] || 0) + 1;
-      serviceBreakdown[serviceKey].totalPayments++;
-      serviceBreakdown[serviceKey].totalRevenue += payment.amountOfPayment;
-    }
-  });
-
-  // Finalize service breakdown
-  const finalServiceBreakdown: PaymentInfo['serviceBreakdown'] = {};
-  ALL_SERVICE_KEYS.forEach(key => {
-    const service = serviceBreakdown[key];
-    finalServiceBreakdown[key] = {
-      uniqueSales: service.totalPayments, // Changed from unique contracts to total payments
-      uniqueClients: 0, // Not tracking uniqueness anymore
-      totalPayments: service.totalPayments,
-      totalRevenue: service.totalRevenue,
-      avgRevenue: service.totalPayments > 0 ? service.totalRevenue / service.totalPayments : 0,
-      byMonth: service.byMonth,
-    };
-  });
-
-  const paymentInfo: PaymentInfo = {
-    lastUpdated: new Date().toISOString(),
-    totalPayments: filteredPayments.length,
-    receivedPayments: filteredPayments.length,
-    summary: {
-      totalUniqueSales: filteredPayments.length, // Changed to total payments
-      totalUniqueClients: 0, // Not tracking anymore
-      totalUniqueContracts: 0, // Not tracking anymore
-      totalRevenue,
-    },
-    serviceBreakdown: finalServiceBreakdown,
-  };
-
-  return { volumes, revenues, costs, paymentInfo };
-}
-
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
-// Unit prices for each service (revenue per sale)
-const SERVICE_PRICES: Record<PnLServiceKey, number> = {
-  oec: 61.5,
-  owwa: 92,
-  ttl: 500, // Average across entry types
-  tte: 420, // Average across entry types
-  ttj: 320,
-  schengen: 0, // Price varies
-  gcc: 220,
-  ethiopianPP: 1350,
-  filipinaPP: 0, // Price varies
-};
-
-// Unit costs for each service
-const SERVICE_UNIT_COSTS: Record<PnLServiceKey, number> = {
-  oec: 61.5,    // DMW Fees
-  owwa: 92,     // OWWA Fees
-  ttl: 400,     // Embassy + transport (average)
-  tte: 370,     // Embassy + transport (average)
-  ttj: 320,     // Embassy + facilitator
-  schengen: 0,
-  gcc: 220,     // Dubai Police
-  ethiopianPP: 1330, // Government fees
-  filipinaPP: 0,     // No cost
-};
-
-// Map service keys to aggregated services keys
-const SERVICE_KEY_MAP: Record<PnLServiceKey, keyof AggregatedPnL['services']> = {
-  oec: 'oec',
-  owwa: 'owwa',
-  ttl: 'ttl',
-  tte: 'tte',
-  ttj: 'ttj',
-  schengen: 'schengen',
-  gcc: 'gcc',
-  ethiopianPP: 'ethiopianPP',
-  filipinaPP: 'filipinaPP',
-};
-
-// Create service P&L from actual payment revenue and calculated costs
-function createServiceFromPayments(
-  name: string, 
-  volume: number, 
-  actualRevenue: number,
-  actualCost: number
-): ServicePnL {
-  const totalRevenue = actualRevenue;
-  const totalCost = actualCost;
-  const grossProfit = totalRevenue - totalCost;
-  const avgPrice = volume > 0 ? actualRevenue / volume : 0;
-  
-  return {
-    name,
-    volume,
-    price: avgPrice, // Average price from actual payments
-    serviceFees: 0,
-    totalRevenue,
-    totalCost,
-    grossProfit,
-  };
-}
-
-// Create service P&L from fixed unit price (fallback for when no payment amount data)
+// Create service P&L from volume and config prices/costs
 function createServiceFromVolume(
   name: string, 
   volume: number, 
@@ -260,54 +45,36 @@ function createServiceFromVolume(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const source = searchParams.get('source') || 'auto'; // 'auto', 'payments', 'excel'
+    const source = searchParams.get('source') || 'auto'; // 'auto', 'complaints', 'excel'
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
     
-    // Try to get payment data first
-    const paymentData = await getPaymentData();
-    const hasPaymentData = paymentData && paymentData.totalPayments > 0;
-    
-    // Apply date filter if provided
-    let volumes: Record<PnLServiceKey, number>;
-    let revenues: Record<PnLServiceKey, number>;
-    let costs: Record<PnLServiceKey, number>;
-    let paymentInfo: PaymentInfo | null = null;
-    
-    if (hasPaymentData && paymentData) {
-      const filtered = await filterPaymentsDataByDate(paymentData.payments, startDate, endDate);
-      volumes = filtered.volumes;
-      revenues = filtered.revenues;
-      costs = filtered.costs;
-      paymentInfo = filtered.paymentInfo;
-    } else {
-      volumes = {
-        oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
-        schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
-      };
-      revenues = {
-        oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
-        schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
-      };
-      costs = {
-        oec: 0, owwa: 0, ttl: 0, tte: 0, ttj: 0,
-        schengen: 0, gcc: 0, ethiopianPP: 0, filipinaPP: 0,
-      };
-    }
+    // Try daily complaints data FIRST (primary source)
+    const dailyComplaintsResult = await aggregateDailyComplaints(startDate, endDate);
+    const hasDailyData = dailyComplaintsResult.success && dailyComplaintsResult.data;
     
     // Check if P&L Excel files exist
     const hasExcelFiles = fs.existsSync(PNL_DIR) && 
       fs.readdirSync(PNL_DIR).some(f => f.endsWith('.xlsx') || f.endsWith('.xls'));
     
-    // Determine which source to use
-    const usePayments = source === 'payments' || 
-      (source === 'auto' && hasPaymentData);
+    // Determine which source to use (daily complaints takes priority)
+    const useComplaints = source === 'complaints' || 
+      (source === 'auto' && hasDailyData);
     const useExcel = source === 'excel' || 
-      (source === 'auto' && !hasPaymentData && hasExcelFiles);
+      (source === 'auto' && !hasDailyData && hasExcelFiles);
     
-    // If using payment data
-    if (usePayments && hasPaymentData && paymentInfo && paymentData) {
-      // Build P&L from actual payment revenues
+    // If using daily complaints data (PRIMARY SOURCE)
+    if (useComplaints && hasDailyData && dailyComplaintsResult.data) {
+      console.log('[P&L] Using daily complaints data');
+      
+      const dailyData = dailyComplaintsResult.data;
+      
+      // Get configuration history for cost calculations
+      const configHistory = await getPnLConfigHistory();
+      const latestConfig = configHistory.configurations[configHistory.configurations.length - 1] || DEFAULT_CONFIG_SNAPSHOT;
+      
+      const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
+      
       const serviceNames: Record<PnLServiceKey, string> = {
         oec: 'OEC',
         owwa: 'OWWA',
@@ -320,41 +87,37 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
-      // Use actual revenue from payments and actual calculated costs
-      const services: AggregatedPnL['services'] = {
-        oec: createServiceFromPayments(serviceNames.oec, volumes.oec, revenues.oec, costs.oec),
-        owwa: createServiceFromPayments(serviceNames.owwa, volumes.owwa, revenues.owwa, costs.owwa),
-        ttl: createServiceFromPayments(serviceNames.ttl, volumes.ttl, revenues.ttl, costs.ttl),
-        tte: createServiceFromPayments(serviceNames.tte, volumes.tte, revenues.tte, costs.tte),
-        ttj: createServiceFromPayments(serviceNames.ttj, volumes.ttj, revenues.ttj, costs.ttj),
-        schengen: createServiceFromPayments(serviceNames.schengen, volumes.schengen, revenues.schengen, costs.schengen),
-        gcc: createServiceFromPayments(serviceNames.gcc, volumes.gcc, revenues.gcc, costs.gcc),
-        ethiopianPP: createServiceFromPayments(serviceNames.ethiopianPP, volumes.ethiopianPP, revenues.ethiopianPP, costs.ethiopianPP),
-        filipinaPP: createServiceFromPayments(serviceNames.filipinaPP, volumes.filipinaPP, revenues.filipinaPP, costs.filipinaPP),
-      };
+      // Create P&L for each service using config prices and costs
+      ALL_SERVICE_KEYS.forEach(key => {
+        const serviceConfig = latestConfig.services[key];
+        const volume = dailyData.volumes[key];
+        const price = serviceConfig.unitPrice;
+        const unitCost = serviceConfig.unitCost + (serviceConfig.serviceFee || 0);
+        
+        services[key] = createServiceFromVolume(
+          serviceNames[key],
+          volume,
+          price,
+          unitCost
+        );
+      });
       
       const totalRevenue = Object.values(services).reduce((sum, s) => sum + s.totalRevenue, 0);
       const totalCost = Object.values(services).reduce((sum, s) => sum + s.totalCost, 0);
       const totalGrossProfit = Object.values(services).reduce((sum, s) => sum + s.grossProfit, 0);
       
       // Calculate number of months in the date range
-      let numberOfMonths = 1; // Default to 1 month
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        
-        // Calculate number of complete and partial months
+      let numberOfMonths = 1;
+      if (dailyData.dateRange.start && dailyData.dateRange.end) {
+        const start = new Date(dailyData.dateRange.start);
+        const end = new Date(dailyData.dateRange.end);
         const yearDiff = end.getFullYear() - start.getFullYear();
         const monthDiff = end.getMonth() - start.getMonth();
-        numberOfMonths = yearDiff * 12 + monthDiff + 1; // +1 to include both start and end months
+        numberOfMonths = yearDiff * 12 + monthDiff + 1;
       }
       
-      // Get fixed costs from configuration (use latest config for current fixed costs)
-      const configHistory = await getPnLConfigHistory();
-      const latestConfig = configHistory.configurations[configHistory.configurations.length - 1] || DEFAULT_CONFIG_SNAPSHOT;
+      // Fixed costs multiplied by number of months
       const monthlyFixedCosts = latestConfig.fixedCosts;
-      
-      // Multiply fixed costs by number of months in range
       const fixedCosts = {
         laborCost: monthlyFixedCosts.laborCost * numberOfMonths,
         llm: monthlyFixedCosts.llm * numberOfMonths,
@@ -363,7 +126,7 @@ export async function GET(request: Request) {
       };
       
       const aggregated: AggregatedPnL = {
-        files: ['payment-data'],
+        files: ['daily-complaints-data'],
         services,
         summary: {
           totalRevenue,
@@ -374,25 +137,30 @@ export async function GET(request: Request) {
         },
       };
       
-      // Collect all available months from ORIGINAL payment data (not filtered)
-      // This ensures the date picker always shows all available months regardless of current filter
-      const allAvailableMonths = new Set<string>();
-      paymentData.payments.forEach(payment => {
-        if (payment.status === 'received' && payment.dateOfPayment) {
-          const monthKey = payment.dateOfPayment.substring(0, 7); // "YYYY-MM"
-          allAvailableMonths.add(monthKey);
-        }
+      // Build daily complaints info for display
+      const complaintsInfo = {
+        totalComplaints: dailyData.totalComplaints,
+        dateRange: dailyData.dateRange,
+        source: 'Daily Complaints (Date-based)',
+        serviceBreakdown: {} as Record<string, { uniqueSales: number }>,
+      };
+      
+      // Add service breakdown
+      ALL_SERVICE_KEYS.forEach(key => {
+        complaintsInfo.serviceBreakdown[key] = {
+          uniqueSales: dailyData.volumes[key],
+        };
       });
 
       return NextResponse.json({
-        source: 'payments',
+        source: 'complaints',
         aggregated,
         dateFilter: startDate || endDate ? { startDate, endDate } : null,
-        availableMonths: Array.from(allAvailableMonths).sort(),
-        paymentData: paymentInfo,
+        availableMonths: [],
+        complaintsData: complaintsInfo,
         files: null,
         fileCount: 0,
-        monthsInRange: numberOfMonths, // Include this for debugging
+        monthsInRange: numberOfMonths,
       });
     }
     
@@ -407,7 +175,6 @@ export async function GET(request: Request) {
         return NextResponse.json({ 
           error: 'No P&L files found',
           source: 'excel',
-          hasPaymentData,
         }, { status: 404 });
       }
 
@@ -443,9 +210,9 @@ export async function GET(request: Request) {
     
     // No data available
     return NextResponse.json({
-      error: 'No P&L data available. Upload payments via /api/ingest/payments or add Excel files to P&L directory.',
+      error: 'No P&L data available. Upload complaints via /api/complaints-daily or add Excel files to P&L directory.',
       source: 'none',
-      hasPaymentData: false,
+      hasComplaintsData: false,
       hasExcelFiles: false,
     }, { status: 404 });
     
