@@ -69,8 +69,8 @@ export interface DailyData {
     ethiopianPassportRenewalConverted: number;
     countryCounts: Record<string, number>;
     byContractType: {
-      CC: { oec: number; owwa: number; travelVisa: number };
-      MV: { oec: number; owwa: number; travelVisa: number };
+      CC: { oec: number; owwa: number; travelVisa: number; filipinaPassportRenewal: number; ethiopianPassportRenewal: number };
+      MV: { oec: number; owwa: number; travelVisa: number; filipinaPassportRenewal: number; ethiopianPassportRenewal: number };
     };
   };
 }

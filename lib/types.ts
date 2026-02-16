@@ -60,8 +60,8 @@ export interface ContractTypeBreakdown {
   oec: number;
   owwa: number;
   travelVisa: number;
-  filipinaPassportRenewal?: number;
-  ethiopianPassportRenewal?: number;
+  filipinaPassportRenewal: number;
+  ethiopianPassportRenewal: number;
 }
 
 export interface ByContractType {
