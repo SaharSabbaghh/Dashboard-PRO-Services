@@ -112,6 +112,7 @@ export default function PnLConfigEditor() {
         
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
+            <strong>Formula:</strong> Revenue = (Unit Cost + Service Fee) × Volume | Gross Profit = Service Fee × Volume<br />
             <strong>Note:</strong> Changes will apply from today ({new Date().toISOString().split('T')[0]}) forward. 
             Historical data will keep its original cost calculations.
           </p>
@@ -125,7 +126,7 @@ export default function PnLConfigEditor() {
               </div>
               
               <div className="flex items-center gap-2">
-                <label className="text-sm text-slate-600">Unit Cost:</label>
+                <label className="text-sm text-slate-600" title="Actual cost to the company per unit">Unit Cost:</label>
                 <input
                   type="number"
                   step="0.01"
@@ -137,7 +138,7 @@ export default function PnLConfigEditor() {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm text-slate-600">Service Fee:</label>
+                <label className="text-sm text-slate-600" title="Markup/service fee charged to customer">Service Fee:</label>
                 <input
                   type="number"
                   step="0.01"
@@ -148,7 +149,7 @@ export default function PnLConfigEditor() {
                 <span className="text-sm text-slate-600">AED</span>
               </div>
 
-              <div className="text-sm font-semibold text-slate-700 w-32 text-right">
+              <div className="text-sm font-semibold text-slate-700 w-32 text-right" title="Total price charged to customer">
                 Total: {((editedConfig[key].unitCost || 0) + (editedConfig[key].serviceFee || 0)).toFixed(2)} AED
               </div>
             </div>

@@ -20,7 +20,8 @@ const ALL_SERVICE_KEYS: PnLServiceKey[] = ['oec', 'owwa', 'ttl', 'tte', 'ttj', '
 
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
-// Fixed costs per service (what it actually costs us)
+// Actual costs per service (what it costs the company)
+// These should match the unitCost values in the config
 const SERVICE_COSTS: Record<PnLServiceKey, number> = {
   oec: 40,           // DMW fees
   owwa: 60,          // OWWA fees
@@ -34,22 +35,23 @@ const SERVICE_COSTS: Record<PnLServiceKey, number> = {
 };
 
 // Create service P&L from volume and config
+// Formula: Revenue = (serviceFee + actualCost) × volume
+//          Gross Profit = Revenue - Cost = serviceFee × volume
 function createServiceFromVolume(
   name: string, 
   volume: number, 
-  unitCost: number,     // What customer pays (base price)
-  serviceFee: number    // Additional service fee customer pays
+  actualCost: number,    // The actual cost per unit to the company
+  serviceFee: number     // Service fee (markup) per unit
 ): ServicePnL {
-  const revenuePerUnit = unitCost + serviceFee;
-  const totalRevenue = volume * revenuePerUnit;
-  const totalCost = volume * unitCost; // Use actual cost from SERVICE_COSTS
-  const grossProfit = totalRevenue - totalCost;
+  const totalCost = volume * actualCost;
+  const totalRevenue = volume * (serviceFee + actualCost);
+  const grossProfit = totalRevenue - totalCost; // = serviceFee × volume
   
   return {
     name,
     volume,
-    price: revenuePerUnit,      // Store revenue per unit for display
-    serviceFees: serviceFee,    // Store service fee separately
+    price: serviceFee + actualCost,  // Price per unit (what customer pays)
+    serviceFees: serviceFee,          // Service fee per unit
     totalRevenue,
     totalCost,
     grossProfit,
@@ -109,24 +111,21 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
-      // Create P&L for each service using config (revenue = unitCost + serviceFee, cost = SERVICE_COSTS)
+      // Create P&L for each service using config
+      // Revenue = (serviceFee + actualCost) × volume
+      // Gross Profit = serviceFee × volume
       ALL_SERVICE_KEYS.forEach(key => {
         const serviceConfig = latestConfig.services[key];
         const volume = dailyData.volumes[key];
         const actualCost = SERVICE_COSTS[key]; // What it costs us
-        const unitCost = serviceConfig.unitCost; // What customer pays (base)
-        const serviceFee = serviceConfig.serviceFee || 0; // Additional fee customer pays
+        const serviceFee = serviceConfig.serviceFee || 0; // Service fee (markup)
         
         services[key] = createServiceFromVolume(
           serviceNames[key],
           volume,
-          unitCost,
+          actualCost,
           serviceFee
         );
-        
-        // Override totalCost with actual costs
-        services[key].totalCost = volume * actualCost;
-        services[key].grossProfit = services[key].totalRevenue - services[key].totalCost;
       });
       
       const totalRevenue = Object.values(services).reduce((sum, s) => sum + s.totalRevenue, 0);

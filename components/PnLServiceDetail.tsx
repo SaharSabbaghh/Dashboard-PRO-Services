@@ -142,7 +142,7 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
           <p className="text-sm font-medium text-slate-600">Total Revenue</p>
           <p className="text-3xl font-bold mt-2 text-slate-800">
@@ -181,16 +181,6 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
             {perOrderServiceFee > 0 ? formatCurrency(perOrderServiceFee) : '—'}
           </p>
           <p className="text-xs text-slate-500 mt-2">
-            Per order
-          </p>
-        </div>
-
-        <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white">
-          <p className="text-sm font-medium text-slate-300">Avg. Price</p>
-          <p className="text-3xl font-bold mt-2 text-white">
-            {formatCurrency(totals.volume > 0 ? totals.revenue / totals.volume : 0)}
-          </p>
-          <p className="text-xs text-slate-400 mt-2">
             Per order
           </p>
         </div>
@@ -300,7 +290,6 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Service</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Volume</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Avg. Price</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Service Fee</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Revenue</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Cost</th>
@@ -327,7 +316,6 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
                         {service.volume}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-right text-slate-600 font-medium">{formatCurrency(service.price)}</td>
                     <td className="px-6 py-4 text-sm text-right text-slate-600">
                       {service.serviceFees > 0 ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">
@@ -365,7 +353,6 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
                       {totals.volume}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-right text-slate-500">—</td>
                   <td className="px-6 py-4 text-sm text-right text-slate-500">—</td>
                   <td className="px-6 py-4 text-sm text-right text-slate-800 font-bold">{formatCurrency(totals.revenue)}</td>
                   <td className="px-6 py-4 text-sm text-right text-slate-600 font-bold">{formatCurrency(totals.cost)}</td>

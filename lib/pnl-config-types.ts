@@ -4,10 +4,10 @@
  */
 
 export interface ServiceConfig {
-  unitCost: number; // Base price charged to customer
-  serviceFee?: number; // Optional additional fee charged to customer
-  // Revenue = unitCost + serviceFee
-  // Actual costs are defined separately in SERVICE_COSTS
+  unitCost: number; // Actual cost to the company per unit (e.g., government fees, processing costs)
+  serviceFee?: number; // Optional service fee (markup) charged to customer
+  // Revenue = (unitCost + serviceFee) × volume
+  // Gross Profit = serviceFee × volume
 }
 
 export interface FixedCosts {
@@ -59,8 +59,9 @@ export function getConfigForDate(history: PnLConfigHistory, date: string): PnLCo
 
 /**
  * Default initial configuration
- * unitCost + serviceFee = what customer pays (revenue)
- * Actual costs are defined in SERVICE_COSTS in the P&L API
+ * unitCost = actual cost to company
+ * serviceFee = markup charged to customer
+ * Revenue = (unitCost + serviceFee) × volume
  */
 export const DEFAULT_CONFIG_SNAPSHOT: PnLConfigSnapshot = {
   effectiveDate: '2024-01-01', // Apply to all historical data before any custom config
