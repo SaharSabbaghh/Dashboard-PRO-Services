@@ -243,10 +243,14 @@ function calculateSummary(results: ProcessedConversation[]) {
     if (hasFilipinaPassportRenewal) {
       filipinaPassportRenewal++;
       if (filipinaPassportRenewalConv) filipinaPassportRenewalConverted++;
+      if (contractType === 'CC') byContractType.CC.filipinaPassportRenewal++;
+      else if (contractType === 'MV') byContractType.MV.filipinaPassportRenewal++;
     }
     if (hasEthiopianPassportRenewal) {
       ethiopianPassportRenewal++;
       if (ethiopianPassportRenewalConv) ethiopianPassportRenewalConverted++;
+      if (contractType === 'CC') byContractType.CC.ethiopianPassportRenewal++;
+      else if (contractType === 'MV') byContractType.MV.ethiopianPassportRenewal++;
     }
   }
   
