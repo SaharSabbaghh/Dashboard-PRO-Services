@@ -148,3 +148,36 @@ export interface DelayTimeResponse {
   };
   error?: string;
 }
+
+// Agent Hours Types
+export interface AgentHoursRecord {
+  FULL_NAME: string;
+  HOURS_LOGGED: number;
+  FIRST_LOGIN: string; // Format: YYYY-MM-DD HH:MM:SS.mmm
+  LAST_LOGOUT: string; // Format: YYYY-MM-DD HH:MM:SS.mmm
+}
+
+export interface AgentHoursData {
+  lastUpdated: string;
+  analysisDate: string;
+  totalAgents: number;
+  totalHoursLogged: number;
+  averageHoursPerAgent: number;
+  agents: AgentHoursRecord[];
+}
+
+export interface AgentHoursRequest {
+  analysisDate: string;
+  agents: AgentHoursRecord[];
+}
+
+export interface AgentHoursResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    analysisId: string;
+    processedRecords: number;
+    analysisDate: string;
+  };
+  error?: string;
+}

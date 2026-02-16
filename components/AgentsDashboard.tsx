@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, TrendingUp, Users, Award } from 'lucide-react';
-import type { DelayTimeData } from '@/lib/chat-types';
+import { Calendar, Clock, TrendingUp, Users, Award, LogIn, LogOut, Timer } from 'lucide-react';
+import type { DelayTimeData, AgentHoursData } from '@/lib/chat-types';
 
 export default function AgentsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [delayData, setDelayData] = useState<DelayTimeData | null>(null);
+  const [agentHoursData, setAgentHoursData] = useState<AgentHoursData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +45,7 @@ export default function AgentsDashboard() {
         setIsLoading(true);
         setError(null);
         
+        // Fetch delay data
         const delayResponse = await fetch(`/api/delay-time?date=${selectedDate}`);
         const delayResult = await delayResponse.json();
         
@@ -52,9 +54,20 @@ export default function AgentsDashboard() {
         } else {
           setError('No delay data available for this date');
         }
+
+        // Fetch agent hours data
+        const hoursResponse = await fetch(`/api/agent-hours?date=${selectedDate}`);
+        const hoursResult = await hoursResponse.json();
+        
+        if (hoursResult.success && hoursResult.data) {
+          setAgentHoursData(hoursResult.data);
+        } else {
+          // It's okay if agent hours data is not available
+          setAgentHoursData(null);
+        }
       } catch (err) {
         setError('Network error occurred');
-        console.error('Error fetching delay data:', err);
+        console.error('Error fetching agent data:', err);
       } finally {
         setIsLoading(false);
       }
@@ -182,6 +195,38 @@ export default function AgentsDashboard() {
         </div>
       )}
 
+      {/* Agent Hours Summary Cards */}
+      {agentHoursData && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Total Hours Logged */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <Timer className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="text-3xl font-bold text-blue-900 mb-1">{agentHoursData.totalHoursLogged.toFixed(1)}h</div>
+            <div className="text-sm font-medium text-blue-700">Total Hours Logged</div>
+          </div>
+
+          {/* Average Hours Per Agent */}
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-6 h-6 text-green-600" />
+            </div>
+            <div className="text-3xl font-bold text-green-900 mb-1">{agentHoursData.averageHoursPerAgent.toFixed(1)}h</div>
+            <div className="text-sm font-medium text-green-700">Avg Hours/Agent</div>
+          </div>
+
+          {/* Total Agents Tracked */}
+          <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-6 border-2 border-purple-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <Users className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="text-3xl font-bold text-purple-900 mb-1">{agentHoursData.totalAgents}</div>
+            <div className="text-sm font-medium text-purple-700">Agents Tracked</div>
+          </div>
+        </div>
+      )}
+
       {/* Agent Performance Table */}
       {delayData && delayData.agentStats && delayData.agentStats.length > 0 && (
         <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
@@ -218,6 +263,19 @@ export default function AgentsDashboard() {
                   <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Conversations
                   </th>
+                  {agentHoursData && (
+                    <>
+                      <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                        First Login
+                      </th>
+                      <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                        Last Logout
+                      </th>
+                      <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                        Hours Logged
+                      </th>
+                    </>
+                  )}
                   <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Performance
                   </th>
@@ -229,6 +287,26 @@ export default function AgentsDashboard() {
                   .map((agent, index) => {
                     const isTopPerformer = index < 3;
                     const performanceScore = Math.min(100, (delayData.overallAvgDelaySeconds / agent.avgDelaySeconds) * 100);
+                    
+                    // Find matching agent hours data
+                    const agentHours = agentHoursData?.agents.find(
+                      a => a.FULL_NAME.toLowerCase() === agent.agentName.toLowerCase()
+                    );
+                    
+                    // Format time function
+                    const formatTime = (timeStr: string) => {
+                      if (!timeStr) return '—';
+                      try {
+                        const date = new Date(timeStr);
+                        return date.toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: true 
+                        });
+                      } catch {
+                        return '—';
+                      }
+                    };
                     
                     return (
                       <tr key={agent.agentName} className="hover:bg-slate-50 transition-colors">
@@ -270,6 +348,27 @@ export default function AgentsDashboard() {
                             {agent.conversationCount}
                           </span>
                         </td>
+                        {agentHoursData && (
+                          <>
+                            <td className="py-4 px-6 text-center">
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-medium">
+                                <LogIn className="w-3.5 h-3.5" />
+                                {agentHours ? formatTime(agentHours.FIRST_LOGIN) : '—'}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-center">
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-700 text-xs font-medium">
+                                <LogOut className="w-3.5 h-3.5" />
+                                {agentHours ? formatTime(agentHours.LAST_LOGOUT) : '—'}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-center">
+                              <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 font-bold text-sm">
+                                {agentHours ? `${agentHours.HOURS_LOGGED.toFixed(1)}h` : '—'}
+                              </span>
+                            </td>
+                          </>
+                        )}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
