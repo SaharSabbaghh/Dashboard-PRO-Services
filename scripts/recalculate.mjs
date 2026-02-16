@@ -10,8 +10,8 @@ function calculateSummary(results) {
   let oecConverted = 0, owwaConverted = 0, travelVisaConverted = 0;
   const countryCounts = {};
   const byContractType = {
-    CC: { oec: 0, owwa: 0, travelVisa: 0 },
-    MV: { oec: 0, owwa: 0, travelVisa: 0 },
+    CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+    MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
   };
   
   // Group results by household (CONTRACT_ID)

@@ -68,8 +68,8 @@ export async function getOrCreateDailyData(date: string, fileName?: string): Pro
       ethiopianPassportRenewalConverted: 0,
       countryCounts: {},
       byContractType: {
-        CC: { oec: 0, owwa: 0, travelVisa: 0 },
-        MV: { oec: 0, owwa: 0, travelVisa: 0 },
+        CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+        MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
       },
     },
   };

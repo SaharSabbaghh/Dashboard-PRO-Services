@@ -103,8 +103,8 @@ export default function Dashboard() {
           conversions: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
           countryCounts: {},
           byContractType: {
-            CC: { oec: 0, owwa: 0, travelVisa: 0 },
-            MV: { oec: 0, owwa: 0, travelVisa: 0 },
+            CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
+            MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
           },
           prospectDetails: [],
           households: [],
@@ -133,9 +133,13 @@ export default function Dashboard() {
             aggregated.byContractType!.CC.oec += data.byContractType.CC?.oec || 0;
             aggregated.byContractType!.CC.owwa += data.byContractType.CC?.owwa || 0;
             aggregated.byContractType!.CC.travelVisa += data.byContractType.CC?.travelVisa || 0;
+            aggregated.byContractType!.CC.filipinaPassportRenewal += data.byContractType.CC?.filipinaPassportRenewal || 0;
+            aggregated.byContractType!.CC.ethiopianPassportRenewal += data.byContractType.CC?.ethiopianPassportRenewal || 0;
             aggregated.byContractType!.MV.oec += data.byContractType.MV?.oec || 0;
             aggregated.byContractType!.MV.owwa += data.byContractType.MV?.owwa || 0;
             aggregated.byContractType!.MV.travelVisa += data.byContractType.MV?.travelVisa || 0;
+            aggregated.byContractType!.MV.filipinaPassportRenewal += data.byContractType.MV?.filipinaPassportRenewal || 0;
+            aggregated.byContractType!.MV.ethiopianPassportRenewal += data.byContractType.MV?.ethiopianPassportRenewal || 0;
           }
           
           // Merge country counts
