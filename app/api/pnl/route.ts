@@ -20,6 +20,19 @@ const ALL_SERVICE_KEYS: PnLServiceKey[] = ['oec', 'owwa', 'ttl', 'tte', 'ttj', '
 
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
+// Fixed unit prices for each service (revenue per sale)
+const SERVICE_PRICES: Record<PnLServiceKey, number> = {
+  oec: 61.5,
+  owwa: 92,
+  ttl: 500, // Average across entry types
+  tte: 420, // Average across entry types
+  ttj: 320,
+  schengen: 450, // Average
+  gcc: 220,
+  ethiopianPP: 1350,
+  filipinaPP: 600, // Average
+};
+
 // Create service P&L from volume and config prices/costs
 function createServiceFromVolume(
   name: string, 
@@ -91,7 +104,7 @@ export async function GET(request: Request) {
       ALL_SERVICE_KEYS.forEach(key => {
         const serviceConfig = latestConfig.services[key];
         const volume = dailyData.volumes[key];
-        const price = serviceConfig.unitPrice;
+        const price = SERVICE_PRICES[key]; // Use fixed prices
         const unitCost = serviceConfig.unitCost + (serviceConfig.serviceFee || 0);
         
         services[key] = createServiceFromVolume(
