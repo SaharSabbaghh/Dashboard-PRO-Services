@@ -62,9 +62,17 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
     
+    console.log('[P&L] GET request - startDate:', startDate, 'endDate:', endDate);
+    
     // Try daily complaints data FIRST (primary source)
     const dailyComplaintsResult = await aggregateDailyComplaints(startDate, endDate);
     const hasDailyData = dailyComplaintsResult.success && dailyComplaintsResult.data;
+    
+    console.log('[P&L] Daily complaints result:', { 
+      success: dailyComplaintsResult.success, 
+      hasDailyData,
+      error: dailyComplaintsResult.error 
+    });
     
     // Check if P&L Excel files exist
     const hasExcelFiles = fs.existsSync(PNL_DIR) && 
@@ -165,11 +173,19 @@ export async function GET(request: Request) {
         };
       });
 
+      // Get available dates for date picker
+      const { getAvailableDailyComplaintsDates } = await import('@/lib/daily-complaints-storage');
+      const datesResult = await getAvailableDailyComplaintsDates();
+      const availableDates = datesResult.success && datesResult.dates ? datesResult.dates : [];
+      
+      // Convert dates to months for the picker (YYYY-MM format)
+      const availableMonths = [...new Set(availableDates.map(d => d.substring(0, 7)))].sort();
+
       return NextResponse.json({
         source: 'complaints',
         aggregated,
         dateFilter: startDate || endDate ? { startDate, endDate } : null,
-        availableMonths: [],
+        availableMonths,
         complaintsData: complaintsInfo,
         files: null,
         fileCount: 0,

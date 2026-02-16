@@ -64,35 +64,44 @@ export interface PnLComplaintsData {
 
 // Mapping from complaint types to service keys
 export const COMPLAINT_TYPE_MAP: Record<string, PnLServiceKey> = {
-  // OEC
+  // OEC - Overseas Employment Certificate
   'overseas employment certificate': 'oec',
   'overseas': 'oec',
   'oec': 'oec',
-  'contract verification': 'oec', // Contract Verification also counts as OEC
+  'contract verification': 'oec',
+  'client contract verification': 'oec',
+  'maid contract verification': 'oec',
   
   // OWWA
   'client owwa registration': 'owwa',
   'owwa registration': 'owwa',
   'owwa': 'owwa',
   
-  // Travel visas
+  // Travel visas - Lebanon
   'tourist visa to lebanon': 'ttl',
   'travel to lebanon': 'ttl',
   'ttl': 'ttl',
+  'lebanon': 'ttl',
   
+  // Travel visas - Egypt
   'tourist visa to egypt': 'tte',
   'travel to egypt': 'tte',
   'tte': 'tte',
+  'egypt': 'tte',
   
+  // Travel visas - Jordan
   'tourist visa to jordan': 'ttj',
   'travel to jordan': 'ttj',
   'ttj': 'ttj',
+  'jordan': 'ttj',
+  'tourist to jordan': 'ttj',
   
-  // Passport renewals
+  // Passport renewals - Ethiopian
   'ethiopian passport renewal': 'ethiopianPP',
   'ethiopian pp': 'ethiopianPP',
   'ethiopian pp renewal': 'ethiopianPP',
   
+  // Passport renewals - Filipina
   'filipina passport renewal': 'filipinaPP',
   'filipina pp': 'filipinaPP',
   'filipina pp renewal': 'filipinaPP',
@@ -111,9 +120,6 @@ export const COMPLAINT_TYPE_MAP: Record<string, PnLServiceKey> = {
   'schengen visa to netherlands': 'schengen',
   'schengen to france': 'schengen',
   'schengen to germany': 'schengen',
-  
-  // Jordan variant
-  'tourist to jordan': 'ttj',
 };
 
 // Service display names
@@ -153,18 +159,31 @@ export function getServiceKeyFromComplaintType(complaintType: string): PnLServic
   
   // Then try partial/contains matching for flexibility
   // Order matters - check more specific patterns first
-  if (normalized.includes('contract verification') || normalized.includes('contract verif')) {
-    return 'oec'; // Contract Verification counts as OEC
+  
+  // OEC: Contract Verification OR anything with "overseas"
+  if (normalized.includes('contract verification') || 
+      normalized.includes('contract verif') ||
+      normalized.includes('client contract verification')) {
+    return 'oec'; // All contract verification counts as OEC
   }
-  if (normalized.includes('overseas') || normalized.includes('oec')) {
+  if (normalized.includes('overseas')) {
+    return 'oec'; // Anything with "overseas" is OEC
+  }
+  if (normalized.includes('oec')) {
     return 'oec';
   }
+  
+  // OWWA
   if (normalized.includes('owwa')) {
     return 'owwa';
   }
+  
+  // Schengen (check before specific countries)
   if (normalized.includes('schengen')) {
     return 'schengen';
   }
+  
+  // Travel Visas
   if (normalized.includes('lebanon')) {
     return 'ttl';
   }
@@ -174,12 +193,16 @@ export function getServiceKeyFromComplaintType(complaintType: string): PnLServic
   if (normalized.includes('jordan')) {
     return 'ttj';
   }
+  
+  // Passport Renewals
   if (normalized.includes('ethiopian') && normalized.includes('passport')) {
     return 'ethiopianPP';
   }
   if (normalized.includes('filipina') && normalized.includes('passport')) {
     return 'filipinaPP';
   }
+  
+  // GCC
   if (normalized.includes('gcc')) {
     return 'gcc';
   }
