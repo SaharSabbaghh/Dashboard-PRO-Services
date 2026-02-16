@@ -395,13 +395,24 @@ export function getAllDatesWithSummary() {
 export function getProspectDetailsByDate(date: string) {
   const data = getDailyData(date);
   if (!data) return [];
-  return data.results.filter(r => 
+  
+  const prospects = data.results.filter(r => 
     r.isOECProspect || 
     r.isOWWAProspect || 
     r.isTravelVisaProspect || 
     r.isFilipinaPassportRenewalProspect || 
     r.isEthiopianPassportRenewalProspect
   );
+  
+  // Deduplicate by conversationId (keep the first occurrence)
+  const seen = new Map<string, typeof prospects[0]>();
+  for (const prospect of prospects) {
+    if (!seen.has(prospect.conversationId)) {
+      seen.set(prospect.conversationId, prospect);
+    }
+  }
+  
+  return Array.from(seen.values());
 }
 
 export interface HouseholdGroup {
@@ -430,13 +441,22 @@ export function getProspectsGroupedByHousehold(date: string): HouseholdGroup[] {
   if (!data) return [];
   
   // Filter to only prospects
-  const prospects = data.results.filter(r => 
+  const allProspects = data.results.filter(r => 
     r.isOECProspect || 
     r.isOWWAProspect || 
     r.isTravelVisaProspect ||
     r.isFilipinaPassportRenewalProspect ||
     r.isEthiopianPassportRenewalProspect
   );
+  
+  // Deduplicate by conversationId first (keep the first occurrence)
+  const seen = new Map<string, ProcessedConversation>();
+  for (const prospect of allProspects) {
+    if (!seen.has(prospect.conversationId)) {
+      seen.set(prospect.conversationId, prospect);
+    }
+  }
+  const prospects = Array.from(seen.values());
   
   // Group by contractId
   const householdMap = new Map<string, ProcessedConversation[]>();

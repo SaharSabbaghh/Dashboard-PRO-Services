@@ -149,14 +149,18 @@ export default function Dashboard() {
             });
           }
           
-          // Merge prospect details
+          // Merge prospect details (deduplicate by conversationId)
           if (data.prospects?.details) {
-            aggregated.prospectDetails = [...(aggregated.prospectDetails || []), ...data.prospects.details];
+            const existingIds = new Set((aggregated.prospectDetails || []).map(p => p.conversationId));
+            const newProspects = data.prospects.details.filter(p => !existingIds.has(p.conversationId));
+            aggregated.prospectDetails = [...(aggregated.prospectDetails || []), ...newProspects];
           }
           
-          // Merge households
+          // Merge households (deduplicate by householdId)
           if (data.households) {
-            aggregated.households = [...(aggregated.households || []), ...data.households];
+            const existingHouseholdIds = new Set((aggregated.households || []).map(h => h.householdId));
+            const newHouseholds = data.households.filter(h => !existingHouseholdIds.has(h.householdId));
+            aggregated.households = [...(aggregated.households || []), ...newHouseholds];
           }
         });
 
