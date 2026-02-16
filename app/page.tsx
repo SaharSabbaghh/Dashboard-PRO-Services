@@ -18,7 +18,7 @@ import PnLDatePicker from '@/components/PnLDatePicker';
 import ChatsDashboard from '@/components/ChatsDashboard';
 import AgentsDashboard from '@/components/AgentsDashboard';
 import PnLConfigEditor from '@/components/PnLConfigEditor';
-import type { Results, ServiceFilter } from '@/lib/types';
+import type { Results, ServiceFilter, ProspectDetail, HouseholdGroup } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
 interface PaymentInfo {
@@ -151,15 +151,15 @@ export default function Dashboard() {
           
           // Merge prospect details (deduplicate by conversationId)
           if (data.prospects?.details) {
-            const existingIds = new Set((aggregated.prospectDetails || []).map((p) => p.conversationId));
-            const newProspects = data.prospects.details.filter((p) => !existingIds.has(p.conversationId));
+            const existingIds = new Set((aggregated.prospectDetails || []).map((p: ProspectDetail) => p.conversationId));
+            const newProspects = data.prospects.details.filter((p: ProspectDetail) => !existingIds.has(p.conversationId));
             aggregated.prospectDetails = [...(aggregated.prospectDetails || []), ...newProspects];
           }
           
           // Merge households (deduplicate by householdId)
           if (data.households) {
-            const existingHouseholdIds = new Set((aggregated.households || []).map((h) => h.householdId));
-            const newHouseholds = data.households.filter((h) => !existingHouseholdIds.has(h.householdId));
+            const existingHouseholdIds = new Set((aggregated.households || []).map((h: HouseholdGroup) => h.householdId));
+            const newHouseholds = data.households.filter((h: HouseholdGroup) => !existingHouseholdIds.has(h.householdId));
             aggregated.households = [...(aggregated.households || []), ...newHouseholds];
           }
         });
