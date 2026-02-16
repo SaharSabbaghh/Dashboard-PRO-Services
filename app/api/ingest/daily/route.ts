@@ -155,6 +155,7 @@ export async function POST(request: Request) {
         conversations: currentData.conversations || [],
         batchInfo: currentData.batchInfo,
       };
+      console.log(`[Ingest Daily] Received new format with ${body.conversations.length} conversations`);
     } else if (Array.isArray(rawBody)) {
       // Handle array without current_data wrapper (backward compatibility)
       return NextResponse.json(
@@ -164,6 +165,7 @@ export async function POST(request: Request) {
     } else {
       // Old format (direct object) - keep for backward compatibility
       body = rawBody as IngestRequest;
+      console.log(`[Ingest Daily] Received old format with ${body.conversations?.length || 0} conversations`);
     }
     
     // Validate request
@@ -231,6 +233,8 @@ export async function POST(request: Request) {
       } else {
         entityKey = conv.conversationId || `conv_${Date.now()}_${Math.random()}`;
       }
+      
+      console.log(`[Ingest] Processing conv ${conv.conversationId}: EntityKey=${entityKey}, Ethiopian=${conv.isEthiopianPassportRenewalProspect}, Filipina=${conv.isFilipinaPassportRenewalProspect}`);
       
       // Check if already in entity map (from this batch)
       const existingInBatch = entityMap.get(entityKey);
