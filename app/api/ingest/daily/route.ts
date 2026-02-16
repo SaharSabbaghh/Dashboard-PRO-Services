@@ -315,6 +315,27 @@ export async function POST(request: Request) {
         if (!existing.clientName && entity.clientName) existing.clientName = entity.clientName;
         if (!existing.contractType && entity.contractType) existing.contractType = entity.contractType;
         
+        // Merge prospect flags: if ANY conversation (existing or new) is a prospect, mark as prospect
+        // Use the HIGHEST confidence score
+        existing.isOECProspect = existing.isOECProspect || entity.conversations.some(c => c.isOECProspect);
+        existing.isOECProspectConfidence = Math.max(existing.isOECProspectConfidence || 0, ...entity.conversations.map(c => c.isOECProspectConfidence || 0));
+        
+        existing.isOWWAProspect = existing.isOWWAProspect || entity.conversations.some(c => c.isOWWAProspect);
+        existing.isOWWAProspectConfidence = Math.max(existing.isOWWAProspectConfidence || 0, ...entity.conversations.map(c => c.isOWWAProspectConfidence || 0));
+        
+        existing.isTravelVisaProspect = existing.isTravelVisaProspect || entity.conversations.some(c => c.isTravelVisaProspect);
+        existing.isTravelVisaProspectConfidence = Math.max(existing.isTravelVisaProspectConfidence || 0, ...entity.conversations.map(c => c.isTravelVisaProspectConfidence || 0));
+        
+        existing.isFilipinaPassportRenewalProspect = existing.isFilipinaPassportRenewalProspect || entity.conversations.some(c => c.isFilipinaPassportRenewalProspect);
+        existing.isFilipinaPassportRenewalProspectConfidence = Math.max(existing.isFilipinaPassportRenewalProspectConfidence || 0, ...entity.conversations.map(c => c.isFilipinaPassportRenewalProspectConfidence || 0));
+        
+        existing.isEthiopianPassportRenewalProspect = existing.isEthiopianPassportRenewalProspect || entity.conversations.some(c => c.isEthiopianPassportRenewalProspect);
+        existing.isEthiopianPassportRenewalProspectConfidence = Math.max(existing.isEthiopianPassportRenewalProspectConfidence || 0, ...entity.conversations.map(c => c.isEthiopianPassportRenewalProspectConfidence || 0));
+        
+        // Merge travel visa countries (unique)
+        const newCountries = entity.conversations.flatMap(c => c.travelVisaCountries || []);
+        existing.travelVisaCountries = [...new Set([...(existing.travelVisaCountries || []), ...newCountries])];
+        
         // Keep earliest time
         const entityTime = normalizeDate(entity.firstMessageTime);
         const existingTime = normalizeDate(existing.chatStartDateTime);
@@ -326,6 +347,28 @@ export async function POST(request: Request) {
       } else {
         // CREATE new result
         const uniqueConvIds = [...new Set(entity.conversations.map(c => c.conversationId).filter(Boolean))];
+        
+        // Merge prospect flags: if ANY conversation is a prospect, mark as prospect
+        // Use the HIGHEST confidence score
+        const isOECProspect = entity.conversations.some(c => c.isOECProspect);
+        const isOECProspectConfidence = Math.max(...entity.conversations.map(c => c.isOECProspectConfidence || 0));
+        
+        const isOWWAProspect = entity.conversations.some(c => c.isOWWAProspect);
+        const isOWWAProspectConfidence = Math.max(...entity.conversations.map(c => c.isOWWAProspectConfidence || 0));
+        
+        const isTravelVisaProspect = entity.conversations.some(c => c.isTravelVisaProspect);
+        const isTravelVisaProspectConfidence = Math.max(...entity.conversations.map(c => c.isTravelVisaProspectConfidence || 0));
+        
+        const isFilipinaPassportRenewalProspect = entity.conversations.some(c => c.isFilipinaPassportRenewalProspect);
+        const isFilipinaPassportRenewalProspectConfidence = Math.max(...entity.conversations.map(c => c.isFilipinaPassportRenewalProspectConfidence || 0));
+        
+        const isEthiopianPassportRenewalProspect = entity.conversations.some(c => c.isEthiopianPassportRenewalProspect);
+        const isEthiopianPassportRenewalProspectConfidence = Math.max(...entity.conversations.map(c => c.isEthiopianPassportRenewalProspectConfidence || 0));
+        
+        // Merge all travel visa countries (unique)
+        const allCountries = entity.conversations.flatMap(c => c.travelVisaCountries || []);
+        const travelVisaCountries = [...new Set(allCountries)];
+        
         const result: ProcessedConversation = {
           id: entity.entityKey,
           conversationId: uniqueConvIds.join(','),
@@ -337,18 +380,18 @@ export async function POST(request: Request) {
           clientName: entity.clientName,
           contractType: entity.contractType,
           messages: newMessages,
-          // Use values from incoming data (from n8n AI analysis)
-          isOECProspect: entity.conversations[0].isOECProspect ?? false,
-          isOECProspectConfidence: entity.conversations[0].isOECProspectConfidence,
-          isOWWAProspect: entity.conversations[0].isOWWAProspect ?? false,
-          isOWWAProspectConfidence: entity.conversations[0].isOWWAProspectConfidence,
-          isTravelVisaProspect: entity.conversations[0].isTravelVisaProspect ?? false,
-          isTravelVisaProspectConfidence: entity.conversations[0].isTravelVisaProspectConfidence,
-          travelVisaCountries: entity.conversations[0].travelVisaCountries || [],
-          isFilipinaPassportRenewalProspect: entity.conversations[0].isFilipinaPassportRenewalProspect ?? false,
-          isFilipinaPassportRenewalProspectConfidence: entity.conversations[0].isFilipinaPassportRenewalProspectConfidence,
-          isEthiopianPassportRenewalProspect: entity.conversations[0].isEthiopianPassportRenewalProspect ?? false,
-          isEthiopianPassportRenewalProspectConfidence: entity.conversations[0].isEthiopianPassportRenewalProspectConfidence,
+          // Use merged values from all conversations
+          isOECProspect,
+          isOECProspectConfidence,
+          isOWWAProspect,
+          isOWWAProspectConfidence,
+          isTravelVisaProspect,
+          isTravelVisaProspectConfidence,
+          travelVisaCountries,
+          isFilipinaPassportRenewalProspect,
+          isFilipinaPassportRenewalProspectConfidence,
+          isEthiopianPassportRenewalProspect,
+          isEthiopianPassportRenewalProspectConfidence,
           // Conversions will be calculated from complaints data, not stored here
           processingStatus: entity.conversations[0].processingStatus || 'pending',
           processedAt: entity.conversations[0].processedAt || '',
