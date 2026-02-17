@@ -55,6 +55,7 @@ export async function storeDailyComplaints(
     const blob = await put(blobKey, JSON.stringify(dailyData), {
       access: 'public',
       contentType: 'application/json',
+      addRandomSuffix: false,
     });
 
     console.log(`✅ Stored complaints for ${date}:`, {
@@ -138,7 +139,7 @@ export async function getAvailableDailyComplaintsDates(): Promise<{
     
     const dates = blobs
       .map(blob => {
-        const match = blob.pathname.match(/complaints-daily\/(\d{4}-\d{2}-\d{2})\.json/);
+        const match = blob.pathname.match(/(\d{4}-\d{2}-\d{2})/);
         return match ? match[1] : null;
       })
       .filter((date): date is string => date !== null)

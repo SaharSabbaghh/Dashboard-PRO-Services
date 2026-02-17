@@ -14,7 +14,7 @@ import PnLSummaryCards from '@/components/PnLSummaryCards';
 import PnLServiceChart from '@/components/PnLServiceChart';
 import PnLTable from '@/components/PnLTable';
 import PnLServiceDetail from '@/components/PnLServiceDetail';
-import PnLDatePicker from '@/components/PnLDatePicker';
+// PnLDatePicker removed - now using simple <select> like Agents/Chats dashboards
 import ChatsDashboard from '@/components/ChatsDashboard';
 import AgentsDashboard from '@/components/AgentsDashboard';
 import PnLConfigEditor from '@/components/PnLConfigEditor';
@@ -25,7 +25,6 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'>('overview');
   const [pnlSubTab, setPnlSubTab] = useState<'overview' | 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP'>('overview');
-  const [pnlViewMode, setPnlViewMode] = useState<'daily' | 'monthly'>('monthly'); // New state for view mode
   const [results, setResults] = useState<Results | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -34,9 +33,8 @@ export default function Dashboard() {
   const [pnlData, setPnlData] = useState<AggregatedPnL | null>(null);
   const [pnlLoading, setPnlLoading] = useState(false);
   const [pnlSource, setPnlSource] = useState<'complaints' | 'excel' | 'none'>('none');
-  const [pnlStartDate, setPnlStartDate] = useState<string | null>(null);
-  const [pnlEndDate, setPnlEndDate] = useState<string | null>(null);
-  const [pnlAvailableMonths, setPnlAvailableMonths] = useState<string[]>([]);
+  const [pnlSelectedDate, setPnlSelectedDate] = useState<string | null>(null);
+  const [pnlAvailableDates, setPnlAvailableDates] = useState<string[]>([]);
   
   // Use ref to avoid useCallback dependency issues
   const availableDatesRef = useRef<string[]>([]);
@@ -184,28 +182,26 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Fetch P&L data with optional date filtering
-  const fetchPnLData = useCallback(async (startDate?: string | null, endDate?: string | null) => {
+  // Fetch P&L data for a single date
+  const fetchPnLData = useCallback(async (date?: string | null) => {
+    if (!date) {
+      setPnlData(null);
+      return;
+    }
     setPnlLoading(true);
     try {
-      let url = '/api/pnl';
-      const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      if (params.toString()) url += '?' + params.toString();
-      
-      const res = await fetch(url);
+      const res = await fetch(`/api/pnl?startDate=${date}&endDate=${date}`);
       const data = await res.json();
       if (data.aggregated) {
         setPnlData(data.aggregated);
         setPnlSource(data.source || 'none');
-        // Use availableMonths from API (always from original data)
-        if (data.availableMonths) {
-          setPnlAvailableMonths(data.availableMonths);
-        }
+      } else {
+        setPnlData(null);
+        setPnlSource('none');
       }
     } catch (err) {
       console.error('Failed to fetch P&L data:', err);
+      setPnlData(null);
     } finally {
       setPnlLoading(false);
     }
@@ -216,18 +212,34 @@ export default function Dashboard() {
     fetchDates();
   }, [fetchDates]);
 
-  // Fetch P&L data when switching to P&L tab or when date filter changes
+  // Fetch P&L available dates from complaints-daily when switching to P&L tab
   useEffect(() => {
     if (activeTab === 'pnl') {
-      fetchPnLData(pnlStartDate, pnlEndDate);
+      const fetchPnLDates = async () => {
+        try {
+          const res = await fetch('/api/complaints-daily/dates');
+          const result = await res.json();
+          if (result.success && result.dates) {
+            setPnlAvailableDates(result.dates);
+            // Auto-select the most recent date
+            if (result.dates.length > 0 && !pnlSelectedDate) {
+              setPnlSelectedDate(result.dates[result.dates.length - 1]);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch P&L dates:', err);
+        }
+      };
+      fetchPnLDates();
     }
-  }, [activeTab, fetchPnLData, pnlStartDate, pnlEndDate]);
+  }, [activeTab]);
 
-  // Handle P&L date selection
-  const handlePnLDateSelect = (date: string | null, endDate?: string | null) => {
-    setPnlStartDate(date);
-    setPnlEndDate(endDate || null);
-  };
+  // Fetch P&L data when the selected P&L date changes
+  useEffect(() => {
+    if (activeTab === 'pnl' && pnlSelectedDate) {
+      fetchPnLData(pnlSelectedDate);
+    }
+  }, [activeTab, pnlSelectedDate, fetchPnLData]);
 
   // Fetch results only when a date is selected
   useEffect(() => {
@@ -528,16 +540,30 @@ export default function Dashboard() {
             {/* Sub-tabs Navigation */}
             <div className="flex flex-col gap-3 border-b border-slate-200 pb-3">
               <div className="flex items-center gap-3">
-                <PnLDatePicker
-                  availableMonths={pnlAvailableMonths}
-                  selectedStartDate={pnlStartDate}
-                  selectedEndDate={pnlEndDate}
-                  onDateSelect={handlePnLDateSelect}
-                  viewMode={pnlViewMode}
-                  onViewModeChange={setPnlViewMode}
-                />
+                {/* Simple date selector — same pattern as Agents & Chats */}
+                <div className="relative">
+                  <select
+                    value={pnlSelectedDate || ''}
+                    onChange={(e) => setPnlSelectedDate(e.target.value || null)}
+                    className="appearance-none bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
+                  >
+                    <option value="">Select Date</option>
+                    {pnlAvailableDates.map((date) => (
+                      <option key={date} value={date}>
+                        {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </option>
+                    ))}
+                  </select>
+                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
                 <button
-                  onClick={() => fetchPnLData(pnlStartDate, pnlEndDate)}
+                  onClick={() => fetchPnLData(pnlSelectedDate)}
                   disabled={pnlLoading}
                   className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
                 >
@@ -600,7 +626,7 @@ export default function Dashboard() {
             {/* Overview Sub-tab */}
             {pnlSubTab === 'overview' && (
               <>
-                <PnLSummaryCards data={pnlData} isLoading={pnlLoading} viewMode={pnlViewMode} />
+                <PnLSummaryCards data={pnlData} isLoading={pnlLoading} viewMode="daily" />
                 <PnLServiceChart data={pnlData} />
 
                 <CollapsibleSection

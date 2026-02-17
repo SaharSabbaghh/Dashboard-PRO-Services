@@ -77,9 +77,14 @@ export async function GET(request: Request) {
       error: dailyComplaintsResult.error 
     });
     
-    // Check if P&L Excel files exist
-    const hasExcelFiles = fs.existsSync(PNL_DIR) && 
-      fs.readdirSync(PNL_DIR).some(f => f.endsWith('.xlsx') || f.endsWith('.xls'));
+    // Check if P&L Excel files exist (wrapped for serverless safety)
+    let hasExcelFiles = false;
+    try {
+      hasExcelFiles = fs.existsSync(PNL_DIR) && 
+        fs.readdirSync(PNL_DIR).some(f => f.endsWith('.xlsx') || f.endsWith('.xls'));
+    } catch {
+      // fs operations may fail in serverless
+    }
     
     // Determine which source to use (daily complaints takes priority)
     const useComplaints = source === 'complaints' || 
