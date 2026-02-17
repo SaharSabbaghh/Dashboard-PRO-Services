@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, TrendingUp, TrendingDown, Clock, CheckCircle, AlertTriangle, Users, FileText, Target } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 import type { OperationsData, ProspectMetric, OperationMetric, SalesMetric } from '@/lib/operations-types';
 import DatePickerCalendar from '@/components/DatePickerCalendar';
 
@@ -73,24 +73,20 @@ export default function OperationsDashboard() {
 
   // Calculate summary totals from raw data
   const calculateSummary = (data: OperationsData) => {
-    const totalProspects = data.prospects.reduce((sum, p) => sum + p.count, 0);
     const totalPendingUs = data.operations.reduce((sum, o) => sum + o.pendingUs, 0);
     const totalPendingClient = data.operations.reduce((sum, o) => sum + o.pendingClient, 0);
     const totalPendingProVisit = data.operations.reduce((sum, o) => sum + o.pendingProVisit, 0);
     const totalPendingGov = data.operations.reduce((sum, o) => sum + o.pendingGov, 0);
     const totalDoneToday = data.operations.reduce((sum, o) => sum + o.doneToday, 0);
     const totalCasesDelayed = data.operations.reduce((sum, o) => sum + o.casesDelayed, 0);
-    const totalDailySales = data.sales.reduce((sum, s) => sum + s.dailySales, 0);
 
     return {
-      totalProspects,
       totalPendingUs,
       totalPendingClient,
       totalPendingProVisit,
       totalPendingGov,
       totalDoneToday,
-      totalCasesDelayed,
-      totalDailySales
+      totalCasesDelayed
     };
   };
 
@@ -210,16 +206,7 @@ export default function OperationsDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Total Prospects */}
-        <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <Users className="w-6 h-6 text-blue-600" />
-          </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">{summary?.totalProspects || 0}</div>
-          <div className="text-sm font-medium text-slate-600">Total Prospects</div>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Pending Cases */}
         <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-2">
@@ -250,43 +237,6 @@ export default function OperationsDashboard() {
         </div>
       </div>
 
-      {/* Prospects Section */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Prospects Overview</h3>
-              <p className="text-sm text-slate-600 mt-1">Daily prospects with trends and MTD comparison</p>
-            </div>
-            <Target className="w-5 h-5 text-slate-400" />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b-2 border-slate-200">
-              <tr>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Product</th>
-                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Daily Count</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.prospects.map((prospect, index) => (
-                <tr key={index} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-4 px-6">
-                    <span className="font-semibold text-slate-900 text-sm">{prospect.product}</span>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
-                      {prospect.count}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       {/* Operations Section */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
@@ -371,45 +321,6 @@ export default function OperationsDashboard() {
         </div>
       </div>
 
-      {/* Sales Section */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Sales Overview</h3>
-              <p className="text-sm text-slate-600 mt-1">Daily sales performance by product</p>
-            </div>
-            <TrendingUp className="w-5 h-5 text-slate-400" />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b-2 border-slate-200">
-              <tr>
-                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Product</th>
-                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Daily Sales</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.sales.map((sale, index) => (
-                <tr key={index} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-4 px-6">
-                    <span className="font-semibold text-slate-900 text-sm">{sale.product}</span>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg font-bold text-sm ${
-                      sale.dailySales > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
-                    }`}>
-                      {sale.dailySales}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }

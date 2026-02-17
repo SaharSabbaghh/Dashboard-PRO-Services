@@ -22,17 +22,13 @@ export interface SalesMetric {
 export interface OperationsData {
   lastUpdated: string;
   analysisDate: string; // YYYY-MM-DD format
-  prospects: ProspectMetric[];
   operations: OperationMetric[];
-  sales: SalesMetric[];
 }
 
 // API Request/Response types
 export interface OperationsRequest {
   analysisDate: string;
-  prospects: ProspectMetric[];
   operations: OperationMetric[];
-  sales: SalesMetric[];
 }
 
 export interface OperationsResponse {

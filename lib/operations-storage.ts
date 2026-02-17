@@ -1,5 +1,5 @@
 import { put, list } from '@vercel/blob';
-import type { OperationsData, OperationMetric, ProspectMetric, SalesMetric } from './operations-types';
+import type { OperationsData, OperationMetric } from './operations-types';
 
 const BLOB_PREFIX = 'operations/';
 

@@ -16,10 +16,7 @@ export async function POST(request: Request) {
     
     console.log('[Operations Ingest] Received request:', {
       hasAnalysisDate: !!body.analysisDate,
-      hasProspects: !!body.prospects,
-      hasOperations: !!body.operations,
-      hasSales: !!body.sales,
-      hasSummary: !!body.summary
+      hasOperations: !!body.operations
     });
 
     // Validate request structure
@@ -44,11 +41,11 @@ export async function POST(request: Request) {
     }
 
     // Validate required arrays
-    if (!Array.isArray(body.prospects) || !Array.isArray(body.operations) || !Array.isArray(body.sales)) {
+    if (!Array.isArray(body.operations)) {
       const response: OperationsResponse = {
         success: false,
         message: 'Invalid data format',
-        error: 'prospects, operations, and sales must be arrays'
+        error: 'operations must be an array'
       };
       return NextResponse.json(response, { status: 400 });
     }
@@ -57,16 +54,12 @@ export async function POST(request: Request) {
     const operationsData: OperationsData = {
       lastUpdated: new Date().toISOString(),
       analysisDate: body.analysisDate,
-      prospects: body.prospects,
-      operations: body.operations,
-      sales: body.sales
+      operations: body.operations
     };
 
     console.log('[Operations Ingest] Processed data:', {
       analysisDate: operationsData.analysisDate,
-      prospectsCount: operationsData.prospects.length,
-      operationsCount: operationsData.operations.length,
-      salesCount: operationsData.sales.length
+      operationsCount: operationsData.operations.length
     });
 
     // Store the data
@@ -121,16 +114,6 @@ export async function GET() {
     },
     exampleRequest: {
       analysisDate: '2026-02-16',
-      prospects: [
-        {
-          product: 'OEC',
-          count: 71
-        },
-        {
-          product: 'OWWA',
-          count: 26
-        }
-      ],
       operations: [
         {
           serviceType: 'OEC',
@@ -141,16 +124,16 @@ export async function GET() {
           doneToday: 8,
           casesDelayed: 27,
           delayedNotes: 'Optional delay notes'
-        }
-      ],
-      sales: [
-        {
-          product: 'OEC',
-          dailySales: 26
         },
         {
-          product: 'OWWA',
-          dailySales: 7
+          serviceType: 'OWWA',
+          pendingUs: 22,
+          pendingClient: 0,
+          pendingProVisit: 0,
+          pendingGov: 45,
+          doneToday: 4,
+          casesDelayed: 45,
+          delayedNotes: 'GCash App Error + Funds Transfer issues'
         }
       ]
     }
