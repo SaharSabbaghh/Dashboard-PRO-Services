@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { ResponsiveContainer, Cell, PieChart, Pie, Tooltip } from 'recharts';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
 interface PnLServiceChartProps {
@@ -10,17 +10,17 @@ interface PnLServiceChartProps {
 
 type ViewMode = 'revenue' | 'volume';
 
-// Muted, sophisticated colors matching main dashboard vibe
+// Distinct colors for better visibility
 const SERVICE_COLORS = {
-  oec: '#b45309',      // amber-700 (matches main dashboard OEC)
-  owwa: '#7c3aed',     // violet-600 (matches main dashboard OWWA)
-  ttl: '#2563eb',      // blue-600 (matches main dashboard travel)
-  tte: '#6db39f',      // soft sage green
-  ttj: '#e5a855',      // warm amber
-  schengen: '#8ecae6', // soft sky blue
-  gcc: '#e5c07b',      // soft golden
-  ethiopianPP: '#a78bfa', // violet-400
-  filipinaPP: '#d97706',  // amber-600
+  oec: '#3b82f6',      // blue-500
+  owwa: '#10b981',     // emerald-500
+  ttl: '#f59e0b',      // amber-500
+  tte: '#ef4444',      // red-500
+  ttj: '#8b5cf6',      // violet-500
+  schengen: '#06b6d4', // cyan-500
+  gcc: '#84cc16',      // lime-500
+  ethiopianPP: '#f97316', // orange-500
+  filipinaPP: '#ec4899',  // pink-500
 };
 
 export default function PnLServiceChart({ data }: PnLServiceChartProps) {
@@ -51,16 +51,21 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
       volume: service.volume,
       color: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] || '#64748b',
     }))
-    .filter(item => item.revenue > 0 || item.volume > 0);
+    .filter(item => (viewMode === 'revenue' ? item.revenue > 0 : item.volume > 0));
 
-  // Pie chart data for revenue breakdown
-  const pieData = chartData
-    .filter(item => item.revenue > 0)
-    .map(item => ({
-      name: item.name,
-      value: item.revenue,
-      color: item.color,
-    }));
+  // Pie chart data based on view mode
+  const pieData = chartData.map(item => ({
+    name: item.name,
+    value: viewMode === 'revenue' ? item.revenue : item.volume,
+    color: item.color,
+    percentage: 0, // Will be calculated below
+  }));
+
+  // Calculate percentages
+  const total = pieData.reduce((sum, item) => sum + item.value, 0);
+  pieData.forEach(item => {
+    item.percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
+  });
 
   const formatCurrency = (value: number) => {
     if (value >= 1000) {
@@ -89,118 +94,75 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
   const totalRevenue = data.summary.totalRevenue;
   const totalVolume = Object.values(data.services).reduce((sum, s) => sum + s.volume, 0);
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Revenue by Service Bar Chart */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-800">
-            {viewMode === 'revenue' ? 'Revenue by Service' : 'Volume by Service'}
-          </h3>
-          
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('revenue')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                viewMode === 'revenue'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Revenue
-            </button>
-            <button
-              onClick={() => setViewMode('volume')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                viewMode === 'volume'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Volume
-            </button>
-          </div>
-        </div>
+  // Custom label function to show values on pie slices
+  const renderLabel = (entry: any) => {
+    if (entry.percentage < 5) return ''; // Don't show labels for very small slices
+    
+    if (viewMode === 'revenue') {
+      return `${formatCurrency(entry.value)}`;
+    } else {
+      return `${entry.value}`;
+    }
+  };
 
-        <div className="flex items-end justify-start h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={chartData} 
-              margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
-              barCategoryGap="8%"
-            >
-            <defs>
-              {chartData.map((entry) => (
-                <linearGradient key={`gradient-${entry.key}`} id={`gradient-${entry.key}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={entry.color} stopOpacity={1} />
-                  <stop offset="100%" stopColor={entry.color} stopOpacity={0.7} />
-                </linearGradient>
-              ))}
-            </defs>
-            <XAxis 
-              dataKey="name" 
-              tick={{ fontSize: 11, fill: '#475569', fontWeight: 500 }} 
-              angle={-45} 
-              textAnchor="end" 
-              height={60}
-              axisLine={{ stroke: '#e2e8f0' }}
-              tickLine={false}
-              dy={5}
-            />
-            <YAxis 
-              tickFormatter={viewMode === 'revenue' ? formatCurrency : (v) => v.toString()}
-              tick={{ fontSize: 11, fill: '#64748b' }}
-              axisLine={false}
-              tickLine={false}
-              width={50}
-            />
-            <Tooltip 
-              formatter={(value) => {
-                const numValue = Number(value) || 0;
-                return viewMode === 'revenue' ? formatFullCurrency(numValue) : `${numValue} orders`;
-              }}
-              contentStyle={tooltipStyle}
-              cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
-            />
-            <Bar 
-              dataKey={viewMode === 'revenue' ? 'revenue' : 'volume'} 
-              radius={[8, 8, 0, 0]}
-            >
-              {chartData.map((entry) => (
-                <Cell key={entry.key} fill={`url(#gradient-${entry.key})`} />
-              ))}
-            </Bar>
-          </BarChart>
-          </ResponsiveContainer>
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-base font-semibold text-slate-800">
+          {viewMode === 'revenue' ? 'Revenue Distribution' : 'Volume Distribution'}
+        </h3>
+        
+        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode('revenue')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              viewMode === 'revenue'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Revenue
+          </button>
+          <button
+            onClick={() => setViewMode('volume')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              viewMode === 'volume'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Volume
+          </button>
         </div>
       </div>
+      
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mb-6 text-xs">
+        {pieData.map((item) => (
+          <div key={item.name} className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="text-slate-700 font-medium">{item.name}</span>
+            <span className="text-slate-500">
+              ({item.percentage}%)
+            </span>
+          </div>
+        ))}
+      </div>
 
-      {/* Revenue Distribution Pie Chart */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h3 className="text-base font-semibold text-slate-800 mb-4">Revenue Distribution</h3>
-        
-        {/* Legend */}
-        <div className="flex flex-wrap gap-2 mb-4 text-xs">
-          {pieData.slice(0, 6).map((item) => (
-            <div key={item.name} className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: item.color }} />
-              <span className="text-slate-600">{item.name}</span>
-            </div>
-          ))}
-        </div>
-
-        <ResponsiveContainer width="100%" height={240}>
+      <div className="flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={400}>
           <PieChart>
             <Pie
               data={pieData}
               cx="50%"
               cy="50%"
-              innerRadius={50}
-              outerRadius={100}
-              paddingAngle={4}
-              cornerRadius={8}
+              labelLine={false}
+              label={renderLabel}
+              outerRadius={140}
+              paddingAngle={2}
               dataKey="value"
-              stroke="none"
+              stroke="#fff"
+              strokeWidth={2}
               animationDuration={400}
             >
               {pieData.map((entry, index) => (
@@ -208,22 +170,27 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value) => [formatFullCurrency(Number(value) || 0), 'Revenue']}
+              formatter={(value) => [
+                viewMode === 'revenue' 
+                  ? formatFullCurrency(Number(value) || 0) 
+                  : `${Number(value) || 0} orders`, 
+                viewMode === 'revenue' ? 'Revenue' : 'Volume'
+              ]}
               contentStyle={tooltipStyle}
             />
           </PieChart>
         </ResponsiveContainer>
+      </div>
 
-        {/* Summary */}
-        <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4 text-center">
-          <div>
-            <p className="text-xs text-slate-500">Total Revenue</p>
-            <p className="text-lg font-bold text-slate-800">{formatFullCurrency(totalRevenue)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Total Orders</p>
-            <p className="text-lg font-bold text-slate-800">{totalVolume.toLocaleString()}</p>
-          </div>
+      {/* Summary */}
+      <div className="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4 text-center">
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider">Total Revenue</p>
+          <p className="text-xl font-bold text-slate-800 mt-1">{formatFullCurrency(totalRevenue)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider">Total Orders</p>
+          <p className="text-xl font-bold text-slate-800 mt-1">{totalVolume.toLocaleString()}</p>
         </div>
       </div>
     </div>

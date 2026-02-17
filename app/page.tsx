@@ -17,6 +17,7 @@ import PnLServiceDetail from '@/components/PnLServiceDetail';
 import PnLDatePicker from '@/components/PnLDatePicker';
 import ChatsDashboard from '@/components/ChatsDashboard';
 import AgentsDashboard from '@/components/AgentsDashboard';
+import OperationsDashboard from '@/components/OperationsDashboard';
 import PnLConfigEditor from '@/components/PnLConfigEditor';
 import type { Results, ServiceFilter, ProspectDetail, HouseholdGroup } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
@@ -693,6 +694,11 @@ export default function Dashboard() {
         {/* Chats Dashboard Tab */}
         {activeTab === 'chats' && (
           <ChatsDashboard />
+        )}
+
+        {/* Operations Dashboard Tab */}
+        {activeTab === 'operations' && (
+          <OperationsDashboard />
         )}
 
         {/* Agents Dashboard Tab */}

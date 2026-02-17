@@ -170,13 +170,13 @@ export default function AgentsDashboard() {
             <div className="text-sm font-medium text-slate-600">Active Agents</div>
           </div>
 
-          {/* Total Clients */}
+          {/* Total Conversations */}
           <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="w-6 h-6 text-blue-600" />
             </div>
             <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.totalConversations}</div>
-            <div className="text-sm font-medium text-slate-600">Total Clients</div>
+            <div className="text-sm font-medium text-slate-600">Total Conversations</div>
           </div>
 
           {/* Average Reply Time */}
