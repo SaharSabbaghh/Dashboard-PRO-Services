@@ -239,7 +239,7 @@ export default function Dashboard() {
           if (result.success && result.dates) {
             setPnlAvailableDates(result.dates);
             // Convert dates to months for monthly view
-            const months = [...new Set(result.dates.map((d: string) => d.substring(0, 7)))].sort();
+            const months = [...new Set((result.dates as string[]).map((d: string) => d.substring(0, 7)))].sort();
             setPnlAvailableMonths(months);
             
             // Auto-select the most recent month for monthly view
