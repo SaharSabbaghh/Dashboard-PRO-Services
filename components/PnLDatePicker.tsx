@@ -46,17 +46,28 @@ export default function PnLDatePicker({
 
   // Sync with props
   useEffect(() => {
-    if (viewMode === 'daily' && selectedStartDate && selectedStartDate === selectedEndDate) {
-      setMode('day');
-      setSelectedDay(selectedStartDate);
-      setCurrentMonth(selectedStartDate.substring(0, 7));
-    } else if (selectedStartDate && selectedEndDate && selectedStartDate !== selectedEndDate) {
-      setMode('range');
-      setRangeStart(selectedStartDate.substring(0, 7));
-      setRangeEnd(selectedEndDate.substring(0, 7));
-    } else if (selectedStartDate) {
-      setMode('month');
-      setSelectedMonth(selectedStartDate.substring(0, 7));
+    if (viewMode === 'daily') {
+      if (selectedStartDate && selectedStartDate === selectedEndDate) {
+        setMode('day');
+        setSelectedDay(selectedStartDate);
+        setCurrentMonth(selectedStartDate.substring(0, 7));
+      } else if (selectedStartDate && selectedEndDate && selectedStartDate !== selectedEndDate) {
+        setMode('range');
+        setRangeStart(selectedStartDate);
+        setRangeEnd(selectedEndDate);
+      } else {
+        setMode('day');
+      }
+    } else {
+      // Monthly mode
+      if (selectedStartDate && selectedEndDate && selectedStartDate !== selectedEndDate) {
+        setMode('range');
+        setRangeStart(selectedStartDate.substring(0, 7));
+        setRangeEnd(selectedEndDate.substring(0, 7));
+      } else if (selectedStartDate) {
+        setMode('month');
+        setSelectedMonth(selectedStartDate.substring(0, 7));
+      }
     }
   }, [selectedStartDate, selectedEndDate, viewMode]);
 
@@ -79,6 +90,10 @@ export default function PnLDatePicker({
     return availableMonths.includes(monthKey);
   };
 
+  const isDateAvailable = (dateStr: string) => {
+    return availableDates.includes(dateStr);
+  };
+
   const isMonthSelected = (monthKey: string) => {
     if (mode === 'month') {
       return selectedMonth === monthKey;
@@ -89,9 +104,26 @@ export default function PnLDatePicker({
     return false;
   };
 
+  const isDateSelected = (dateStr: string) => {
+    if (mode === 'day') {
+      return selectedDay === dateStr;
+    }
+    if (mode === 'range') {
+      return rangeStart === dateStr || rangeEnd === dateStr;
+    }
+    return false;
+  };
+
   const isInRange = (monthKey: string) => {
     if (mode === 'range' && rangeStart && rangeEnd) {
       return monthKey > rangeStart && monthKey < rangeEnd;
+    }
+    return false;
+  };
+
+  const isDateInRange = (dateStr: string) => {
+    if (mode === 'range' && rangeStart && rangeEnd) {
+      return dateStr > rangeStart && dateStr < rangeEnd;
     }
     return false;
   };
@@ -129,6 +161,35 @@ export default function PnLDatePicker({
         const endMonthDate = parse(`${end}-01`, 'yyyy-MM-dd', new Date());
         const endDate = format(endOfMonth(endMonthDate), 'yyyy-MM-dd');
         onDateSelect(startDate, endDate);
+        setIsOpen(false);
+      }
+    }
+  };
+
+  const handleDateClick = (dateStr: string) => {
+    if (!isDateAvailable(dateStr)) return;
+
+    if (mode === 'day') {
+      setSelectedDay(dateStr);
+      onDateSelect(dateStr, dateStr);
+      setIsOpen(false);
+    } else if (mode === 'range') {
+      if (!rangeStart || (rangeStart && rangeEnd)) {
+        // Start new range
+        setRangeStart(dateStr);
+        setRangeEnd(null);
+      } else {
+        // Complete the range
+        let start = rangeStart;
+        let end = dateStr;
+        if (dateStr < rangeStart) {
+          start = dateStr;
+          end = rangeStart;
+        }
+        setRangeStart(start);
+        setRangeEnd(end);
+        
+        onDateSelect(start, end);
         setIsOpen(false);
       }
     }
@@ -182,11 +243,13 @@ export default function PnLDatePicker({
 
   const handleToday = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    setMode('day');
-    setSelectedDay(today);
-    setCurrentMonth(format(new Date(), 'yyyy-MM'));
-    onDateSelect(today, today);
-    setIsOpen(false);
+    if (isDateAvailable(today)) {
+      setMode('day');
+      setSelectedDay(today);
+      setCurrentMonth(format(new Date(), 'yyyy-MM'));
+      onDateSelect(today, today);
+      setIsOpen(false);
+    }
   };
 
   // Get days in current month
@@ -233,9 +296,17 @@ export default function PnLDatePicker({
     }
     if (mode === 'range' && rangeStart && rangeEnd) {
       try {
-        const startDate = parse(`${rangeStart}-01`, 'yyyy-MM-dd', new Date());
-        const endDate = parse(`${rangeEnd}-01`, 'yyyy-MM-dd', new Date());
-        return `${format(startDate, 'MMM yyyy')} - ${format(endDate, 'MMM yyyy')}`;
+        if (viewMode === 'daily') {
+          // For daily mode, rangeStart and rangeEnd are full dates
+          const startDate = parse(rangeStart, 'yyyy-MM-dd', new Date());
+          const endDate = parse(rangeEnd, 'yyyy-MM-dd', new Date());
+          return `${format(startDate, 'MMM dd')} - ${format(endDate, 'MMM dd, yyyy')}`;
+        } else {
+          // For monthly mode, rangeStart and rangeEnd are month keys
+          const startDate = parse(`${rangeStart}-01`, 'yyyy-MM-dd', new Date());
+          const endDate = parse(`${rangeEnd}-01`, 'yyyy-MM-dd', new Date());
+          return `${format(startDate, 'MMM yyyy')} - ${format(endDate, 'MMM yyyy')}`;
+        }
       } catch {
         return `${rangeStart} - ${rangeEnd}`;
       }
@@ -404,18 +475,23 @@ export default function PnLDatePicker({
                   if (!day) {
                     return <div key={i} className="py-2"></div>;
                   }
-                  const isSelected = selectedDay === day;
+                  const isAvailable = isDateAvailable(day);
+                  const isSelected = isDateSelected(day);
+                  const isInDateRange = isDateInRange(day);
                   const isToday = day === format(new Date(), 'yyyy-MM-dd');
 
                   return (
                     <button
                       key={day}
-                      onClick={() => handleDayClick(day)}
+                      onClick={() => handleDateClick(day)}
+                      disabled={!isAvailable}
                       className={`
                         py-2 px-1 text-sm rounded-lg transition-all
-                        ${isSelected ? 'bg-blue-600 text-white font-medium' : ''}
-                        ${!isSelected && isToday ? 'bg-blue-100 text-blue-700 font-medium' : ''}
-                        ${!isSelected && !isToday ? 'text-slate-700 hover:bg-slate-100' : ''}
+                        ${!isAvailable ? 'text-slate-300 cursor-not-allowed' : ''}
+                        ${isSelected && isAvailable ? 'bg-blue-600 text-white font-medium' : ''}
+                        ${isInDateRange && isAvailable ? 'bg-blue-100 text-blue-700' : ''}
+                        ${!isSelected && !isInDateRange && isToday && isAvailable ? 'bg-slate-100 text-slate-700 font-medium' : ''}
+                        ${!isSelected && !isInDateRange && !isToday && isAvailable ? 'text-slate-700 hover:bg-slate-100' : ''}
                       `}
                     >
                       {parseInt(day.split('-')[2])}
