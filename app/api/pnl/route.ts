@@ -100,7 +100,14 @@ export async function GET(request: Request) {
       
       // Get configuration history for cost calculations
       const configHistory = await getPnLConfigHistory();
-      const latestConfig = configHistory.configurations[configHistory.configurations.length - 1] || DEFAULT_CONFIG_SNAPSHOT;
+      const rawConfig = configHistory.configurations[configHistory.configurations.length - 1] || DEFAULT_CONFIG_SNAPSHOT;
+      // Merge with defaults to handle configs saved before fixedCosts existed
+      const latestConfig = {
+        ...DEFAULT_CONFIG_SNAPSHOT,
+        ...rawConfig,
+        services: { ...DEFAULT_CONFIG_SNAPSHOT.services, ...(rawConfig.services || {}) },
+        fixedCosts: { ...DEFAULT_CONFIG_SNAPSHOT.fixedCosts, ...(rawConfig.fixedCosts || {}) },
+      };
       
       const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
       
@@ -120,10 +127,10 @@ export async function GET(request: Request) {
       // Revenue = (serviceFee + actualCost) × volume
       // Gross Profit = serviceFee × volume
       ALL_SERVICE_KEYS.forEach(key => {
-        const serviceConfig = latestConfig.services[key];
-        const volume = dailyData.volumes[key];
+        const serviceConfig = latestConfig.services[key] || DEFAULT_CONFIG_SNAPSHOT.services[key];
+        const volume = dailyData.volumes[key] || 0;
         const actualCost = SERVICE_COSTS[key]; // What it costs us
-        const serviceFee = serviceConfig.serviceFee || 0; // Service fee (markup)
+        const serviceFee = serviceConfig?.serviceFee || 0; // Service fee (markup)
         
         services[key] = createServiceFromVolume(
           serviceNames[key],
