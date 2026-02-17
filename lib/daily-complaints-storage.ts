@@ -103,7 +103,7 @@ export async function getDailyComplaints(date: string): Promise<{
     }
 
     // Fetch the blob data
-    const response = await fetch(blobs[0].url);
+    const response = await fetch(blobs[0].url, { cache: 'no-store' });
     if (!response.ok) {
       return {
         success: false,

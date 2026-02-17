@@ -109,6 +109,8 @@ export const COMPLAINT_TYPE_MAP: Record<string, PnLServiceKey> = {
   // GCC
   'gcc travel': 'gcc',
   'gcc': 'gcc',
+  'good conduct certificate': 'gcc',
+  'good conduct': 'gcc',
   
   // Schengen - includes country-specific variants
   'schengen': 'schengen',
@@ -203,7 +205,7 @@ export function getServiceKeyFromComplaintType(complaintType: string): PnLServic
   }
   
   // GCC
-  if (normalized.includes('gcc')) {
+  if (normalized.includes('gcc') || normalized.includes('good conduct')) {
     return 'gcc';
   }
   
