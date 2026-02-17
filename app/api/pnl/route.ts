@@ -64,8 +64,9 @@ export async function GET(request: Request) {
     const source = searchParams.get('source') || 'auto'; // 'auto', 'complaints', 'excel'
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
+    const viewMode = searchParams.get('viewMode') || 'monthly'; // 'daily', 'monthly'
     
-    console.log('[P&L] GET request - startDate:', startDate, 'endDate:', endDate);
+    console.log('[P&L] GET request - startDate:', startDate, 'endDate:', endDate, 'viewMode:', viewMode);
     
     // Try daily complaints data FIRST (primary source)
     const dailyComplaintsResult = await aggregateDailyComplaints(startDate, endDate);
@@ -202,7 +203,9 @@ export async function GET(request: Request) {
         source: 'complaints',
         aggregated,
         dateFilter: startDate || endDate ? { startDate, endDate } : null,
+        viewMode,
         availableMonths,
+        availableDates, // Include individual dates for daily view
         complaintsData: complaintsInfo,
         files: null,
         fileCount: 0,

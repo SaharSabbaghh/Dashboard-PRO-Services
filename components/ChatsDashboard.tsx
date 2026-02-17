@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Calendar, AlertTriangle, MessageSquare, Frown, HelpCircle, Clock } from 'lucide-react';
 import type { ChatAnalysisData } from '@/lib/chat-types';
+import DatePickerCalendar from '@/components/DatePickerCalendar';
 
 export default function ChatsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [data, setData] = useState<ChatAnalysisData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +66,12 @@ export default function ChatsDashboard() {
     fetchData();
   }, [selectedDate]);
 
+  // Handle date selection from calendar
+  const handleDateSelect = (startDate: string | null, endDate?: string | null) => {
+    setSelectedDate(startDate);
+    setSelectedEndDate(endDate || null);
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -73,25 +81,12 @@ export default function ChatsDashboard() {
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
             <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
           </div>
-          {/* Date selector */}
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedDate || ''}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Date</option>
-              {availableDates.map((date) => (
-                <option key={date} value={date}>
-                  {new Date(date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Advanced Date Picker */}
+          <DatePickerCalendar
+            availableDates={availableDates}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+          />
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -112,25 +107,12 @@ export default function ChatsDashboard() {
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
             <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
           </div>
-          {/* Date selector */}
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedDate || ''}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Date</option>
-              {availableDates.map((date) => (
-                <option key={date} value={date}>
-                  {new Date(date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Advanced Date Picker */}
+          <DatePickerCalendar
+            availableDates={availableDates}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+          />
         </div>
         <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-slate-200">
           <Calendar className="w-16 h-16 text-slate-300 mb-4" />
@@ -152,25 +134,12 @@ export default function ChatsDashboard() {
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
             <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
           </div>
-          {/* Date selector */}
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedDate || ''}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Date</option>
-              {availableDates.map((date) => (
-                <option key={date} value={date}>
-                  {new Date(date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Advanced Date Picker */}
+          <DatePickerCalendar
+            availableDates={availableDates}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+          />
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -251,47 +220,44 @@ export default function ChatsDashboard() {
           <h1 className="text-3xl font-bold text-slate-900">Chat Analysis</h1>
           {selectedDate && (
             <p className="text-slate-500 mt-2 text-sm">
-              Showing data for {new Date(selectedDate).toLocaleDateString('en-US', { 
-                weekday: 'long',
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+              Showing data for {selectedEndDate && selectedEndDate !== selectedDate 
+                ? `${new Date(selectedDate).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })} - ${new Date(selectedEndDate).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}`
+                : new Date(selectedDate).toLocaleDateString('en-US', { 
+                    weekday: 'long',
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })
+              }
             </p>
           )}
       </div>
 
         {/* Date Selector */}
-            <div className="relative">
-              <select 
-            value={selectedDate || ''}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="appearance-none bg-white border-2 border-slate-200 rounded-xl px-4 py-3 pr-10 text-sm font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
-          >
-            <option value="">Select Date</option>
-            {availableDates.map((date) => (
-              <option key={date} value={date}>
-                {new Date(date).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'short', 
-                  day: 'numeric' 
-                })}
-              </option>
-            ))}
-              </select>
-          <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-        </div>
+        {/* Advanced Date Picker */}
+        <DatePickerCalendar
+          availableDates={availableDates}
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+        />
       </div>
 
       {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total Conversations */}
+        {/* Total Clients */}
         <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <MessageSquare className="w-6 h-6 text-slate-600" />
               </div>
           <div className="text-3xl font-bold text-slate-900 mb-1">{totalConversations}</div>
-          <div className="text-sm font-medium text-slate-600">Total Conversations</div>
+          <div className="text-sm font-medium text-slate-600">Total Clients</div>
               </div>
               
         {/* Frustrated Clients */}

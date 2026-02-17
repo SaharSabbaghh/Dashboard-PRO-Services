@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, TrendingUp, Users, Award, LogIn, LogOut, Timer } from 'lucide-react';
 import type { DelayTimeData, AgentHoursData } from '@/lib/chat-types';
+import DatePickerCalendar from '@/components/DatePickerCalendar';
 
 export default function AgentsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [delayData, setDelayData] = useState<DelayTimeData | null>(null);
   const [agentHoursData, setAgentHoursData] = useState<AgentHoursData | null>(null);
@@ -76,6 +78,12 @@ export default function AgentsDashboard() {
     fetchData();
   }, [selectedDate]);
 
+  // Handle date selection from calendar
+  const handleDateSelect = (startDate: string | null, endDate?: string | null) => {
+    setSelectedDate(startDate);
+    setSelectedEndDate(endDate || null);
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -115,36 +123,32 @@ export default function AgentsDashboard() {
           <h1 className="text-3xl font-bold text-slate-900">Agent Performance</h1>
           {selectedDate && (
             <p className="text-slate-500 mt-2 text-sm">
-              Showing data for {new Date(selectedDate).toLocaleDateString('en-US', { 
-                weekday: 'long',
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+              Showing data for {selectedEndDate && selectedEndDate !== selectedDate 
+                ? `${new Date(selectedDate).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })} - ${new Date(selectedEndDate).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}`
+                : new Date(selectedDate).toLocaleDateString('en-US', { 
+                    weekday: 'long',
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })
+              }
             </p>
           )}
         </div>
         
-        {/* Date Selector */}
-        <div className="relative">
-          <select
-            value={selectedDate || ''}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="appearance-none bg-white border-2 border-slate-200 rounded-xl px-4 py-3 pr-10 text-sm font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
-          >
-            <option value="">Select Date</option>
-            {availableDates.map((date) => (
-              <option key={date} value={date}>
-                {new Date(date).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'short', 
-                  day: 'numeric' 
-                })}
-              </option>
-            ))}
-          </select>
-          <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-        </div>
+        {/* Advanced Date Picker */}
+        <DatePickerCalendar
+          availableDates={availableDates}
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+        />
       </div>
 
       {/* Error State */}
@@ -166,13 +170,13 @@ export default function AgentsDashboard() {
             <div className="text-sm font-medium text-slate-600">Active Agents</div>
           </div>
 
-          {/* Total Conversations */}
+          {/* Total Clients */}
           <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="w-6 h-6 text-blue-600" />
             </div>
             <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.totalConversations}</div>
-            <div className="text-sm font-medium text-slate-600">Total Conversations</div>
+            <div className="text-sm font-medium text-slate-600">Total Clients</div>
           </div>
 
           {/* Average Reply Time */}
@@ -197,7 +201,7 @@ export default function AgentsDashboard() {
 
       {/* Agent Hours Summary Cards */}
       {agentHoursData && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Total Hours Logged */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -214,15 +218,6 @@ export default function AgentsDashboard() {
             </div>
             <div className="text-3xl font-bold text-green-900 mb-1">{agentHoursData.averageHoursPerAgent.toFixed(1)}h</div>
             <div className="text-sm font-medium text-green-700">Avg Hours/Agent</div>
-          </div>
-
-          {/* Total Agents Tracked */}
-          <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-6 border-2 border-purple-200 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="text-3xl font-bold text-purple-900 mb-1">{agentHoursData.totalAgents}</div>
-            <div className="text-sm font-medium text-purple-700">Agents Tracked</div>
           </div>
         </div>
       )}
@@ -286,7 +281,16 @@ export default function AgentsDashboard() {
                   .sort((a, b) => a.avgDelaySeconds - b.avgDelaySeconds)
                   .map((agent, index) => {
                     const isTopPerformer = index < 3;
-                    const performanceScore = Math.min(100, (delayData.overallAvgDelaySeconds / agent.avgDelaySeconds) * 100);
+                    
+                    // Performance based on time thresholds
+                    const getPerformanceCategory = (delaySeconds: number) => {
+                      if (delaySeconds <= 120) return { label: 'Excellent', color: 'text-green-600' };
+                      if (delaySeconds <= 300) return { label: 'Great', color: 'text-blue-600' };
+                      if (delaySeconds <= 600) return { label: 'Slow', color: 'text-yellow-600' };
+                      return { label: 'Very Slow', color: 'text-red-600' };
+                    };
+                    
+                    const performance = getPerformanceCategory(agent.avgDelaySeconds);
                     
                     // Find matching agent hours data
                     const agentHours = agentHoursData?.agents.find(
@@ -370,33 +374,9 @@ export default function AgentsDashboard() {
                           </>
                         )}
                         <td className="py-4 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                              <div 
-                                className={`h-2 rounded-full transition-all duration-500 ${
-                                  performanceScore >= 100 
-                                    ? 'bg-green-500' 
-                                    : performanceScore >= 80 
-                                    ? 'bg-blue-500'
-                                    : performanceScore >= 60
-                                    ? 'bg-yellow-500'
-                                    : 'bg-red-500'
-                                }`}
-                                style={{ width: `${performanceScore}%` }}
-                              ></div>
-                            </div>
-                            <span className={`font-medium text-sm min-w-[60px] text-right ${
-                              performanceScore >= 100 
-                                ? 'text-green-600' 
-                                : performanceScore >= 80 
-                                ? 'text-blue-600'
-                                : performanceScore >= 60
-                                ? 'text-yellow-600'
-                                : 'text-red-600'
-                            }`}>
-                              {performanceScore >= 100 ? 'Excellent' : performanceScore >= 80 ? 'Good' : performanceScore >= 60 ? 'Average' : 'Slow'}
-                            </span>
-                          </div>
+                          <span className={`font-medium text-sm ${performance.color}`}>
+                            {performance.label}
+                          </span>
                         </td>
                       </tr>
                     );

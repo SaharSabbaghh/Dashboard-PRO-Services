@@ -5,6 +5,7 @@ import { format, parse, isValid, startOfMonth, endOfMonth, addMonths, subMonths 
 
 interface PnLDatePickerProps {
   availableMonths: string[]; // ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02"]
+  availableDates?: string[]; // ["2025-10-01", "2025-10-02", ...] for daily view
   selectedStartDate: string | null;
   selectedEndDate: string | null;
   onDateSelect: (startDate: string | null, endDate?: string | null) => void;
@@ -14,6 +15,7 @@ interface PnLDatePickerProps {
 
 export default function PnLDatePicker({
   availableMonths,
+  availableDates = [],
   selectedStartDate,
   selectedEndDate,
   onDateSelect,

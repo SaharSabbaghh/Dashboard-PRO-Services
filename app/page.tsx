@@ -14,7 +14,7 @@ import PnLSummaryCards from '@/components/PnLSummaryCards';
 import PnLServiceChart from '@/components/PnLServiceChart';
 import PnLTable from '@/components/PnLTable';
 import PnLServiceDetail from '@/components/PnLServiceDetail';
-// PnLDatePicker removed - now using simple <select> like Agents/Chats dashboards
+import PnLDatePicker from '@/components/PnLDatePicker';
 import ChatsDashboard from '@/components/ChatsDashboard';
 import AgentsDashboard from '@/components/AgentsDashboard';
 import PnLConfigEditor from '@/components/PnLConfigEditor';
@@ -34,7 +34,10 @@ export default function Dashboard() {
   const [pnlLoading, setPnlLoading] = useState(false);
   const [pnlSource, setPnlSource] = useState<'complaints' | 'excel' | 'none'>('none');
   const [pnlSelectedDate, setPnlSelectedDate] = useState<string | null>(null);
+  const [pnlSelectedEndDate, setPnlSelectedEndDate] = useState<string | null>(null);
   const [pnlAvailableDates, setPnlAvailableDates] = useState<string[]>([]);
+  const [pnlAvailableMonths, setPnlAvailableMonths] = useState<string[]>([]);
+  const [pnlViewMode, setPnlViewMode] = useState<'daily' | 'monthly'>('monthly');
   
   // Use ref to avoid useCallback dependency issues
   const availableDatesRef = useRef<string[]>([]);
@@ -182,19 +185,33 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Fetch P&L data for a single date
-  const fetchPnLData = useCallback(async (date?: string | null) => {
-    if (!date) {
+  // Fetch P&L data with date range support
+  const fetchPnLData = useCallback(async (startDate?: string | null, endDate?: string | null, viewMode: 'daily' | 'monthly' = 'monthly') => {
+    if (!startDate) {
       setPnlData(null);
       return;
     }
     setPnlLoading(true);
     try {
-      const res = await fetch(`/api/pnl?startDate=${date}&endDate=${date}`);
+      const params = new URLSearchParams();
+      params.append('startDate', startDate);
+      if (endDate) {
+        params.append('endDate', endDate);
+      }
+      params.append('viewMode', viewMode);
+      
+      const res = await fetch(`/api/pnl?${params.toString()}`);
       const data = await res.json();
       if (data.aggregated) {
         setPnlData(data.aggregated);
         setPnlSource(data.source || 'none');
+        // Update available dates/months from response
+        if (data.availableDates) {
+          setPnlAvailableDates(data.availableDates);
+        }
+        if (data.availableMonths) {
+          setPnlAvailableMonths(data.availableMonths);
+        }
       } else {
         setPnlData(null);
         setPnlSource('none');
@@ -221,9 +238,19 @@ export default function Dashboard() {
           const result = await res.json();
           if (result.success && result.dates) {
             setPnlAvailableDates(result.dates);
-            // Auto-select the most recent date
-            if (result.dates.length > 0 && !pnlSelectedDate) {
-              setPnlSelectedDate(result.dates[result.dates.length - 1]);
+            // Convert dates to months for monthly view
+            const months = [...new Set(result.dates.map((d: string) => d.substring(0, 7)))].sort();
+            setPnlAvailableMonths(months);
+            
+            // Auto-select the most recent month for monthly view
+            if (months.length > 0 && !pnlSelectedDate) {
+              const latestMonth = months[months.length - 1];
+              setPnlSelectedDate(`${latestMonth}-01`);
+              // Set end date to last day of the month
+              const monthEnd = new Date(latestMonth + '-01');
+              monthEnd.setMonth(monthEnd.getMonth() + 1);
+              monthEnd.setDate(0);
+              setPnlSelectedEndDate(monthEnd.toISOString().split('T')[0]);
             }
           }
         } catch (err) {
@@ -237,9 +264,9 @@ export default function Dashboard() {
   // Fetch P&L data when the selected P&L date changes
   useEffect(() => {
     if (activeTab === 'pnl' && pnlSelectedDate) {
-      fetchPnLData(pnlSelectedDate);
+      fetchPnLData(pnlSelectedDate, pnlSelectedEndDate, pnlViewMode);
     }
-  }, [activeTab, pnlSelectedDate, fetchPnLData]);
+  }, [activeTab, pnlSelectedDate, pnlSelectedEndDate, pnlViewMode, fetchPnLData]);
 
   // Fetch results only when a date is selected
   useEffect(() => {
@@ -258,6 +285,11 @@ export default function Dashboard() {
     } else {
       setResults(null);
     }
+  };
+
+  const handlePnLDateSelect = (startDate: string | null, endDate?: string | null) => {
+    setPnlSelectedDate(startDate);
+    setPnlSelectedEndDate(endDate || null);
   };
 
   // Helper to get prospect count by service
@@ -540,30 +572,18 @@ export default function Dashboard() {
             {/* Sub-tabs Navigation */}
             <div className="flex flex-col gap-3 border-b border-slate-200 pb-3">
               <div className="flex items-center gap-3">
-                {/* Simple date selector — same pattern as Agents & Chats */}
-                <div className="relative">
-                  <select
-                    value={pnlSelectedDate || ''}
-                    onChange={(e) => setPnlSelectedDate(e.target.value || null)}
-                    className="appearance-none bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
-                  >
-                    <option value="">Select Date</option>
-                    {pnlAvailableDates.map((date) => (
-                      <option key={date} value={date}>
-                        {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </option>
-                    ))}
-                  </select>
-                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
+                {/* Advanced date picker with daily/monthly modes */}
+                <PnLDatePicker
+                  availableMonths={pnlAvailableMonths}
+                  availableDates={pnlAvailableDates}
+                  selectedStartDate={pnlSelectedDate}
+                  selectedEndDate={pnlSelectedEndDate}
+                  onDateSelect={handlePnLDateSelect}
+                  viewMode={pnlViewMode}
+                  onViewModeChange={setPnlViewMode}
+                />
                 <button
-                  onClick={() => fetchPnLData(pnlSelectedDate)}
+                  onClick={() => fetchPnLData(pnlSelectedDate, pnlSelectedEndDate, pnlViewMode)}
                   disabled={pnlLoading}
                   className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
                 >
