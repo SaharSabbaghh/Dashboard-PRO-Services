@@ -1,31 +1,22 @@
 export interface ProspectMetric {
   product: string;
-  currentDay: number | null;
-  trend: string | null; // "▲ 33%", "▼ -100%", "-", etc.
-  mtd: number | null; // Month to date
-  previousDay: number | null;
+  count: number; // Just the daily prospect count
 }
 
 export interface OperationMetric {
   serviceType: string;
-  pendingUs: number | null;
-  pendingClient: number | null;
-  pendingProVisit: number | null;
-  pendingGov: number | null;
-  doneToday: number | null;
-  doneMtd: number | null; // Done since first of current month
-  doneSince7Days: number | null;
-  casesDelayed: number | null;
-  delayedNotes?: string; // Additional notes about delays
+  pendingUs: number;
+  pendingClient: number;
+  pendingProVisit: number;
+  pendingGov: number;
+  doneToday: number;
+  casesDelayed: number;
+  delayedNotes?: string; // Optional notes about delays
 }
 
 export interface SalesMetric {
   product: string;
-  dailySales: number | null;
-  dailyConversionRate: string | null; // "36.6%", etc.
-  mtdSales: number | null;
-  previousConversionRate: string | null;
-  monthlyConversionRate: string | null;
+  dailySales: number; // Just the daily sales count
 }
 
 export interface OperationsData {
@@ -34,23 +25,14 @@ export interface OperationsData {
   prospects: ProspectMetric[];
   operations: OperationMetric[];
   sales: SalesMetric[];
-  summary: {
-    totalProspects: number;
-    totalPendingUs: number;
-    totalPendingClient: number;
-    totalPendingProVisit: number;
-    totalPendingGov: number;
-    totalDoneToday: number;
-    totalDoneMtd: number;
-    totalCasesDelayed: number;
-    totalDailySales: number;
-  };
 }
 
 // API Request/Response types
 export interface OperationsRequest {
   analysisDate: string;
-  csvData: string; // Raw CSV content
+  prospects: ProspectMetric[];
+  operations: OperationMetric[];
+  sales: SalesMetric[];
 }
 
 export interface OperationsResponse {

@@ -71,14 +71,30 @@ export default function OperationsDashboard() {
     setSelectedEndDate(endDate || null);
   };
 
-  // Helper function to parse trend
-  const parseTrend = (trend: string | null) => {
-    if (!trend || trend === '-') return null;
-    const isPositive = trend.includes('▲');
-    const isNegative = trend.includes('▼');
-    const percentage = trend.match(/[-]?\d+%/)?.[0];
-    return { isPositive, isNegative, percentage };
+  // Calculate summary totals from raw data
+  const calculateSummary = (data: OperationsData) => {
+    const totalProspects = data.prospects.reduce((sum, p) => sum + p.count, 0);
+    const totalPendingUs = data.operations.reduce((sum, o) => sum + o.pendingUs, 0);
+    const totalPendingClient = data.operations.reduce((sum, o) => sum + o.pendingClient, 0);
+    const totalPendingProVisit = data.operations.reduce((sum, o) => sum + o.pendingProVisit, 0);
+    const totalPendingGov = data.operations.reduce((sum, o) => sum + o.pendingGov, 0);
+    const totalDoneToday = data.operations.reduce((sum, o) => sum + o.doneToday, 0);
+    const totalCasesDelayed = data.operations.reduce((sum, o) => sum + o.casesDelayed, 0);
+    const totalDailySales = data.sales.reduce((sum, s) => sum + s.dailySales, 0);
+
+    return {
+      totalProspects,
+      totalPendingUs,
+      totalPendingClient,
+      totalPendingProVisit,
+      totalPendingGov,
+      totalDoneToday,
+      totalCasesDelayed,
+      totalDailySales
+    };
   };
+
+  const summary = data ? calculateSummary(data) : null;
 
   // Loading state
   if (isLoading) {
@@ -200,7 +216,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <Users className="w-6 h-6 text-blue-600" />
           </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">{data.summary.totalProspects}</div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{summary?.totalProspects || 0}</div>
           <div className="text-sm font-medium text-slate-600">Total Prospects</div>
         </div>
 
@@ -210,7 +226,7 @@ export default function OperationsDashboard() {
             <Clock className="w-6 h-6 text-orange-600" />
           </div>
           <div className="text-3xl font-bold text-slate-900 mb-1">
-            {data.summary.totalPendingUs + data.summary.totalPendingClient + data.summary.totalPendingProVisit + data.summary.totalPendingGov}
+            {summary ? summary.totalPendingUs + summary.totalPendingClient + summary.totalPendingProVisit + summary.totalPendingGov : 0}
           </div>
           <div className="text-sm font-medium text-slate-600">Total Pending</div>
         </div>
@@ -220,7 +236,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">{data.summary.totalDoneToday}</div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{summary?.totalDoneToday || 0}</div>
           <div className="text-sm font-medium text-slate-600">Completed Today</div>
         </div>
 
@@ -229,7 +245,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <AlertTriangle className="w-6 h-6 text-slate-300" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{data.summary.totalCasesDelayed}</div>
+          <div className="text-3xl font-bold text-white mb-1">{summary?.totalCasesDelayed || 0}</div>
           <div className="text-sm font-medium text-slate-300">Cases Delayed</div>
         </div>
       </div>
@@ -251,49 +267,22 @@ export default function OperationsDashboard() {
             <thead className="bg-slate-50 border-b-2 border-slate-200">
               <tr>
                 <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Product</th>
-                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Current Day</th>
-                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Trend</th>
-                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">MTD</th>
-                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Previous Day</th>
+                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Daily Count</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {data.prospects.map((prospect, index) => {
-                const trend = parseTrend(prospect.trend);
-                return (
-                  <tr key={index} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-6">
-                      <span className="font-semibold text-slate-900 text-sm">{prospect.product}</span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
-                        {prospect.currentDay ?? '—'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      {trend ? (
-                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
-                          trend.isPositive ? 'bg-green-50 text-green-700' : 
-                          trend.isNegative ? 'bg-red-50 text-red-700' : 
-                          'bg-slate-50 text-slate-600'
-                        }`}>
-                          {trend.isPositive && <TrendingUp className="w-3 h-3" />}
-                          {trend.isNegative && <TrendingDown className="w-3 h-3" />}
-                          {trend.percentage}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 text-sm">—</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="text-slate-700 font-medium">{prospect.mtd ?? '—'}</span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="text-slate-600">{prospect.previousDay ?? '—'}</span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {data.prospects.map((prospect, index) => (
+                <tr key={index} className="hover:bg-slate-50 transition-colors">
+                  <td className="py-4 px-6">
+                    <span className="font-semibold text-slate-900 text-sm">{prospect.product}</span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
+                      {prospect.count}
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -321,7 +310,6 @@ export default function OperationsDashboard() {
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Pending PRO</th>
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Pending Gov</th>
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Done Today</th>
-                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Done MTD</th>
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Cases Delayed</th>
               </tr>
             </thead>
@@ -336,47 +324,84 @@ export default function OperationsDashboard() {
                   </td>
                   <td className="py-4 px-6 text-center">
                     <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
-                      (operation.pendingUs ?? 0) > 0 ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'
+                      operation.pendingUs > 0 ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'
                     }`}>
-                      {operation.pendingUs ?? '—'}
+                      {operation.pendingUs}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
                     <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
-                      (operation.pendingClient ?? 0) > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
+                      operation.pendingClient > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
                     }`}>
-                      {operation.pendingClient ?? '—'}
+                      {operation.pendingClient}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
                     <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
-                      (operation.pendingProVisit ?? 0) > 0 ? 'bg-purple-50 text-purple-700' : 'bg-slate-50 text-slate-600'
+                      operation.pendingProVisit > 0 ? 'bg-purple-50 text-purple-700' : 'bg-slate-50 text-slate-600'
                     }`}>
-                      {operation.pendingProVisit ?? '—'}
+                      {operation.pendingProVisit}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
                     <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
-                      (operation.pendingGov ?? 0) > 0 ? 'bg-red-50 text-red-700' : 'bg-slate-50 text-slate-600'
+                      operation.pendingGov > 0 ? 'bg-red-50 text-red-700' : 'bg-slate-50 text-slate-600'
                     }`}>
-                      {operation.pendingGov ?? '—'}
+                      {operation.pendingGov}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
                     <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
-                      (operation.doneToday ?? 0) > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
+                      operation.doneToday > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
                     }`}>
-                      {operation.doneToday ?? '—'}
+                      {operation.doneToday}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className="text-slate-700 font-medium">{operation.doneMtd ?? '—'}</span>
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
+                      operation.casesDelayed > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                    }`}>
+                      {operation.casesDelayed}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Sales Section */}
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Sales Overview</h3>
+              <p className="text-sm text-slate-600 mt-1">Daily sales performance by product</p>
+            </div>
+            <TrendingUp className="w-5 h-5 text-slate-400" />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b-2 border-slate-200">
+              <tr>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Product</th>
+                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Daily Sales</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data.sales.map((sale, index) => (
+                <tr key={index} className="hover:bg-slate-50 transition-colors">
+                  <td className="py-4 px-6">
+                    <span className="font-semibold text-slate-900 text-sm">{sale.product}</span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
-                      (operation.casesDelayed ?? 0) > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg font-bold text-sm ${
+                      sale.dailySales > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
                     }`}>
-                      {operation.casesDelayed ?? 0}
+                      {sale.dailySales}
                     </span>
                   </td>
                 </tr>

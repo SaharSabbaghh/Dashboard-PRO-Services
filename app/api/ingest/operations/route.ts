@@ -43,32 +43,30 @@ export async function POST(request: Request) {
       return NextResponse.json(response, { status: 400 });
     }
 
+    // Validate required arrays
+    if (!Array.isArray(body.prospects) || !Array.isArray(body.operations) || !Array.isArray(body.sales)) {
+      const response: OperationsResponse = {
+        success: false,
+        message: 'Invalid data format',
+        error: 'prospects, operations, and sales must be arrays'
+      };
+      return NextResponse.json(response, { status: 400 });
+    }
+
     // Construct operations data
     const operationsData: OperationsData = {
       lastUpdated: new Date().toISOString(),
       analysisDate: body.analysisDate,
-      prospects: body.prospects || [],
-      operations: body.operations || [],
-      sales: body.sales || [],
-      summary: body.summary || {
-        totalProspects: 0,
-        totalPendingUs: 0,
-        totalPendingClient: 0,
-        totalPendingProVisit: 0,
-        totalPendingGov: 0,
-        totalDoneToday: 0,
-        totalDoneMtd: 0,
-        totalCasesDelayed: 0,
-        totalDailySales: 0
-      }
+      prospects: body.prospects,
+      operations: body.operations,
+      sales: body.sales
     };
 
     console.log('[Operations Ingest] Processed data:', {
       analysisDate: operationsData.analysisDate,
       prospectsCount: operationsData.prospects.length,
       operationsCount: operationsData.operations.length,
-      salesCount: operationsData.sales.length,
-      summary: operationsData.summary
+      salesCount: operationsData.sales.length
     });
 
     // Store the data
@@ -126,46 +124,35 @@ export async function GET() {
       prospects: [
         {
           product: 'OEC',
-          currentDay: 71,
-          trend: null,
-          mtd: null,
-          previousDay: null
+          count: 71
+        },
+        {
+          product: 'OWWA',
+          count: 26
         }
       ],
       operations: [
         {
           serviceType: 'OEC',
           pendingUs: 11,
-          pendingClient: null,
-          pendingProVisit: null,
+          pendingClient: 0,
+          pendingProVisit: 0,
           pendingGov: 43,
           doneToday: 8,
-          doneMtd: 89,
-          doneSince7Days: 15,
-          casesDelayed: 27
+          casesDelayed: 27,
+          delayedNotes: 'Optional delay notes'
         }
       ],
       sales: [
         {
           product: 'OEC',
-          dailySales: 26,
-          dailyConversionRate: '36.6%',
-          mtdSales: null,
-          previousConversionRate: null,
-          monthlyConversionRate: null
+          dailySales: 26
+        },
+        {
+          product: 'OWWA',
+          dailySales: 7
         }
-      ],
-      summary: {
-        totalProspects: 22,
-        totalPendingUs: 50,
-        totalPendingClient: 8,
-        totalPendingProVisit: 10,
-        totalPendingGov: 166,
-        totalDoneToday: 12,
-        totalDoneMtd: 148,
-        totalCasesDelayed: 126,
-        totalDailySales: 42
-      }
+      ]
     }
   };
 
