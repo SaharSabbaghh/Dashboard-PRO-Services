@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
 import { getPaymentData, filterPaymentsByDate } from '@/lib/payment-processor';
+import { 
+  getConversionsWithComplaintCheck, 
+  calculateCleanConversionRates 
+} from '@/lib/complaints-conversion-service';
 
 // Force Node.js runtime for blob storage operations
 export const runtime = 'nodejs';
@@ -8,48 +12,121 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Helper function to check conversions from payment data
-async function calculateConversionsForDate(date: string, contractIds: string[]) {
+// Helper function to check conversions from payment data with complaints analysis
+async function calculateConversionsForDate(date: string, prospects: any[]) {
   const paymentData = await getPaymentData();
-  if (!paymentData || contractIds.length === 0) {
+  if (!paymentData || prospects.length === 0) {
     return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
   }
   
-  // Filter payments for this specific date (only RECEIVED payments)
-  const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
-  
-  const convertedContracts = {
-    oec: new Set<string>(),
-    owwa: new Set<string>(),
-    travelVisa: new Set<string>(),
-    filipinaPassportRenewal: new Set<string>(),
-    ethiopianPassportRenewal: new Set<string>(),
-  };
-  
-  // Check each payment on this date
-  for (const payment of datePayments) {
-    if (contractIds.includes(payment.contractId)) {
+  try {
+    // Filter payments for this specific date (only RECEIVED payments)
+    const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
+    
+    // Create payment lookup maps (same logic as conversions API)
+    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
+    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
+    
+    datePayments.forEach(payment => {
+      if (!paymentMap.has(payment.contractId)) {
+        paymentMap.set(payment.contractId, new Set());
+        paymentDatesMap.set(payment.contractId, new Map());
+      }
+      
+      const services = paymentMap.get(payment.contractId)!;
+      const dates = paymentDatesMap.get(payment.contractId)!;
+      
+      // Map payment services to prospect service types
+      let prospectService: 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | null = null;
+      
       if (payment.service === 'oec') {
-        convertedContracts.oec.add(payment.contractId);
+        prospectService = 'oec';
       } else if (payment.service === 'owwa') {
-        convertedContracts.owwa.add(payment.contractId);
+        prospectService = 'owwa';
       } else if (payment.service === 'ttl' || payment.service === 'tte' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
-        convertedContracts.travelVisa.add(payment.contractId);
+        prospectService = 'travel_visa';
       } else if (payment.service === 'filipina_pp') {
-        convertedContracts.filipinaPassportRenewal.add(payment.contractId);
+        prospectService = 'filipina_pp';
       } else if (payment.service === 'ethiopian_pp') {
-        convertedContracts.ethiopianPassportRenewal.add(payment.contractId);
+        prospectService = 'ethiopian_pp';
+      }
+      
+      if (prospectService) {
+        services.add(prospectService);
+        
+        if (!dates.has(prospectService)) {
+          dates.set(prospectService, []);
+        }
+        dates.get(prospectService)!.push(payment.dateOfPayment);
+      }
+    });
+
+    // Get conversions with complaint analysis
+    const conversionsWithComplaints = await getConversionsWithComplaintCheck(
+      prospects,
+      date,
+      paymentMap,
+      paymentDatesMap
+    );
+    
+    // Calculate clean conversion stats (excluding prospects with complaints)
+    const cleanConversionStats = calculateCleanConversionRates(conversionsWithComplaints);
+    
+    console.log(`[${date}] Clean conversion stats:`, {
+      oec: `${cleanConversionStats.stats.oec.cleanConversions}/${cleanConversionStats.stats.oec.prospects} (${cleanConversionStats.rates.oec.clean.toFixed(1)}%)`,
+      owwa: `${cleanConversionStats.stats.owwa.cleanConversions}/${cleanConversionStats.stats.owwa.prospects} (${cleanConversionStats.rates.owwa.clean.toFixed(1)}%)`,
+      travelVisa: `${cleanConversionStats.stats.travelVisa.cleanConversions}/${cleanConversionStats.stats.travelVisa.prospects} (${cleanConversionStats.rates.travelVisa.clean.toFixed(1)}%)`,
+      filipinaPassportRenewal: `${cleanConversionStats.stats.filipinaPassportRenewal.cleanConversions}/${cleanConversionStats.stats.filipinaPassportRenewal.prospects} (${cleanConversionStats.rates.filipinaPassportRenewal.clean.toFixed(1)}%)`,
+      ethiopianPassportRenewal: `${cleanConversionStats.stats.ethiopianPassportRenewal.cleanConversions}/${cleanConversionStats.stats.ethiopianPassportRenewal.prospects} (${cleanConversionStats.rates.ethiopianPassportRenewal.clean.toFixed(1)}%)`
+    });
+    
+    // Return clean conversions (conversions without complaints)
+    return {
+      oec: cleanConversionStats.stats.oec.cleanConversions,
+      owwa: cleanConversionStats.stats.owwa.cleanConversions,
+      travelVisa: cleanConversionStats.stats.travelVisa.cleanConversions,
+      filipinaPassportRenewal: cleanConversionStats.stats.filipinaPassportRenewal.cleanConversions,
+      ethiopianPassportRenewal: cleanConversionStats.stats.ethiopianPassportRenewal.cleanConversions,
+    };
+  } catch (error) {
+    console.error('Error calculating complaints-aware conversions:', error);
+    // Fallback to simple conversion calculation if complaints analysis fails
+    const contractIds = prospects.map(p => p.contractId).filter(Boolean);
+    const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
+    
+    const convertedContracts = {
+      oec: new Set<string>(),
+      owwa: new Set<string>(),
+      travelVisa: new Set<string>(),
+      filipinaPassportRenewal: new Set<string>(),
+      ethiopianPassportRenewal: new Set<string>(),
+    };
+    
+    // Check each payment on this date
+    for (const payment of datePayments) {
+      if (contractIds.includes(payment.contractId)) {
+        if (payment.service === 'oec') {
+          convertedContracts.oec.add(payment.contractId);
+        } else if (payment.service === 'owwa') {
+          convertedContracts.owwa.add(payment.contractId);
+        } else if (payment.service === 'ttl' || payment.service === 'tte' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
+          convertedContracts.travelVisa.add(payment.contractId);
+        } else if (payment.service === 'filipina_pp') {
+          convertedContracts.filipinaPassportRenewal.add(payment.contractId);
+        } else if (payment.service === 'ethiopian_pp') {
+          convertedContracts.ethiopianPassportRenewal.add(payment.contractId);
+        }
       }
     }
+    
+    return {
+      oec: convertedContracts.oec.size,
+      owwa: convertedContracts.owwa.size,
+      travelVisa: convertedContracts.travelVisa.size,
+      filipinaPassportRenewal: convertedContracts.filipinaPassportRenewal.size,
+      ethiopianPassportRenewal: convertedContracts.ethiopianPassportRenewal.size,
+    };
   }
-  
-  return {
-    oec: convertedContracts.oec.size,
-    owwa: convertedContracts.owwa.size,
-    travelVisa: convertedContracts.travelVisa.size,
-    filipinaPassportRenewal: convertedContracts.filipinaPassportRenewal.size,
-    ethiopianPassportRenewal: convertedContracts.ethiopianPassportRenewal.size,
-  };
 }
 
 export async function GET(
@@ -80,13 +157,8 @@ export async function GET(
     const prospects = await getProspectDetailsByDate(date);
     const households = await getProspectsGroupedByHousehold(date);
     
-    // Get prospect contract IDs for conversion checking
-    const prospectContractIds = prospects
-      .filter(p => p.contractId)
-      .map(p => p.contractId);
-    
-    // Calculate conversions from payment data (only for this date)
-    const conversions = await calculateConversionsForDate(date, prospectContractIds);
+    // Calculate conversions from payment data with complaints analysis (only for this date)
+    const conversions = await calculateConversionsForDate(date, prospects);
     
     // Calculate summary counts
     const defaultByContractType = {

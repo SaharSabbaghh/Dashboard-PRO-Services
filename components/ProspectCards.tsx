@@ -108,6 +108,16 @@ export default function ProspectCards({
 
   return (
     <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+        <h3 className="text-lg font-semibold text-green-900 mb-1">
+          Clean Conversion Rates
+        </h3>
+        <p className="text-sm text-green-700">
+          Conversion rates excluding prospects with complaints on the same date
+        </p>
+      </div>
+
       {/* Main cards row */}
       <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
         {cards.map((card) => (
@@ -120,9 +130,14 @@ export default function ProspectCards({
               {isLoading ? '...' : card.count}
             </p>
             {conversions && card.count > 0 && (
-              <p className="text-sm mt-2 text-slate-500">
-                {card.converted} converted ({card.rate}%)
-              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-green-600 font-medium">
+                  {card.converted} clean CVR ({card.rate}%)
+                </p>
+                <p className="text-xs text-slate-400">
+                  Excluding complaints
+                </p>
+              </div>
             )}
           </div>
         ))}
@@ -134,9 +149,14 @@ export default function ProspectCards({
             {isLoading ? '...' : totalProspects}
           </p>
           {conversions && totalProspects > 0 && (
-            <p className="text-sm mt-2 text-slate-500">
-              {overallRate}% CVR
-            </p>
+            <div className="mt-2">
+              <p className="text-sm text-green-600 font-medium">
+                {overallRate}% Clean CVR
+              </p>
+              <p className="text-xs text-slate-400">
+                Excluding complaints
+              </p>
+            </div>
           )}
           <p className="text-xs text-slate-400 mt-1">
             of {totalProcessed} analyzed

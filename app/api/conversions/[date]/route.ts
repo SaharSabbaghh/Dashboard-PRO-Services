@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getDailyDataBlob } from '@/lib/blob-storage';
 import { getPaymentData, filterPaymentsByDate } from '@/lib/payment-processor';
+import { 
+  getConversionsWithComplaintCheck, 
+  calculateCleanConversionRates,
+  type ConversionWithComplaintCheck 
+} from '@/lib/complaints-conversion-service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,11 +29,33 @@ interface ConversionResult {
   };
 }
 
+interface ConversionResponse {
+  date: string;
+  conversions: ConversionResult[];
+  totalConversions: number;
+  byService: {
+    oec: number;
+    owwa: number;
+    travelVisa: number;
+    filipinaPassportRenewal: number;
+    ethiopianPassportRenewal: number;
+  };
+  // New: Complaints-aware conversion data
+  complaintsAnalysis?: {
+    conversionsWithComplaints: ConversionWithComplaintCheck[];
+    cleanConversionStats: ReturnType<typeof calculateCleanConversionRates>;
+  };
+}
+
 /**
  * GET /api/conversions/[date]
  * 
  * Checks which prospects converted based on payment data for a specific date.
  * Returns conversions (RECEIVED payments) that happened on that date only.
+ * Now includes complaints analysis to show clean conversion rates.
+ * 
+ * Query parameters:
+ * - includeComplaints: boolean (default: false) - Include complaints analysis
  */
 export async function GET(
   request: Request,
@@ -36,6 +63,8 @@ export async function GET(
 ) {
   try {
     const { date } = await context.params;
+    const url = new URL(request.url);
+    const includeComplaints = url.searchParams.get('includeComplaints') === 'true';
     
     // Get daily conversation data
     const dailyData = await getDailyDataBlob(date);
@@ -158,7 +187,7 @@ export async function GET(
       }
     }
     
-    return NextResponse.json({
+    const response: ConversionResponse = {
       date,
       conversions,
       totalConversions: conversions.length,
@@ -169,7 +198,31 @@ export async function GET(
         filipinaPassportRenewal: conversions.filter(c => c.services.filipinaPassportRenewal).length,
         ethiopianPassportRenewal: conversions.filter(c => c.services.ethiopianPassportRenewal).length,
       },
-    });
+    };
+
+    // Include complaints analysis if requested
+    if (includeComplaints) {
+      try {
+        const conversionsWithComplaints = await getConversionsWithComplaintCheck(
+          dailyData.results,
+          date,
+          paymentMap,
+          paymentDatesMap
+        );
+        
+        const cleanConversionStats = calculateCleanConversionRates(conversionsWithComplaints);
+        
+        response.complaintsAnalysis = {
+          conversionsWithComplaints,
+          cleanConversionStats,
+        };
+      } catch (complaintsError) {
+        console.error('Error analyzing complaints:', complaintsError);
+        // Continue without complaints analysis rather than failing the entire request
+      }
+    }
+
+    return NextResponse.json(response);
     
   } catch (error) {
     console.error('Error calculating conversions:', error);
