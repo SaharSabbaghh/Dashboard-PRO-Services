@@ -187,11 +187,6 @@ export default function OperationsDashboard() {
     fetchMTDData();
   }, []);
 
-  const handleDateSelect = (startDate: string, endDate?: string) => {
-    setSelectedDate(startDate);
-    setSelectedEndDate(endDate || null);
-  };
-
   // Handle date selection from calendar
   const handleDateSelect = (startDate: string | null, endDate?: string | null) => {
     setSelectedDate(startDate);
@@ -233,7 +228,6 @@ export default function OperationsDashboard() {
           <DatePickerCalendar
             availableDates={availableDates}
             selectedDate={selectedDate}
-            selectedEndDate={selectedEndDate}
             onDateSelect={handleDateSelect}
           />
         </div>
@@ -259,7 +253,6 @@ export default function OperationsDashboard() {
           <DatePickerCalendar
             availableDates={availableDates}
             selectedDate={selectedDate}
-            selectedEndDate={selectedEndDate}
             onDateSelect={handleDateSelect}
           />
         </div>
@@ -286,7 +279,6 @@ export default function OperationsDashboard() {
           <DatePickerCalendar
             availableDates={availableDates}
             selectedDate={selectedDate}
-            selectedEndDate={selectedEndDate}
             onDateSelect={handleDateSelect}
           />
         </div>
