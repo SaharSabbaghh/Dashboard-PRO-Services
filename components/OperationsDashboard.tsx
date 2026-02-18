@@ -170,7 +170,7 @@ export default function OperationsDashboard() {
           if (Array.isArray(result.data)) {
             // Multiple days data
             console.log(`[MTD] Processing ${result.data.length} days of data`);
-            result.data.forEach((dayData: OperationsData, dayIndex) => {
+            result.data.forEach((dayData: OperationsData, dayIndex: number) => {
               console.log(`[MTD] Day ${dayIndex + 1} (${dayData.analysisDate}):`, dayData.operations.length, 'operations');
               dayData.operations.forEach(op => {
                 if (!mtdTotals[op.serviceType]) {
