@@ -1,6 +1,6 @@
 import { getDailyComplaints, type DailyComplaintsData } from './daily-complaints-storage';
 import { getServiceKeyFromComplaintType, type PnLServiceKey } from './pnl-complaints-types';
-import type { ProcessedConversation } from './types';
+import type { ProcessedConversation } from './storage';
 
 export interface ComplaintCheckResult {
   hasComplaint: boolean;
