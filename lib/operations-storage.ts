@@ -49,14 +49,10 @@ export async function storeDailyOperations(
       contentType: 'application/json',
     });
 
-    const totalMetrics = (operationsData.prospects?.length || 0) + 
-                        (operationsData.operations?.length || 0) + 
-                        (operationsData.sales?.length || 0);
+    const totalMetrics = operationsData.operations?.length || 0;
 
     console.log(`✅ Stored operations data for ${date}:`, {
-      prospects: operationsData.prospects?.length || 0,
       operations: operationsData.operations?.length || 0,
-      sales: operationsData.sales?.length || 0,
       totalMetrics,
       blobUrl: blob.url
     });

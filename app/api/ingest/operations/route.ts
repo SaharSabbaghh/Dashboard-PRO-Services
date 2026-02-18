@@ -104,13 +104,8 @@ export async function GET() {
     method: 'POST',
     description: 'Ingest daily operations data into blob storage',
     requiredFields: {
-      analysisDate: 'string (YYYY-MM-DD format) - The date for this operations data'
-    },
-    optionalFields: {
-      prospects: 'ProspectMetric[] - Array of prospect metrics',
-      operations: 'OperationMetric[] - Array of operation metrics', 
-      sales: 'SalesMetric[] - Array of sales metrics',
-      summary: 'object - Summary totals for the day'
+      analysisDate: 'string (YYYY-MM-DD format) - The date for this operations data',
+      operations: 'OperationMetric[] - Array of operation metrics'
     },
     exampleRequest: {
       analysisDate: '2026-02-16',
