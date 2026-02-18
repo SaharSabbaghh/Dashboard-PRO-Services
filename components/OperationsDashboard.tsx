@@ -146,58 +146,52 @@ export default function OperationsDashboard() {
   useEffect(() => {
     const fetchMTDData = async () => {
       try {
-        // Use the selected date's month instead of current month for MTD calculation
-        let referenceDate = new Date();
-        if (selectedDate) {
-          referenceDate = new Date(selectedDate);
-        }
-        
+        // Use the selected date's month, but ensure we get the full month range
+        const referenceDate = selectedDate ? new Date(selectedDate) : new Date();
         const startOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
         const endOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0);
         const startDate = startOfMonth.toISOString().split('T')[0];
         const endDate = endOfMonth.toISOString().split('T')[0];
 
-        console.log(`[MTD] Fetching MTD data from ${startDate} to ${endDate}`);
+        console.log(`[MTD] Fetching full month data from ${startDate} to ${endDate}`);
+        console.log(`[MTD] Reference date: ${referenceDate.toISOString()}`);
+        
         const response = await fetch(`/api/operations?startDate=${startDate}&endDate=${endDate}`);
         if (!response.ok) throw new Error('Failed to fetch MTD data');
 
         const result = await response.json();
         console.log('[MTD] API Response:', result);
         
-        if (result.success && result.data) {
-          const mtdTotals: Record<string, number> = {};
-          
-          if (Array.isArray(result.data)) {
-            // Multiple days data
-            console.log(`[MTD] Processing ${result.data.length} days of data`);
-            result.data.forEach((dayData: OperationsData, dayIndex: number) => {
-              console.log(`[MTD] Day ${dayIndex + 1} (${dayData.analysisDate}):`, dayData.operations.length, 'operations');
-              dayData.operations.forEach(op => {
-                if (!mtdTotals[op.serviceType]) {
-                  mtdTotals[op.serviceType] = 0;
-                }
-                // MTD is only the sum of doneToday values
-                const prevTotal = mtdTotals[op.serviceType];
-                mtdTotals[op.serviceType] += op.doneToday;
-                console.log(`[MTD] ${op.serviceType}: ${prevTotal} + ${op.doneToday} = ${mtdTotals[op.serviceType]}`);
-              });
-            });
-          } else {
-            // Single day data
-            console.log('[MTD] Processing single day data:', result.data.analysisDate);
-            result.data.operations.forEach((op: any) => {
-              if (!mtdTotals[op.serviceType]) {
-                mtdTotals[op.serviceType] = 0;
-              }
-              // MTD is only the sum of doneToday values
-              mtdTotals[op.serviceType] += op.doneToday;
-              console.log(`[MTD] ${op.serviceType}: ${op.doneToday} (single day)`);
-            });
-          }
-          
-          console.log('[MTD] Final totals:', mtdTotals);
-          setMtdData(mtdTotals);
+        if (!result.success) {
+          console.error('[MTD] API Error:', result.error);
+          return;
         }
+
+        if (!result.data) {
+          console.warn('[MTD] No data returned from API');
+          return;
+        }
+        
+        const mtdTotals: Record<string, number> = {};
+        
+        // Ensure we always work with an array
+        const dataArray = Array.isArray(result.data) ? result.data : [result.data];
+        
+        dataArray.forEach((dayData: OperationsData, dayIndex: number) => {
+          console.log(`[MTD] Processing day ${dayIndex + 1}: ${dayData.analysisDate}`);
+          
+          dayData.operations.forEach(op => {
+            if (!mtdTotals[op.serviceType]) {
+              mtdTotals[op.serviceType] = 0;
+            }
+            const prevTotal = mtdTotals[op.serviceType];
+            mtdTotals[op.serviceType] += op.doneToday;
+            console.log(`[MTD] ${op.serviceType}: ${prevTotal} + ${op.doneToday} = ${mtdTotals[op.serviceType]}`);
+          });
+        });
+        
+        console.log('[MTD] Final totals:', mtdTotals);
+        setMtdData(mtdTotals);
       } catch (err) {
         console.error('Error fetching MTD data:', err);
       }

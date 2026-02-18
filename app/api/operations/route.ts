@@ -53,14 +53,10 @@ export async function GET(request: Request) {
         return NextResponse.json(response, { status: 404 });
       }
 
-      // Return array for date ranges, single item for same start/end date
-      const responseData = (startDate === endDate || !endDate) && result.data && result.data.length === 1
-        ? result.data[0]  // Single day
-        : result.data;    // Multiple days array
-
+      // Always return array for date ranges to maintain consistency
       const response = {
         success: true,
-        data: responseData,
+        data: result.data, // Always return the array from getOperationsDateRange
         message: 'Operations data retrieved successfully'
       };
       
