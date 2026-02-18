@@ -146,14 +146,13 @@ export default function OperationsDashboard() {
   useEffect(() => {
     const fetchMTDData = async () => {
       try {
-        // Use the selected date's month, but ensure we get the full month range
+        // MTD should be from start of month to the selected date (not entire month)
         const referenceDate = selectedDate ? new Date(selectedDate) : new Date();
         const startOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
-        const endOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0);
         const startDate = startOfMonth.toISOString().split('T')[0];
-        const endDate = endOfMonth.toISOString().split('T')[0];
+        const endDate = selectedDate || new Date().toISOString().split('T')[0];
 
-        console.log(`[MTD] Fetching full month data from ${startDate} to ${endDate}`);
+        console.log(`[MTD] Fetching MTD data from ${startDate} to ${endDate} (selected date: ${selectedDate})`);
         console.log(`[MTD] Reference date: ${referenceDate.toISOString()}`);
         
         const response = await fetch(`/api/operations?startDate=${startDate}&endDate=${endDate}`);
@@ -177,18 +176,21 @@ export default function OperationsDashboard() {
         // Ensure we always work with an array
         const dataArray = Array.isArray(result.data) ? result.data : [result.data];
         
-        dataArray.forEach((dayData: OperationsData, dayIndex: number) => {
-          console.log(`[MTD] Processing day ${dayIndex + 1}: ${dayData.analysisDate}`);
-          
-          dayData.operations.forEach(op => {
-            if (!mtdTotals[op.serviceType]) {
-              mtdTotals[op.serviceType] = 0;
-            }
-            const prevTotal = mtdTotals[op.serviceType];
-            mtdTotals[op.serviceType] += op.doneToday;
-            console.log(`[MTD] ${op.serviceType}: ${prevTotal} + ${op.doneToday} = ${mtdTotals[op.serviceType]}`);
+        // Filter and process only days from start of month to selected date
+        dataArray
+          .filter((dayData: OperationsData) => dayData.analysisDate <= endDate)
+          .forEach((dayData: OperationsData, dayIndex: number) => {
+            console.log(`[MTD] Processing day ${dayIndex + 1}: ${dayData.analysisDate}`);
+            
+            dayData.operations.forEach(op => {
+              if (!mtdTotals[op.serviceType]) {
+                mtdTotals[op.serviceType] = 0;
+              }
+              const prevTotal = mtdTotals[op.serviceType];
+              mtdTotals[op.serviceType] += op.doneToday;
+              console.log(`[MTD] ${op.serviceType}: ${prevTotal} + ${op.doneToday} = ${mtdTotals[op.serviceType]}`);
+            });
           });
-        });
         
         console.log('[MTD] Final totals:', mtdTotals);
         setMtdData(mtdTotals);
