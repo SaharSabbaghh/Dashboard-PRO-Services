@@ -115,7 +115,13 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
 
   const pieData = chartData
     .filter(d => d.revenue > 0)
-    .map(d => ({ name: d.name, value: d.revenue, color: d.color }));
+    .map(d => ({ name: d.name, value: d.revenue, color: d.color, percentage: 0 }));
+
+  // Calculate percentages
+  const total = pieData.reduce((sum, item) => sum + item.value, 0);
+  pieData.forEach(item => {
+    item.percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
+  });
 
   const tooltipStyle = {
     backgroundColor: '#fff',
@@ -123,6 +129,19 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
     borderRadius: '8px',
     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
     fontSize: '12px',
+  };
+
+  const formatCurrencyShort = (value: number) => {
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(0)}k`;
+    }
+    return value.toString();
+  };
+
+  // Custom label function to show values on pie slices
+  const renderCustomizedLabel = (entry: any) => {
+    if (entry.percentage < 5) return ''; // Don't show labels for very small slices
+    return `${formatCurrencyShort(entry.value)}`;
   };
 
   const filterLabels: Record<PnLServiceFilter, string> = {
@@ -242,27 +261,34 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-base font-semibold text-slate-800 mb-4">Revenue Distribution</h3>
             
-            <div className="flex flex-wrap gap-2 mb-4 text-xs">
+            <div className="grid grid-cols-2 gap-3 mb-6">
               {pieData.map((item) => (
-                <div key={item.name} className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: item.color }} />
-                  <span className="text-slate-600">{item.name}</span>
+                <div key={item.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-sm font-medium text-slate-700">{item.name}</span>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">
+                    {item.percentage}%
+                  </span>
                 </div>
               ))}
             </div>
 
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Pie
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={40}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  cornerRadius={6}
+                  labelLine={false}
+                  label={renderCustomizedLabel}
+                  outerRadius={140}
+                  paddingAngle={2}
                   dataKey="value"
-                  stroke="none"
+                  stroke="#fff"
+                  strokeWidth={2}
+                  animationDuration={400}
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />

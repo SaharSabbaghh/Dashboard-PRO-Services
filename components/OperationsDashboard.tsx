@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertTriangle, FileText, MessageSquare } from 'lucide-react';
 import type { OperationsData, ProspectMetric, OperationMetric, SalesMetric } from '@/lib/operations-types';
 import DatePickerCalendar from '@/components/DatePickerCalendar';
 
@@ -12,6 +12,8 @@ export default function OperationsDashboard() {
   const [data, setData] = useState<OperationsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mtdData, setMtdData] = useState<Record<string, number>>({});
+  const [selectedNotes, setSelectedNotes] = useState<string | null>(null);
 
   // Fetch available dates
   useEffect(() => {
@@ -46,11 +48,26 @@ export default function OperationsDashboard() {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch(`/api/operations?date=${selectedDate}`);
+        let url = `/api/operations?startDate=${selectedDate}`;
+        if (selectedEndDate) {
+          url += `&endDate=${selectedEndDate}`;
+        } else {
+          url += `&endDate=${selectedDate}`;
+        }
+        
+        const response = await fetch(url);
         const result = await response.json();
         
         if (result.success && result.data) {
-          setData(result.data);
+          // Handle both single day and date range responses
+          if (Array.isArray(result.data)) {
+            // Multiple days - aggregate the data
+            const aggregatedData = aggregateOperationsData(result.data);
+            setData(aggregatedData);
+          } else {
+            // Single day
+            setData(result.data);
+          }
         } else {
           setError(result.error || 'Failed to fetch data');
         }
@@ -63,7 +80,117 @@ export default function OperationsDashboard() {
     };
 
     fetchData();
-  }, [selectedDate]);
+  }, [selectedDate, selectedEndDate]);
+
+  // Aggregate multiple days of operations data
+  const aggregateOperationsData = (dataArray: OperationsData[]): OperationsData => {
+    if (dataArray.length === 0) {
+      return {
+        lastUpdated: new Date().toISOString(),
+        analysisDate: selectedDate || '',
+        operations: []
+      };
+    }
+
+    if (dataArray.length === 1) {
+      return dataArray[0];
+    }
+
+    // Create a map to aggregate operations by service type
+    const serviceMap: Record<string, OperationMetric> = {};
+
+    dataArray.forEach(dayData => {
+      dayData.operations.forEach(op => {
+        if (!serviceMap[op.serviceType]) {
+          serviceMap[op.serviceType] = {
+            serviceType: op.serviceType,
+            pendingUs: 0,
+            pendingClient: 0,
+            pendingProVisit: 0,
+            pendingGov: 0,
+            doneToday: 0,
+            casesDelayed: 0,
+            delayedNotes: op.delayedNotes
+          };
+        }
+
+        // For range data, sum up the daily values
+        serviceMap[op.serviceType].pendingUs += op.pendingUs;
+        serviceMap[op.serviceType].pendingClient += op.pendingClient;
+        serviceMap[op.serviceType].pendingProVisit += op.pendingProVisit;
+        serviceMap[op.serviceType].pendingGov += op.pendingGov;
+        serviceMap[op.serviceType].doneToday += op.doneToday;
+        serviceMap[op.serviceType].casesDelayed += op.casesDelayed;
+
+        // Combine notes if multiple days have notes
+        if (op.delayedNotes && serviceMap[op.serviceType].delayedNotes !== op.delayedNotes) {
+          if (serviceMap[op.serviceType].delayedNotes) {
+            serviceMap[op.serviceType].delayedNotes += ` | ${op.delayedNotes}`;
+          } else {
+            serviceMap[op.serviceType].delayedNotes = op.delayedNotes;
+          }
+        }
+      });
+    });
+
+    return {
+      lastUpdated: new Date().toISOString(),
+      analysisDate: selectedEndDate 
+        ? `${selectedDate} to ${selectedEndDate}` 
+        : selectedDate || '',
+      operations: Object.values(serviceMap)
+    };
+  };
+
+  // Fetch MTD data
+  useEffect(() => {
+    const fetchMTDData = async () => {
+      try {
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const startDate = startOfMonth.toISOString().split('T')[0];
+        const endDate = today.toISOString().split('T')[0];
+
+        const response = await fetch(`/api/operations?startDate=${startDate}&endDate=${endDate}`);
+        if (!response.ok) throw new Error('Failed to fetch MTD data');
+
+        const result = await response.json();
+        if (result.success && result.data) {
+          // Calculate MTD totals per service
+          const mtdTotals: Record<string, number> = {};
+          if (Array.isArray(result.data)) {
+            // Multiple days data
+            result.data.forEach((dayData: OperationsData) => {
+              dayData.operations.forEach(op => {
+                if (!mtdTotals[op.serviceType]) {
+                  mtdTotals[op.serviceType] = 0;
+                }
+                mtdTotals[op.serviceType] += op.doneToday;
+              });
+            });
+          } else {
+            // Single day data
+            result.data.operations.forEach((op: any) => {
+              if (!mtdTotals[op.serviceType]) {
+                mtdTotals[op.serviceType] = 0;
+              }
+              mtdTotals[op.serviceType] += op.doneToday;
+            });
+          }
+          setMtdData(mtdTotals);
+        }
+      } catch (err) {
+        console.error('Error fetching MTD data:', err);
+      }
+    };
+
+    fetchMTDData();
+  }, []);
+
+  const handleDateSelect = (startDate: string, endDate?: string) => {
+    setSelectedDate(startDate);
+    setSelectedEndDate(endDate || null);
+  };
 
   // Handle date selection from calendar
   const handleDateSelect = (startDate: string | null, endDate?: string | null) => {
@@ -79,6 +206,7 @@ export default function OperationsDashboard() {
     const totalPendingGov = data.operations.reduce((sum, o) => sum + o.pendingGov, 0);
     const totalDoneToday = data.operations.reduce((sum, o) => sum + o.doneToday, 0);
     const totalCasesDelayed = data.operations.reduce((sum, o) => sum + o.casesDelayed, 0);
+    const totalMTD = Object.values(mtdData).reduce((sum, value) => sum + value, 0);
 
     return {
       totalPendingUs,
@@ -86,7 +214,8 @@ export default function OperationsDashboard() {
       totalPendingProVisit,
       totalPendingGov,
       totalDoneToday,
-      totalCasesDelayed
+      totalCasesDelayed,
+      totalMTD
     };
   };
 
@@ -104,6 +233,7 @@ export default function OperationsDashboard() {
           <DatePickerCalendar
             availableDates={availableDates}
             selectedDate={selectedDate}
+            selectedEndDate={selectedEndDate}
             onDateSelect={handleDateSelect}
           />
         </div>
@@ -129,6 +259,7 @@ export default function OperationsDashboard() {
           <DatePickerCalendar
             availableDates={availableDates}
             selectedDate={selectedDate}
+            selectedEndDate={selectedEndDate}
             onDateSelect={handleDateSelect}
           />
         </div>
@@ -155,6 +286,7 @@ export default function OperationsDashboard() {
           <DatePickerCalendar
             availableDates={availableDates}
             selectedDate={selectedDate}
+            selectedEndDate={selectedEndDate}
             onDateSelect={handleDateSelect}
           />
         </div>
@@ -206,14 +338,14 @@ export default function OperationsDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Pending Cases */}
         <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <Clock className="w-6 h-6 text-orange-600" />
           </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">
-            {summary ? summary.totalPendingUs + summary.totalPendingClient + summary.totalPendingProVisit + summary.totalPendingGov : 0}
+          <div className="text-5xl font-bold text-slate-900 mb-2">
+            {summary ? summary.totalPendingUs + summary.totalPendingProVisit : 0}
           </div>
           <div className="text-sm font-medium text-slate-600">Total Pending</div>
         </div>
@@ -223,7 +355,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">{summary?.totalDoneToday || 0}</div>
+          <div className="text-5xl font-bold text-slate-900 mb-2">{summary?.totalDoneToday || 0}</div>
           <div className="text-sm font-medium text-slate-600">Completed Today</div>
         </div>
 
@@ -232,8 +364,17 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <AlertTriangle className="w-6 h-6 text-slate-300" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{summary?.totalCasesDelayed || 0}</div>
+          <div className="text-5xl font-bold text-white mb-2">{summary?.totalCasesDelayed || 0}</div>
           <div className="text-sm font-medium text-slate-300">Cases Delayed</div>
+        </div>
+
+        {/* MTD Completed */}
+        <div className="bg-blue-600 rounded-xl p-6 border-2 border-blue-500 shadow-sm text-white">
+          <div className="flex items-center justify-between mb-2">
+            <Calendar className="w-6 h-6 text-blue-200" />
+          </div>
+          <div className="text-5xl font-bold text-white mb-2">{summary?.totalMTD || 0}</div>
+          <div className="text-sm font-medium text-blue-200">MTD Completed</div>
         </div>
       </div>
 
@@ -260,59 +401,78 @@ export default function OperationsDashboard() {
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Pending PRO</th>
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Pending Gov</th>
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Done Today</th>
+                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">MTD</th>
                 <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Cases Delayed</th>
+                <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">Notes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {data.operations.map((operation, index) => (
                 <tr key={index} className="hover:bg-slate-50 transition-colors">
                   <td className="py-4 px-6">
-                    <span className="font-semibold text-slate-900 text-sm">{operation.serviceType}</span>
-                    {operation.delayedNotes && (
-                      <p className="text-xs text-slate-500 mt-1">{operation.delayedNotes}</p>
-                    )}
+                    <span className="font-bold text-slate-900 text-base">{operation.serviceType}</span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
                       operation.pendingUs > 0 ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingUs}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
                       operation.pendingClient > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingClient}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
                       operation.pendingProVisit > 0 ? 'bg-purple-50 text-purple-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingProVisit}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
                       operation.pendingGov > 0 ? 'bg-red-50 text-red-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingGov}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
                       operation.doneToday > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.doneToday}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                      (mtdData[operation.serviceType] || 0) > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
+                    }`}>
+                      {mtdData[operation.serviceType] || 0}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
                       operation.casesDelayed > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
                     }`}>
                       {operation.casesDelayed}
                     </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    {operation.delayedNotes ? (
+                      <button
+                        onClick={() => setSelectedNotes(operation.delayedNotes || null)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                        title="View delay notes"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <span className="text-slate-400 text-sm">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -321,6 +481,38 @@ export default function OperationsDashboard() {
         </div>
       </div>
 
+      {/* Delayed Notes Modal */}
+      {selectedNotes && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-amber-600" />
+                Delay Notes
+              </h3>
+              <button
+                onClick={() => setSelectedNotes(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-slate-700 text-sm leading-relaxed">{selectedNotes}</p>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setSelectedNotes(null)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

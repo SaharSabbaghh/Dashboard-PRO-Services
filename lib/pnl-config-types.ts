@@ -69,13 +69,13 @@ export const DEFAULT_CONFIG_SNAPSHOT: PnLConfigSnapshot = {
   services: {
     oec: { unitCost: 61.5, serviceFee: 0 },      // Customer pays 61.5
     owwa: { unitCost: 92, serviceFee: 0 },       // Customer pays 92
-    ttl: { unitCost: 500, serviceFee: 0 },       // Customer pays 500
-    tte: { unitCost: 420, serviceFee: 0 },       // Customer pays 420
+    ttl: { unitCost: 400, serviceFee: 0 },       // Customer pays 400
+    tte: { unitCost: 400, serviceFee: 0 },       // Customer pays 400
     ttj: { unitCost: 320, serviceFee: 0 },       // Customer pays 320
-    schengen: { unitCost: 450, serviceFee: 0 },  // Customer pays 450
+    schengen: { unitCost: 0, serviceFee: 0 },    // Customer pays 0
     gcc: { unitCost: 220, serviceFee: 0 },       // Customer pays 220
-    ethiopianPP: { unitCost: 1350, serviceFee: 0 }, // Customer pays 1350
-    filipinaPP: { unitCost: 600, serviceFee: 0 } // Customer pays 600
+    ethiopianPP: { unitCost: 1330, serviceFee: 0 }, // Customer pays 1330
+    filipinaPP: { unitCost: 0, serviceFee: 0 }   // Customer pays 0
   },
   fixedCosts: {
     laborCost: 55000,

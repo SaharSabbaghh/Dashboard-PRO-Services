@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDailyOperations } from '@/lib/operations-storage';
+import { getDailyOperations, getOperationsDateRange } from '@/lib/operations-storage';
 import type { OperationsResponse } from '@/lib/operations-types';
 
 // Force Node.js runtime for blob storage operations
@@ -13,37 +13,67 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
     
-    console.log('[Operations] GET request - date:', date);
+    console.log('[Operations] GET request - date:', date, 'startDate:', startDate, 'endDate:', endDate);
     
-    if (!date) {
-      const response: OperationsResponse = {
-        success: false,
-        message: 'Date parameter is required',
-        error: 'Please provide a date in YYYY-MM-DD format'
-      };
-      return NextResponse.json(response, { status: 400 });
-    }
+    // Handle single date query (legacy support)
+    if (date && !startDate && !endDate) {
+      const result = await getDailyOperations(date);
+      
+      if (!result.success) {
+        const response: OperationsResponse = {
+          success: false,
+          message: 'Operations data not found',
+          error: result.error
+        };
+        return NextResponse.json(response, { status: 404 });
+      }
 
-    // Retrieve data from blob storage
-    const result = await getDailyOperations(date);
-    
-    if (!result.success) {
       const response: OperationsResponse = {
-        success: false,
-        message: 'Operations data not found',
-        error: result.error
+        success: true,
+        data: result.data,
+        message: 'Operations data retrieved successfully'
       };
-      return NextResponse.json(response, { status: 404 });
+      
+      return NextResponse.json(response);
     }
+    
+    // Handle date range query
+    if (startDate) {
+      const result = await getOperationsDateRange(startDate, endDate || startDate);
+      
+      if (!result.success) {
+        const response: OperationsResponse = {
+          success: false,
+          message: 'Operations data not found',
+          error: result.error
+        };
+        return NextResponse.json(response, { status: 404 });
+      }
 
+      // Return array for date ranges, single item for same start/end date
+      const responseData = (startDate === endDate || !endDate) && result.data && result.data.length === 1
+        ? result.data[0]  // Single day
+        : result.data;    // Multiple days array
+
+      const response = {
+        success: true,
+        data: responseData,
+        message: 'Operations data retrieved successfully'
+      };
+      
+      return NextResponse.json(response);
+    }
+    
+    // No valid parameters
     const response: OperationsResponse = {
-      success: true,
-      data: result.data,
-      message: 'Operations data retrieved successfully'
+      success: false,
+      message: 'Invalid parameters',
+      error: 'Please provide either "date" or "startDate" parameter'
     };
-    
-    return NextResponse.json(response);
+    return NextResponse.json(response, { status: 400 });
     
   } catch (error) {
     console.error('Error fetching operations data:', error);

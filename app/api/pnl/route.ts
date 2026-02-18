@@ -23,15 +23,15 @@ const PNL_DIR = path.join(process.cwd(), 'P&L');
 // Actual costs per service (what it costs the company)
 // These should match the unitCost values in the config
 const SERVICE_COSTS: Record<PnLServiceKey, number> = {
-  oec: 40,           // DMW fees
-  owwa: 60,          // OWWA fees
+  oec: 61.5,         // DMW fees
+  owwa: 92,          // OWWA fees
   ttl: 400,          // Embassy + transportation
-  tte: 320,          // Embassy + transportation
+  tte: 400,          // Embassy + transportation
   ttj: 220,          // Embassy + facilitator
-  schengen: 350,     // Processing fees
-  gcc: 180,          // Dubai Police fees
-  ethiopianPP: 1000, // Government fees
-  filipinaPP: 400,   // Processing fees
+  schengen: 0,       // Processing fees
+  gcc: 220,          // Dubai Police fees
+  ethiopianPP: 1330, // Government fees
+  filipinaPP: 0,     // Processing fees
 };
 
 // Create service P&L from volume and config
