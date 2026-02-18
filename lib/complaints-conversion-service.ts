@@ -42,10 +42,11 @@ const COMPLAINT_SERVICE_MAP: Record<PnLServiceKey, keyof ConversionWithComplaint
 };
 
 /**
- * Check if a contract has complaints for specific services on a given date
+ * Check if a prospect has complaints for specific services on a given date
+ * Links by contract ID, maid ID, or client ID
  */
-export async function checkComplaintsForContract(
-  contractId: string,
+export async function checkComplaintsForProspect(
+  prospect: { contractId?: string; maidId?: string; clientId?: string },
   date: string,
   services: PnLServiceKey[]
 ): Promise<Record<PnLServiceKey, ComplaintCheckResult>> {
@@ -67,18 +68,22 @@ export async function checkComplaintsForContract(
       return result; // No complaints data available
     }
 
-    // Filter complaints for this contract
-    const contractComplaints = complaintsResult.data.complaints.filter(
-      complaint => complaint.contractId === contractId
-    );
+    // Filter complaints for this prospect by contract ID, maid ID, or client ID
+    const prospectComplaints = complaintsResult.data.complaints.filter(complaint => {
+      return (
+        (prospect.contractId && complaint.contractId === prospect.contractId) ||
+        (prospect.maidId && complaint.housemaidId === prospect.maidId) ||
+        (prospect.clientId && complaint.clientId === prospect.clientId)
+      );
+    });
 
-    if (contractComplaints.length === 0) {
-      return result; // No complaints for this contract
+    if (prospectComplaints.length === 0) {
+      return result; // No complaints for this prospect
     }
 
     // Check each service
     services.forEach(serviceKey => {
-      const serviceComplaints = contractComplaints.filter(complaint => {
+      const serviceComplaints = prospectComplaints.filter(complaint => {
         const complaintServiceKey = getServiceKeyFromComplaintType(complaint.complaintType);
         return complaintServiceKey === serviceKey;
       });
@@ -100,16 +105,14 @@ export async function checkComplaintsForContract(
 }
 
 /**
- * Check if a prospect should be excluded from conversion calculation due to complaints
- * A prospect is excluded if they have a complaint for the same service on the same date
+ * Check if a prospect has complaints for a specific service on a given date
+ * Links by contract ID, maid ID, or client ID
  */
-export async function shouldExcludeFromConversion(
+export async function checkProspectHasComplaints(
   prospect: ProcessedConversation,
   date: string,
   service: 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'
 ): Promise<boolean> {
-  if (!prospect.contractId) return false;
-
   // Map prospect service to complaint service keys
   let serviceKeysToCheck: PnLServiceKey[] = [];
   
@@ -131,8 +134,12 @@ export async function shouldExcludeFromConversion(
       break;
   }
 
-  const complaintChecks = await checkComplaintsForContract(
-    prospect.contractId,
+  const complaintChecks = await checkComplaintsForProspect(
+    {
+      contractId: prospect.contractId,
+      maidId: prospect.maidId,
+      clientId: prospect.clientId
+    },
     date,
     serviceKeysToCheck
   );
@@ -170,8 +177,12 @@ export async function getConversionsWithComplaintCheck(
     if (prospect.isFilipinaPassportRenewalProspect) servicesToCheck.push('filipinaPP');
     if (prospect.isEthiopianPassportRenewalProspect) servicesToCheck.push('ethiopianPP');
 
-    const complaintChecks = await checkComplaintsForContract(
-      prospect.contractId,
+    const complaintChecks = await checkComplaintsForProspect(
+      {
+        contractId: prospect.contractId,
+        maidId: prospect.maidId,
+        clientId: prospect.clientId
+      },
       date,
       servicesToCheck
     );

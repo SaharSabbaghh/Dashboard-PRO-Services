@@ -69,24 +69,24 @@ async function calculateConversionsForDate(date: string, prospects: any[]) {
       paymentDatesMap
     );
     
-    // Calculate clean conversion stats (excluding prospects with complaints)
-    const cleanConversionStats = calculateCleanConversionRates(conversionsWithComplaints);
+    // Calculate conversion stats (including all conversions, flagged with complaint info)
+    const conversionStats = calculateCleanConversionRates(conversionsWithComplaints);
     
-    console.log(`[${date}] Clean conversion stats:`, {
-      oec: `${cleanConversionStats.stats.oec.cleanConversions}/${cleanConversionStats.stats.oec.prospects} (${cleanConversionStats.rates.oec.clean.toFixed(1)}%)`,
-      owwa: `${cleanConversionStats.stats.owwa.cleanConversions}/${cleanConversionStats.stats.owwa.prospects} (${cleanConversionStats.rates.owwa.clean.toFixed(1)}%)`,
-      travelVisa: `${cleanConversionStats.stats.travelVisa.cleanConversions}/${cleanConversionStats.stats.travelVisa.prospects} (${cleanConversionStats.rates.travelVisa.clean.toFixed(1)}%)`,
-      filipinaPassportRenewal: `${cleanConversionStats.stats.filipinaPassportRenewal.cleanConversions}/${cleanConversionStats.stats.filipinaPassportRenewal.prospects} (${cleanConversionStats.rates.filipinaPassportRenewal.clean.toFixed(1)}%)`,
-      ethiopianPassportRenewal: `${cleanConversionStats.stats.ethiopianPassportRenewal.cleanConversions}/${cleanConversionStats.stats.ethiopianPassportRenewal.prospects} (${cleanConversionStats.rates.ethiopianPassportRenewal.clean.toFixed(1)}%)`
+    console.log(`[${date}] Conversion stats with complaint analysis:`, {
+      oec: `${conversionStats.stats.oec.conversions}/${conversionStats.stats.oec.prospects} total (${conversionStats.rates.oec.overall.toFixed(1)}%), ${conversionStats.stats.oec.withComplaints} with complaints`,
+      owwa: `${conversionStats.stats.owwa.conversions}/${conversionStats.stats.owwa.prospects} total (${conversionStats.rates.owwa.overall.toFixed(1)}%), ${conversionStats.stats.owwa.withComplaints} with complaints`,
+      travelVisa: `${conversionStats.stats.travelVisa.conversions}/${conversionStats.stats.travelVisa.prospects} total (${conversionStats.rates.travelVisa.overall.toFixed(1)}%), ${conversionStats.stats.travelVisa.withComplaints} with complaints`,
+      filipinaPassportRenewal: `${conversionStats.stats.filipinaPassportRenewal.conversions}/${conversionStats.stats.filipinaPassportRenewal.prospects} total (${conversionStats.rates.filipinaPassportRenewal.overall.toFixed(1)}%), ${conversionStats.stats.filipinaPassportRenewal.withComplaints} with complaints`,
+      ethiopianPassportRenewal: `${conversionStats.stats.ethiopianPassportRenewal.conversions}/${conversionStats.stats.ethiopianPassportRenewal.prospects} total (${conversionStats.rates.ethiopianPassportRenewal.overall.toFixed(1)}%), ${conversionStats.stats.ethiopianPassportRenewal.withComplaints} with complaints`
     });
     
-    // Return clean conversions (conversions without complaints)
+    // Return all conversions (including those with complaints)
     return {
-      oec: cleanConversionStats.stats.oec.cleanConversions,
-      owwa: cleanConversionStats.stats.owwa.cleanConversions,
-      travelVisa: cleanConversionStats.stats.travelVisa.cleanConversions,
-      filipinaPassportRenewal: cleanConversionStats.stats.filipinaPassportRenewal.cleanConversions,
-      ethiopianPassportRenewal: cleanConversionStats.stats.ethiopianPassportRenewal.cleanConversions,
+      oec: conversionStats.stats.oec.conversions,
+      owwa: conversionStats.stats.owwa.conversions,
+      travelVisa: conversionStats.stats.travelVisa.conversions,
+      filipinaPassportRenewal: conversionStats.stats.filipinaPassportRenewal.conversions,
+      ethiopianPassportRenewal: conversionStats.stats.ethiopianPassportRenewal.conversions,
     };
   } catch (error) {
     console.error('Error calculating complaints-aware conversions:', error);
