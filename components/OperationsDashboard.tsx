@@ -156,7 +156,7 @@ export default function OperationsDashboard() {
 
         const result = await response.json();
         if (result.success && result.data) {
-          // Calculate MTD totals per service
+          // Calculate MTD totals per service (sum of ALL metrics)
           const mtdTotals: Record<string, number> = {};
           if (Array.isArray(result.data)) {
             // Multiple days data
@@ -165,6 +165,7 @@ export default function OperationsDashboard() {
                 if (!mtdTotals[op.serviceType]) {
                   mtdTotals[op.serviceType] = 0;
                 }
+                // MTD is only the sum of doneToday values
                 mtdTotals[op.serviceType] += op.doneToday;
               });
             });
@@ -174,6 +175,7 @@ export default function OperationsDashboard() {
               if (!mtdTotals[op.serviceType]) {
                 mtdTotals[op.serviceType] = 0;
               }
+              // MTD is only the sum of doneToday values
               mtdTotals[op.serviceType] += op.doneToday;
             });
           }
@@ -201,6 +203,8 @@ export default function OperationsDashboard() {
     const totalPendingGov = data.operations.reduce((sum, o) => sum + o.pendingGov, 0);
     const totalDoneToday = data.operations.reduce((sum, o) => sum + o.doneToday, 0);
     const totalCasesDelayed = data.operations.reduce((sum, o) => sum + o.casesDelayed, 0);
+    
+    // Calculate total MTD across all services
     const totalMTD = Object.values(mtdData).reduce((sum, value) => sum + value, 0);
 
     return {
@@ -215,6 +219,17 @@ export default function OperationsDashboard() {
   };
 
   const summary = data ? calculateSummary(data) : null;
+
+  // Calculate column totals for the table
+  const columnTotals = data ? {
+    totalPendingUs: data.operations.reduce((sum, o) => sum + o.pendingUs, 0),
+    totalPendingClient: data.operations.reduce((sum, o) => sum + o.pendingClient, 0),
+    totalPendingProVisit: data.operations.reduce((sum, o) => sum + o.pendingProVisit, 0),
+    totalPendingGov: data.operations.reduce((sum, o) => sum + o.pendingGov, 0),
+    totalDoneToday: data.operations.reduce((sum, o) => sum + o.doneToday, 0),
+    totalMTD: Object.values(mtdData).reduce((sum, value) => sum + value, 0),
+    totalCasesDelayed: data.operations.reduce((sum, o) => sum + o.casesDelayed, 0)
+  } : null;
 
   // Loading state
   if (isLoading) {
@@ -336,7 +351,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <Clock className="w-6 h-6 text-orange-600" />
           </div>
-          <div className="text-5xl font-bold text-slate-900 mb-2">
+          <div className="text-4xl font-bold text-slate-900 mb-1">
             {summary ? summary.totalPendingUs + summary.totalPendingProVisit : 0}
           </div>
           <div className="text-sm font-medium text-slate-600">Total Pending</div>
@@ -347,7 +362,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
-          <div className="text-5xl font-bold text-slate-900 mb-2">{summary?.totalDoneToday || 0}</div>
+          <div className="text-4xl font-bold text-slate-900 mb-1">{summary?.totalDoneToday || 0}</div>
           <div className="text-sm font-medium text-slate-600">Completed Today</div>
         </div>
 
@@ -356,7 +371,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <AlertTriangle className="w-6 h-6 text-slate-300" />
           </div>
-          <div className="text-5xl font-bold text-white mb-2">{summary?.totalCasesDelayed || 0}</div>
+          <div className="text-4xl font-bold text-white mb-1">{summary?.totalCasesDelayed || 0}</div>
           <div className="text-sm font-medium text-slate-300">Cases Delayed</div>
         </div>
 
@@ -365,7 +380,7 @@ export default function OperationsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <Calendar className="w-6 h-6 text-blue-200" />
           </div>
-          <div className="text-5xl font-bold text-white mb-2">{summary?.totalMTD || 0}</div>
+          <div className="text-4xl font-bold text-white mb-1">{summary?.totalMTD || 0}</div>
           <div className="text-sm font-medium text-blue-200">MTD Completed</div>
         </div>
       </div>
@@ -402,52 +417,52 @@ export default function OperationsDashboard() {
               {data.operations.map((operation, index) => (
                 <tr key={index} className="hover:bg-slate-50 transition-colors">
                   <td className="py-4 px-6">
-                    <span className="font-bold text-slate-900 text-base">{operation.serviceType}</span>
+                    <span className="font-semibold text-slate-900 text-sm">{operation.serviceType}</span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
                       operation.pendingUs > 0 ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingUs}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
                       operation.pendingClient > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingClient}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
                       operation.pendingProVisit > 0 ? 'bg-purple-50 text-purple-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingProVisit}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
                       operation.pendingGov > 0 ? 'bg-red-50 text-red-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.pendingGov}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
                       operation.doneToday > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {operation.doneToday}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
                       (mtdData[operation.serviceType] || 0) > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
                     }`}>
                       {mtdData[operation.serviceType] || 0}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-lg text-lg font-bold min-w-[3rem] ${
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
                       operation.casesDelayed > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
                     }`}>
                       {operation.casesDelayed}
@@ -468,39 +483,80 @@ export default function OperationsDashboard() {
                   </td>
                 </tr>
               ))}
+              
+              {/* Totals Row */}
+              {columnTotals && (
+                <tr className="bg-slate-100 border-t-2 border-slate-300 font-semibold">
+                  <td className="py-4 px-6">
+                    <span className="font-bold text-slate-900 text-sm">TOTAL</span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 rounded text-sm font-bold bg-orange-100 text-orange-800">
+                      {columnTotals.totalPendingUs}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 rounded text-sm font-bold bg-blue-100 text-blue-800">
+                      {columnTotals.totalPendingClient}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 rounded text-sm font-bold bg-purple-100 text-purple-800">
+                      {columnTotals.totalPendingProVisit}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 rounded text-sm font-bold bg-red-100 text-red-800">
+                      {columnTotals.totalPendingGov}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 rounded text-sm font-bold bg-green-100 text-green-800">
+                      {columnTotals.totalDoneToday}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 rounded text-sm font-bold bg-blue-100 text-blue-800">
+                      {columnTotals.totalMTD}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 rounded text-sm font-bold bg-red-100 text-red-800">
+                      {columnTotals.totalCasesDelayed}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className="text-slate-400 text-sm">—</span>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Delayed Notes Modal */}
+      {/* Delayed Notes Popup */}
       {selectedNotes && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-amber-600" />
-                Delay Notes
-              </h3>
-              <button
-                onClick={() => setSelectedNotes(null)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-slate-700 text-sm leading-relaxed">{selectedNotes}</p>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => setSelectedNotes(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
-              >
-                Close
-              </button>
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-lg max-w-sm w-80 p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <h3 className="text-sm font-semibold text-slate-900">Delay Notes</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedNotes(null)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                <p className="text-slate-700 text-xs leading-relaxed">{selectedNotes}</p>
+              </div>
             </div>
           </div>
         </div>
