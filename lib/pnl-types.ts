@@ -62,7 +62,12 @@ export interface PnLData {
     oec: ServicePnL;
     owwa: ServicePnL;
     ttl: ServicePnL;
+    ttlSingle: ServicePnL;
+    ttlDouble: ServicePnL;
+    ttlMultiple: ServicePnL;
     tte: ServicePnL;
+    tteSingle: ServicePnL;
+    tteMultiple: ServicePnL;
     ttj: ServicePnL;
     schengen: ServicePnL;
     gcc: ServicePnL;
@@ -82,7 +87,12 @@ export interface AggregatedPnL {
     oec: ServicePnL;
     owwa: ServicePnL;
     ttl: ServicePnL;
+    ttlSingle: ServicePnL;
+    ttlDouble: ServicePnL;
+    ttlMultiple: ServicePnL;
     tte: ServicePnL;
+    tteSingle: ServicePnL;
+    tteMultiple: ServicePnL;
     ttj: ServicePnL;
     schengen: ServicePnL;
     gcc: ServicePnL;

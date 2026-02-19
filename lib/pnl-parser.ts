@@ -453,11 +453,26 @@ export function parsePnLFile(filePath: string): PnLData {
   const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
   const fileName = filePath.split('/').pop() || filePath;
 
+  const createEmptyService = (name: string): ServicePnL => ({
+    name,
+    volume: 0,
+    price: 0,
+    serviceFees: 0,
+    totalRevenue: 0,
+    totalCost: 0,
+    grossProfit: 0,
+  });
+
   const services = {
     oec: parseOECSheet(workbook.Sheets['OEC']),
     owwa: parseOWWASheet(workbook.Sheets['OWWA']),
     ttl: parseTTLSheet(workbook.Sheets['TTL']),
+    ttlSingle: createEmptyService('Tourist Visa to Lebanon – Single Entry'),
+    ttlDouble: createEmptyService('Tourist Visa to Lebanon – Double Entry'),
+    ttlMultiple: createEmptyService('Tourist Visa to Lebanon – Multiple Entry'),
     tte: parseTTESheet(workbook.Sheets['TTE']),
+    tteSingle: createEmptyService('Tourist Visa to Egypt – Single Entry'),
+    tteMultiple: createEmptyService('Tourist Visa to Egypt – Multiple Entry'),
     ttj: parseTTJSheet(workbook.Sheets['TTJ']),
     schengen: parseSchengenSheet(workbook.Sheets['Schengen Countries']),
     gcc: parseGCCSheet(workbook.Sheets['GCC']),
@@ -498,7 +513,12 @@ export function aggregatePnLData(pnlDataList: PnLData[]): AggregatedPnL {
     oec: createEmptyService('OEC'),
     owwa: createEmptyService('OWWA'),
     ttl: createEmptyService('Travel to Lebanon'),
+    ttlSingle: createEmptyService('Tourist Visa to Lebanon – Single Entry'),
+    ttlDouble: createEmptyService('Tourist Visa to Lebanon – Double Entry'),
+    ttlMultiple: createEmptyService('Tourist Visa to Lebanon – Multiple Entry'),
     tte: createEmptyService('Travel to Egypt'),
+    tteSingle: createEmptyService('Tourist Visa to Egypt – Single Entry'),
+    tteMultiple: createEmptyService('Tourist Visa to Egypt – Multiple Entry'),
     ttj: createEmptyService('Travel to Jordan'),
     schengen: createEmptyService('Schengen Countries'),
     gcc: createEmptyService('GCC'),

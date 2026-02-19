@@ -5,7 +5,12 @@ export type PnLServiceKey =
   | 'oec' 
   | 'owwa' 
   | 'ttl' 
+  | 'ttlSingle'    // Tourist Visa to Lebanon – Single Entry
+  | 'ttlDouble'    // Tourist Visa to Lebanon – Double Entry
+  | 'ttlMultiple'  // Tourist Visa to Lebanon – Multiple Entry
   | 'tte' 
+  | 'tteSingle'    // Tourist Visa to Egypt – Single Entry
+  | 'tteMultiple'  // Tourist Visa to Egypt – Multiple Entry
   | 'ttj' 
   | 'schengen' 
   | 'gcc' 
@@ -77,13 +82,32 @@ export const COMPLAINT_TYPE_MAP: Record<string, PnLServiceKey> = {
   'owwa registration': 'owwa',
   'owwa': 'owwa',
   
-  // Travel visas - Lebanon
+  // Travel visas - Lebanon (specific entry types)
+  'tourist visa to lebanon – single entry': 'ttlSingle',
+  'tourist visa to lebanon - single entry': 'ttlSingle',
+  'tourist visa to lebanon single entry': 'ttlSingle',
+  'tourist visa to lebanon – double entry': 'ttlDouble',
+  'tourist visa to lebanon - double entry': 'ttlDouble',
+  'tourist visa to lebanon double entry': 'ttlDouble',
+  'tourist visa to lebanon – multiple entry': 'ttlMultiple',
+  'tourist visa to lebanon - multiple entry': 'ttlMultiple',
+  'tourist visa to lebanon multiple entry': 'ttlMultiple',
+  
+  // Travel visas - Lebanon (fallback)
   'tourist visa to lebanon': 'ttl',
   'travel to lebanon': 'ttl',
   'ttl': 'ttl',
   'lebanon': 'ttl',
   
-  // Travel visas - Egypt
+  // Travel visas - Egypt (specific entry types)
+  'tourist visa to egypt – single entry': 'tteSingle',
+  'tourist visa to egypt - single entry': 'tteSingle',
+  'tourist visa to egypt single entry': 'tteSingle',
+  'tourist visa to egypt – multiple entry': 'tteMultiple',
+  'tourist visa to egypt - multiple entry': 'tteMultiple',
+  'tourist visa to egypt multiple entry': 'tteMultiple',
+  
+  // Travel visas - Egypt (fallback)
   'tourist visa to egypt': 'tte',
   'travel to egypt': 'tte',
   'tte': 'tte',
@@ -129,7 +153,12 @@ export const SERVICE_NAMES: Record<PnLServiceKey, string> = {
   oec: 'Overseas Employment Certificate',
   owwa: 'OWWA Registration',
   ttl: 'Travel to Lebanon',
+  ttlSingle: 'Tourist Visa to Lebanon – Single Entry',
+  ttlDouble: 'Tourist Visa to Lebanon – Double Entry',
+  ttlMultiple: 'Tourist Visa to Lebanon – Multiple Entry',
   tte: 'Travel to Egypt',
+  tteSingle: 'Tourist Visa to Egypt – Single Entry',
+  tteMultiple: 'Tourist Visa to Egypt – Multiple Entry',
   ttj: 'Travel to Jordan',
   schengen: 'Schengen Countries',
   gcc: 'GCC',
@@ -142,7 +171,12 @@ export const ALL_SERVICE_KEYS: PnLServiceKey[] = [
   'oec',
   'owwa',
   'ttl',
+  'ttlSingle',
+  'ttlDouble',
+  'ttlMultiple',
   'tte',
+  'tteSingle',
+  'tteMultiple',
   'ttj',
   'schengen',
   'gcc',

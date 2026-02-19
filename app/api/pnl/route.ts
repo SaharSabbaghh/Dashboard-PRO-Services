@@ -112,11 +112,16 @@ export async function GET(request: Request) {
       
       const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
       
-      const serviceNames: Record<PnLServiceKey, string> = {
+      const serviceNames = {
         oec: 'OEC',
         owwa: 'OWWA',
         ttl: 'Travel to Lebanon',
+        ttlSingle: 'Tourist Visa to Lebanon – Single Entry',
+        ttlDouble: 'Tourist Visa to Lebanon – Double Entry',
+        ttlMultiple: 'Tourist Visa to Lebanon – Multiple Entry',
         tte: 'Travel to Egypt',
+        tteSingle: 'Tourist Visa to Egypt – Single Entry',
+        tteMultiple: 'Tourist Visa to Egypt – Multiple Entry',
         ttj: 'Travel to Jordan',
         schengen: 'Schengen Countries',
         gcc: 'GCC',

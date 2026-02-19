@@ -15,7 +15,12 @@ const SERVICE_COLORS = {
   oec: '#b45309',      // amber-700 (matches main dashboard OEC)
   owwa: '#7c3aed',     // violet-600 (matches main dashboard OWWA)
   ttl: '#2563eb',      // blue-600 (matches main dashboard travel)
+  ttlSingle: '#3b82f6',   // blue-500 (lighter blue for single entry)
+  ttlDouble: '#1d4ed8',   // blue-700 (darker blue for double entry)
+  ttlMultiple: '#1e40af', // blue-800 (darkest blue for multiple entry)
   tte: '#6db39f',      // soft sage green
+  tteSingle: '#10b981',   // emerald-500 (for single entry)
+  tteMultiple: '#059669', // emerald-600 (for multiple entry)
   ttj: '#e5a855',      // warm amber
   schengen: '#8ecae6', // soft sky blue
   gcc: '#e5c07b',      // soft golden
@@ -26,8 +31,13 @@ const SERVICE_COLORS = {
 const SERVICE_LABELS: Record<string, string> = {
   oec: 'OEC',
   owwa: 'OWWA',
-  ttl: 'Travel to Lebanon',
-  tte: 'Travel to Egypt',
+  ttl: 'Travel to Lebanon (General)',
+  ttlSingle: 'Single Entry',
+  ttlDouble: 'Double Entry',
+  ttlMultiple: 'Multiple Entry',
+  tte: 'Travel to Egypt (General)',
+  tteSingle: 'Single Entry',
+  tteMultiple: 'Multiple Entry',
   ttj: 'Travel to Jordan',
   schengen: 'Schengen Countries',
   gcc: 'GCC',
@@ -55,9 +65,28 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
       case 'owwa':
         return [{ key: 'owwa', service: data.services.owwa }];
       case 'ttl':
-        return [{ key: 'ttl', service: data.services.ttl }];
+        // Show TTL breakdown with specific entry types if they have volume
+        const ttlServices = [{ key: 'ttl', service: data.services.ttl }];
+        if (data.services.ttlSingle?.volume > 0) {
+          ttlServices.push({ key: 'ttlSingle', service: data.services.ttlSingle });
+        }
+        if (data.services.ttlDouble?.volume > 0) {
+          ttlServices.push({ key: 'ttlDouble', service: data.services.ttlDouble });
+        }
+        if (data.services.ttlMultiple?.volume > 0) {
+          ttlServices.push({ key: 'ttlMultiple', service: data.services.ttlMultiple });
+        }
+        return ttlServices;
       case 'tte':
-        return [{ key: 'tte', service: data.services.tte }];
+        // Show TTE breakdown with specific entry types if they have volume
+        const tteServices = [{ key: 'tte', service: data.services.tte }];
+        if (data.services.tteSingle?.volume > 0) {
+          tteServices.push({ key: 'tteSingle', service: data.services.tteSingle });
+        }
+        if (data.services.tteMultiple?.volume > 0) {
+          tteServices.push({ key: 'tteMultiple', service: data.services.tteMultiple });
+        }
+        return tteServices;
       case 'ttj':
         return [{ key: 'ttj', service: data.services.ttj }];
       case 'schengen':
@@ -70,13 +99,30 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
         return [{ key: 'filipinaPP', service: data.services.filipinaPP }];
       // Legacy grouped filters
       case 'travel':
-        return [
+        const travelServices = [
           { key: 'ttl', service: data.services.ttl },
           { key: 'tte', service: data.services.tte },
           { key: 'ttj', service: data.services.ttj },
           { key: 'schengen', service: data.services.schengen },
           { key: 'gcc', service: data.services.gcc },
         ];
+        // Add specific visa entry types if they have volume
+        if (data.services.ttlSingle?.volume > 0) {
+          travelServices.push({ key: 'ttlSingle', service: data.services.ttlSingle });
+        }
+        if (data.services.ttlDouble?.volume > 0) {
+          travelServices.push({ key: 'ttlDouble', service: data.services.ttlDouble });
+        }
+        if (data.services.ttlMultiple?.volume > 0) {
+          travelServices.push({ key: 'ttlMultiple', service: data.services.ttlMultiple });
+        }
+        if (data.services.tteSingle?.volume > 0) {
+          travelServices.push({ key: 'tteSingle', service: data.services.tteSingle });
+        }
+        if (data.services.tteMultiple?.volume > 0) {
+          travelServices.push({ key: 'tteMultiple', service: data.services.tteMultiple });
+        }
+        return travelServices;
       case 'passport':
         return [
           { key: 'ethiopianPP', service: data.services.ethiopianPP },

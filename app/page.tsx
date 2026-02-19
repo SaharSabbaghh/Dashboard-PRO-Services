@@ -21,12 +21,10 @@ import OperationsDashboard from '@/components/OperationsDashboard';
 import PnLConfigEditor from '@/components/PnLConfigEditor';
 import type { Results, ServiceFilter, ProspectDetail, HouseholdGroup } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
-import ComplaintsAwareProspectCards from '@/components/ComplaintsAwareProspectCards';
-import { useComplaintsAwareConversions } from '@/hooks/useComplaintsAwareConversions';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'complaints-aware' | 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'>('overview');
+  const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'>('overview');
   const [pnlSubTab, setPnlSubTab] = useState<'overview' | 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP'>('overview');
   const [results, setResults] = useState<Results | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -41,13 +39,6 @@ export default function Dashboard() {
   const [pnlAvailableDates, setPnlAvailableDates] = useState<string[]>([]);
   const [pnlAvailableMonths, setPnlAvailableMonths] = useState<string[]>([]);
   const [pnlViewMode, setPnlViewMode] = useState<'daily' | 'monthly'>('monthly');
-  
-  // Complaints-aware conversions hook
-  const { 
-    data: complaintsAwareData, 
-    isLoading: complaintsAwareLoading, 
-    error: complaintsAwareError 
-  } = useComplaintsAwareConversions(selectedDate);
   
   // Use ref to avoid useCallback dependency issues
   const availableDatesRef = useRef<string[]>([]);
@@ -352,7 +343,6 @@ export default function Dashboard() {
               <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
                 {[
                   { id: 'overview', label: 'Overview', icon: '◉' },
-                  { id: 'complaints-aware', label: 'Clean CVR', icon: '🎯' },
                   { id: 'oec', label: 'OEC', icon: '◈' },
                   { id: 'owwa', label: 'OWWA', icon: '◇' },
                   { id: 'travelVisa', label: 'Travel Visa', icon: '✈' },
