@@ -6,47 +6,36 @@ interface ComplaintsAwareProspectCardsProps {
     oec: {
       prospects: number;
       conversions: number;
-      cleanConversions: number;
       withComplaints: number;
       conversionRate: number;
-      cleanConversionRate: number;
     };
     owwa: {
       prospects: number;
       conversions: number;
-      cleanConversions: number;
       withComplaints: number;
       conversionRate: number;
-      cleanConversionRate: number;
     };
     travelVisa: {
       prospects: number;
       conversions: number;
-      cleanConversions: number;
       withComplaints: number;
       conversionRate: number;
-      cleanConversionRate: number;
     };
     filipinaPassportRenewal: {
       prospects: number;
       conversions: number;
-      cleanConversions: number;
       withComplaints: number;
       conversionRate: number;
-      cleanConversionRate: number;
     };
     ethiopianPassportRenewal: {
       prospects: number;
       conversions: number;
-      cleanConversions: number;
       withComplaints: number;
       conversionRate: number;
-      cleanConversionRate: number;
     };
   };
   totalProspects: number;
   totalConversions: number;
-  totalCleanConversions: number;
   isLoading?: boolean;
 }
 
@@ -55,7 +44,6 @@ export default function ComplaintsAwareProspectCards({
   services,
   totalProspects,
   totalConversions,
-  totalCleanConversions,
   isLoading = false
 }: ComplaintsAwareProspectCardsProps) {
   
@@ -83,17 +71,16 @@ export default function ComplaintsAwareProspectCards({
   ];
 
   const overallConversionRate = totalProspects > 0 ? Math.round((totalConversions / totalProspects) * 100) : 0;
-  const overallCleanConversionRate = totalProspects > 0 ? Math.round((totalCleanConversions / totalProspects) * 100) : 0;
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
         <h3 className="text-lg font-semibold text-blue-900 mb-2">
-          Complaints-Aware Conversion Analysis for {date}
+          Conversion Analysis for {date}
         </h3>
         <p className="text-sm text-blue-700">
-          Shows conversion rates excluding prospects with complaints on the same date
+          Shows conversion rates and complaint information for each service
         </p>
       </div>
 
@@ -121,12 +108,6 @@ export default function ComplaintsAwareProspectCards({
                   </span>
                 </div>
                 
-                {/* Clean conversions */}
-                <div className="text-sm">
-                  <span className="text-green-600 font-medium">
-                    {card.service.cleanConversions} clean ({card.service.cleanConversionRate.toFixed(1)}%)
-                  </span>
-                </div>
                 
                 {/* Complaints info */}
                 {card.service.withComplaints > 0 && (
@@ -141,7 +122,7 @@ export default function ComplaintsAwareProspectCards({
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Total Prospects */}
         <div className="bg-white border-2 border-slate-200 rounded-xl p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-600">Total Prospects</p>
@@ -164,16 +145,6 @@ export default function ComplaintsAwareProspectCards({
           </p>
         </div>
 
-        {/* Clean Conversion Rate */}
-        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5 shadow-sm">
-          <p className="text-sm font-medium text-green-700">Clean Conversion Rate</p>
-          <p className="text-3xl font-bold mt-2 text-green-800">
-            {isLoading ? '...' : `${overallCleanConversionRate}%`}
-          </p>
-          <p className="text-xs text-green-600 mt-1">
-            {totalCleanConversions} clean conversions
-          </p>
-        </div>
       </div>
 
       {/* Legend */}
@@ -184,13 +155,7 @@ export default function ComplaintsAwareProspectCards({
             <span className="font-medium">Regular Conversion:</span> Prospect who made a payment
           </div>
           <div>
-            <span className="font-medium text-green-600">Clean Conversion:</span> Prospect who made a payment AND had no complaints on the same date
-          </div>
-          <div>
             <span className="font-medium text-red-500">With Complaints:</span> Prospects who had complaints for the same service on this date
-          </div>
-          <div>
-            <span className="font-medium">Clean Rate:</span> More accurate measure of sales performance
           </div>
         </div>
       </div>

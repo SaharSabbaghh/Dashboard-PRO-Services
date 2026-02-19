@@ -79,7 +79,7 @@ export default function ChatsDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
-            <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
+            <p className="text-slate-600 mt-1">Monitor frustration and confusion levels (based on unique people - clients & maids)</p>
           </div>
           {/* Advanced Date Picker */}
           <DatePickerCalendar
@@ -105,7 +105,7 @@ export default function ChatsDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
-            <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
+            <p className="text-slate-600 mt-1">Monitor frustration and confusion levels (based on unique people - clients & maids)</p>
           </div>
           {/* Advanced Date Picker */}
           <DatePickerCalendar
@@ -132,7 +132,7 @@ export default function ChatsDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Chats Dashboard</h1>
-            <p className="text-slate-600 mt-1">Monitor customer frustration and confusion levels</p>
+            <p className="text-slate-600 mt-1">Monitor frustration and confusion levels (based on unique people - clients & maids)</p>
           </div>
           {/* Advanced Date Picker */}
           <DatePickerCalendar
@@ -152,7 +152,14 @@ export default function ChatsDashboard() {
     );
   }
 
-  // Deduplicate conversations by conversation ID, keeping the one with most data
+  // Use backend-calculated metrics (now based on unique people - clients + maids)
+  const totalPeople = data.overallMetrics.totalConversations; // Backend now counts unique people
+  const totalFrustrated = data.overallMetrics.frustratedCount; // Frustrated people count
+  const totalConfused = data.overallMetrics.confusedCount; // Confused people count
+  const frustrationPercentage = data.overallMetrics.frustrationPercentage;
+  const confusionPercentage = data.overallMetrics.confusionPercentage;
+  
+  // Deduplicate conversations for display purposes (conversation list)
   const deduplicatedConversations = data.conversationResults.reduce((acc, conv) => {
     const existing = acc.get(conv.conversationId);
     
@@ -178,20 +185,12 @@ export default function ChatsDashboard() {
     return acc;
   }, new Map<string, typeof data.conversationResults[0]>());
 
-  // Calculate counts from deduplicated data
   const deduplicatedArray = Array.from(deduplicatedConversations.values());
-  const totalConversations = deduplicatedArray.length;
   
-  // Count conversations by status (can have both flags)
-  const totalFrustrated = deduplicatedArray.filter(c => c.frustrated).length;
-  const totalConfused = deduplicatedArray.filter(c => c.confused).length;
+  // Calculate additional metrics for display
   const bothFrustratedAndConfused = deduplicatedArray.filter(c => c.frustrated && c.confused).length;
   const onlyFrustrated = deduplicatedArray.filter(c => c.frustrated && !c.confused).length;
   const onlyConfused = deduplicatedArray.filter(c => c.confused && !c.frustrated).length;
-  
-  // Calculate percentages
-  const frustrationPercentage = totalConversations > 0 ? Math.round((totalFrustrated / totalConversations) * 100) : 0;
-  const confusionPercentage = totalConversations > 0 ? Math.round((totalConfused / totalConversations) * 100) : 0;
 
   // Filter conversations based on selected filter
   const filteredConversations = deduplicatedArray.filter(conv => {
@@ -256,8 +255,8 @@ export default function ChatsDashboard() {
           <div className="flex items-center justify-between mb-2">
             <MessageSquare className="w-6 h-6 text-slate-600" />
               </div>
-          <div className="text-3xl font-bold text-slate-900 mb-1">{totalConversations}</div>
-          <div className="text-sm font-medium text-slate-600">Total Clients</div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{totalPeople}</div>
+          <div className="text-sm font-medium text-slate-600">Total People</div>
               </div>
               
         {/* Frustrated Clients */}
@@ -267,7 +266,7 @@ export default function ChatsDashboard() {
             <span className="text-xl font-bold text-red-600">{frustrationPercentage}%</span>
           </div>
           <div className="text-3xl font-bold text-slate-900 mb-1">{totalFrustrated}</div>
-          <div className="text-sm font-medium text-slate-600">Frustrated Clients</div>
+          <div className="text-sm font-medium text-slate-600">Frustrated People</div>
           {bothFrustratedAndConfused > 0 && (
             <div className="text-xs text-slate-500 mt-2">({bothFrustratedAndConfused} also confused)</div>
           )}
@@ -280,7 +279,7 @@ export default function ChatsDashboard() {
             <span className="text-xl font-bold text-blue-600">{confusionPercentage}%</span>
           </div>
           <div className="text-3xl font-bold text-slate-900 mb-1">{totalConfused}</div>
-          <div className="text-sm font-medium text-slate-600">Confused Clients</div>
+          <div className="text-sm font-medium text-slate-600">Confused People</div>
           {bothFrustratedAndConfused > 0 && (
             <div className="text-xs text-slate-500 mt-2">({bothFrustratedAndConfused} also frustrated)</div>
           )}

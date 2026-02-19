@@ -159,16 +159,63 @@ export async function aggregateDailyChatAnalysisResults(
     return createEmptyChatAnalysisData(analysisDate);
   }
 
-  // Calculate frustration as count and percentage
-  const frustratedCount = conversations.filter(conv => conv.frustrated).length;
-  const frustrationPercentage = conversations.length > 0 
-    ? Math.round((frustratedCount / conversations.length) * 100)
+  // Get unique people (clients OR maids) from conversations
+  const personMap = new Map<string, {
+    personId: string;
+    personType: 'client' | 'maid' | 'unknown';
+    frustrated: boolean;
+    confused: boolean;
+    conversationIds: string[];
+  }>();
+
+  // Group conversations by person (client or maid), aggregating their frustration/confusion status
+  conversations.forEach(conv => {
+    // Determine the person key and type
+    let personKey: string;
+    let personType: 'client' | 'maid' | 'unknown';
+    
+    if (conv.clientId) {
+      personKey = `client_${conv.clientId}`;
+      personType = 'client';
+    } else if (conv.maidId) {
+      personKey = `maid_${conv.maidId}`;
+      personType = 'maid';
+    } else {
+      // Fallback to conversationId if neither clientId nor maidId is available
+      personKey = `unknown_${conv.conversationId}`;
+      personType = 'unknown';
+    }
+    
+    if (!personMap.has(personKey)) {
+      personMap.set(personKey, {
+        personId: personKey,
+        personType,
+        frustrated: conv.frustrated,
+        confused: conv.confused,
+        conversationIds: [conv.conversationId]
+      });
+    } else {
+      const existing = personMap.get(personKey)!;
+      // If any conversation for this person is frustrated/confused, mark person as such
+      existing.frustrated = existing.frustrated || conv.frustrated;
+      existing.confused = existing.confused || conv.confused;
+      existing.conversationIds.push(conv.conversationId);
+    }
+  });
+
+  const uniquePeople = Array.from(personMap.values());
+  const totalPeople = uniquePeople.length;
+
+  // Calculate frustration as count and percentage based on unique people
+  const frustratedPeopleCount = uniquePeople.filter(person => person.frustrated).length;
+  const frustrationPercentage = totalPeople > 0 
+    ? Math.round((frustratedPeopleCount / totalPeople) * 100)
     : 0;
   
-  // Calculate confusion as count and percentage
-  const confusedCount = conversations.filter(conv => conv.confused).length;
-  const confusionPercentage = conversations.length > 0 
-    ? Math.round((confusedCount / conversations.length) * 100)
+  // Calculate confusion as count and percentage based on unique people
+  const confusedPeopleCount = uniquePeople.filter(person => person.confused).length;
+  const confusionPercentage = totalPeople > 0 
+    ? Math.round((confusedPeopleCount / totalPeople) * 100)
     : 0;
 
   // Convert conversations to ChatAnalysisResult format for storage
@@ -211,12 +258,12 @@ export async function aggregateDailyChatAnalysisResults(
     lastUpdated: new Date().toISOString(),
     analysisDate,
     overallMetrics: {
-      frustratedCount,
+      frustratedCount: frustratedPeopleCount,
       frustrationPercentage,
-      confusedCount,
+      confusedCount: confusedPeopleCount,
       confusionPercentage,
-      totalConversations: results.length,
-      analysedConversations: results.length,
+      totalConversations: totalPeople, // Now represents total unique people (clients + maids)
+      analysedConversations: totalPeople, // Now represents analyzed unique people
     },
     trends: {
       frustration: {

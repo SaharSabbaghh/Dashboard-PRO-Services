@@ -34,12 +34,12 @@ export interface ChatAnalysisData {
   lastUpdated: string;
   analysisDate: string; // The specific date this analysis is for (YYYY-MM-DD)
   overallMetrics: {
-    frustratedCount: number; // Number of frustrated conversations
-    frustrationPercentage: number; // Percentage of frustrated conversations
-    confusedCount: number; // Number of confused conversations
-    confusionPercentage: number; // Percentage of confused conversations
-    totalConversations: number;
-    analysedConversations: number;
+    frustratedCount: number; // Number of frustrated people (clients + maids)
+    frustrationPercentage: number; // Percentage of frustrated people
+    confusedCount: number; // Number of confused people (clients + maids)
+    confusionPercentage: number; // Percentage of confused people
+    totalConversations: number; // Total unique people - clients + maids (field name kept for compatibility)
+    analysedConversations: number; // Total analyzed unique people
   };
   trends: {
     frustration: {

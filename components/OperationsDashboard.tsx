@@ -433,51 +433,37 @@ export default function OperationsDashboard() {
                     <span className="font-semibold text-slate-900 text-sm">{operation.serviceType}</span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
-                      operation.pendingUs > 0 ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'
-                    }`}>
+                    <span className="text-black text-sm">
                       {operation.pendingUs}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
-                      operation.pendingClient > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
-                    }`}>
+                    <span className="text-black text-sm">
                       {operation.pendingClient}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
-                      operation.pendingProVisit > 0 ? 'bg-purple-50 text-purple-700' : 'bg-slate-50 text-slate-600'
-                    }`}>
+                    <span className="text-black text-sm">
                       {operation.pendingProVisit}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
-                      operation.pendingGov > 0 ? 'bg-red-50 text-red-700' : 'bg-slate-50 text-slate-600'
-                    }`}>
+                    <span className="text-black text-sm">
                       {operation.pendingGov}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
-                      operation.doneToday > 0 ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
-                    }`}>
+                    <span className="text-black text-sm">
                       {operation.doneToday}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
-                      (mtdData[operation.serviceType] || 0) > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'
-                    }`}>
+                    <span className="text-black text-sm">
                       {mtdData[operation.serviceType] || 0}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-sm font-semibold ${
-                      operation.casesDelayed > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-                    }`}>
+                    <span className="text-black text-sm">
                       {operation.casesDelayed}
                     </span>
                   </td>

@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
-import { getPaymentData, filterPaymentsByDate } from '@/lib/payment-processor';
-import { 
-  getConversionsWithComplaintCheck, 
-  calculateCleanConversionRates 
-} from '@/lib/complaints-conversion-service';
 
 // Force Node.js runtime for blob storage operations
 export const runtime = 'nodejs';
@@ -12,120 +7,93 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Helper function to check conversions from payment data with complaints analysis
+// Helper function to calculate conversions from complaints data only
 async function calculateConversionsForDate(date: string, prospects: any[]) {
-  const paymentData = await getPaymentData();
-  if (!paymentData || prospects.length === 0) {
+  if (prospects.length === 0) {
     return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
   }
   
   try {
-    // Filter payments for this specific date (only RECEIVED payments)
-    const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
+    // Get complaints data for this date
+    const { getDailyComplaints } = await import('@/lib/daily-complaints-storage');
+    const complaintsResult = await getDailyComplaints(date);
     
-    // Create payment lookup maps (same logic as conversions API)
-    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
-    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
-    
-    datePayments.forEach(payment => {
-      if (!paymentMap.has(payment.contractId)) {
-        paymentMap.set(payment.contractId, new Set());
-        paymentDatesMap.set(payment.contractId, new Map());
-      }
-      
-      const services = paymentMap.get(payment.contractId)!;
-      const dates = paymentDatesMap.get(payment.contractId)!;
-      
-      // Map payment services to prospect service types
-      let prospectService: 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | null = null;
-      
-      if (payment.service === 'oec') {
-        prospectService = 'oec';
-      } else if (payment.service === 'owwa') {
-        prospectService = 'owwa';
-      } else if (payment.service === 'ttl' || payment.service === 'tte' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
-        prospectService = 'travel_visa';
-      } else if (payment.service === 'filipina_pp') {
-        prospectService = 'filipina_pp';
-      } else if (payment.service === 'ethiopian_pp') {
-        prospectService = 'ethiopian_pp';
-      }
-      
-      if (prospectService) {
-        services.add(prospectService);
-        
-        if (!dates.has(prospectService)) {
-          dates.set(prospectService, []);
-        }
-        dates.get(prospectService)!.push(payment.dateOfPayment);
-      }
-    });
+    if (!complaintsResult.success || !complaintsResult.data) {
+      console.log(`[${date}] No complaints data found - all conversions = 0`);
+      return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
+    }
 
-    // Get conversions with complaint analysis
-    const conversionsWithComplaints = await getConversionsWithComplaintCheck(
-      prospects,
-      date,
-      paymentMap,
-      paymentDatesMap
-    );
-    
-    // Calculate conversion stats (including all conversions, flagged with complaint info)
-    const conversionStats = calculateCleanConversionRates(conversionsWithComplaints);
-    
-    console.log(`[${date}] Conversion stats with complaint analysis:`, {
-      oec: `${conversionStats.stats.oec.conversions}/${conversionStats.stats.oec.prospects} total (${conversionStats.rates.oec.overall.toFixed(1)}%), ${conversionStats.stats.oec.withComplaints} with complaints`,
-      owwa: `${conversionStats.stats.owwa.conversions}/${conversionStats.stats.owwa.prospects} total (${conversionStats.rates.owwa.overall.toFixed(1)}%), ${conversionStats.stats.owwa.withComplaints} with complaints`,
-      travelVisa: `${conversionStats.stats.travelVisa.conversions}/${conversionStats.stats.travelVisa.prospects} total (${conversionStats.rates.travelVisa.overall.toFixed(1)}%), ${conversionStats.stats.travelVisa.withComplaints} with complaints`,
-      filipinaPassportRenewal: `${conversionStats.stats.filipinaPassportRenewal.conversions}/${conversionStats.stats.filipinaPassportRenewal.prospects} total (${conversionStats.rates.filipinaPassportRenewal.overall.toFixed(1)}%), ${conversionStats.stats.filipinaPassportRenewal.withComplaints} with complaints`,
-      ethiopianPassportRenewal: `${conversionStats.stats.ethiopianPassportRenewal.conversions}/${conversionStats.stats.ethiopianPassportRenewal.prospects} total (${conversionStats.rates.ethiopianPassportRenewal.overall.toFixed(1)}%), ${conversionStats.stats.ethiopianPassportRenewal.withComplaints} with complaints`
-    });
-    
-    // Return all conversions (including those with complaints)
-    return {
-      oec: conversionStats.stats.oec.conversions,
-      owwa: conversionStats.stats.owwa.conversions,
-      travelVisa: conversionStats.stats.travelVisa.conversions,
-      filipinaPassportRenewal: conversionStats.stats.filipinaPassportRenewal.conversions,
-      ethiopianPassportRenewal: conversionStats.stats.ethiopianPassportRenewal.conversions,
-    };
-  } catch (error) {
-    console.error('Error calculating complaints-aware conversions:', error);
-    // Fallback to simple conversion calculation if complaints analysis fails
-    const contractIds = prospects.map(p => p.contractId).filter(Boolean);
-    const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
-    
-    const convertedContracts = {
+    const complaints = complaintsResult.data.complaints;
+    console.log(`[${date}] Found ${complaints.length} complaints for conversion calculation`);
+
+    // Create conversion counters
+    const conversions = {
       oec: new Set<string>(),
       owwa: new Set<string>(),
       travelVisa: new Set<string>(),
       filipinaPassportRenewal: new Set<string>(),
       ethiopianPassportRenewal: new Set<string>(),
     };
-    
-    // Check each payment on this date
-    for (const payment of datePayments) {
-      if (contractIds.includes(payment.contractId)) {
-        if (payment.service === 'oec') {
-          convertedContracts.oec.add(payment.contractId);
-        } else if (payment.service === 'owwa') {
-          convertedContracts.owwa.add(payment.contractId);
-        } else if (payment.service === 'ttl' || payment.service === 'tte' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
-          convertedContracts.travelVisa.add(payment.contractId);
-        } else if (payment.service === 'filipina_pp') {
-          convertedContracts.filipinaPassportRenewal.add(payment.contractId);
-        } else if (payment.service === 'ethiopian_pp') {
-          convertedContracts.ethiopianPassportRenewal.add(payment.contractId);
+
+    // For each prospect, check if they have a complaint (which indicates conversion)
+    for (const prospect of prospects) {
+      // Check if this prospect has complaints that match their prospect type
+      const matchingComplaints = complaints.filter(complaint => {
+        // Link by contract ID, maid ID, or client ID
+        return (
+          (prospect.contractId && complaint.contractId === prospect.contractId) ||
+          (prospect.maidId && complaint.housemaidId === prospect.maidId) ||
+          (prospect.clientId && complaint.clientId === prospect.clientId)
+        );
+      });
+
+      if (matchingComplaints.length > 0) {
+        // Map complaint types to services using existing function
+        const { getServiceKeyFromComplaintType } = await import('@/lib/pnl-complaints-types');
+        
+        for (const complaint of matchingComplaints) {
+          const serviceKey = getServiceKeyFromComplaintType(complaint.complaintType);
+          if (!serviceKey) continue;
+          
+          // Map complaint service to prospect service and count as conversion
+          const prospectKey = prospect.contractId || prospect.maidId || prospect.clientId;
+          if (!prospectKey) continue;
+          
+          if (serviceKey === 'oec' && prospect.isOECProspect) {
+            conversions.oec.add(prospectKey);
+          } else if (serviceKey === 'owwa' && prospect.isOWWAProspect) {
+            conversions.owwa.add(prospectKey);
+          } else if (['ttl', 'tte', 'ttj', 'schengen', 'gcc'].includes(serviceKey) && prospect.isTravelVisaProspect) {
+            conversions.travelVisa.add(prospectKey);
+          } else if (serviceKey === 'filipinaPP' && prospect.isFilipinaPassportRenewalProspect) {
+            conversions.filipinaPassportRenewal.add(prospectKey);
+          } else if (serviceKey === 'ethiopianPP' && prospect.isEthiopianPassportRenewalProspect) {
+            conversions.ethiopianPassportRenewal.add(prospectKey);
+          }
         }
       }
     }
     
-    return {
-      oec: convertedContracts.oec.size,
-      owwa: convertedContracts.owwa.size,
-      travelVisa: convertedContracts.travelVisa.size,
-      filipinaPassportRenewal: convertedContracts.filipinaPassportRenewal.size,
-      ethiopianPassportRenewal: convertedContracts.ethiopianPassportRenewal.size,
+    const result = {
+      oec: conversions.oec.size,
+      owwa: conversions.owwa.size,
+      travelVisa: conversions.travelVisa.size,
+      filipinaPassportRenewal: conversions.filipinaPassportRenewal.size,
+      ethiopianPassportRenewal: conversions.ethiopianPassportRenewal.size,
     };
+
+    console.log(`[${date}] Complaints-based conversions:`, {
+      oec: `${result.oec} conversions`,
+      owwa: `${result.owwa} conversions`,
+      travelVisa: `${result.travelVisa} conversions`,
+      filipinaPassportRenewal: `${result.filipinaPassportRenewal} conversions`,
+      ethiopianPassportRenewal: `${result.ethiopianPassportRenewal} conversions`
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Error calculating complaints-based conversions:', error);
+    return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
   }
 }
 

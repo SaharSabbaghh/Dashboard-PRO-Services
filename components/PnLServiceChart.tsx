@@ -10,7 +10,7 @@ interface PnLServiceChartProps {
 
 type ViewMode = 'revenue' | 'volume';
 
-// Distinct colors for better visibility
+// Distinct colors for each service
 const SERVICE_COLORS = {
   oec: '#3b82f6',      // blue-500
   owwa: '#10b981',     // emerald-500
@@ -96,7 +96,7 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
 
   // Custom label function to show values on pie slices
   const renderLabel = (entry: any) => {
-    if (entry.percentage < 5) return ''; // Don't show labels for very small slices
+    if (entry.percentage < 3) return ''; // Don't show labels for very small slices
     
     if (viewMode === 'revenue') {
       return `${formatCurrency(entry.value)}`;
@@ -104,6 +104,7 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
       return `${entry.value}`;
     }
   };
+
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -149,7 +150,7 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
         ))}
       </div>
 
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center relative">
         <ResponsiveContainer width="100%" height={400}>
           <PieChart>
             <Pie
@@ -158,12 +159,13 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
               cy="50%"
               labelLine={false}
               label={renderLabel}
+              innerRadius={80}
               outerRadius={140}
-              paddingAngle={2}
+              paddingAngle={3}
               dataKey="value"
               stroke="#fff"
-              strokeWidth={2}
-              animationDuration={400}
+              strokeWidth={3}
+              animationDuration={600}
             >
               {pieData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
@@ -180,6 +182,21 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
             />
           </PieChart>
         </ResponsiveContainer>
+        
+        {/* Center label */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-slate-800">
+              {viewMode === 'revenue' 
+                ? formatCurrency(totalRevenue)
+                : totalVolume.toLocaleString()
+              }
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              {viewMode === 'revenue' ? 'Total Revenue' : 'Total Orders'}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Summary */}

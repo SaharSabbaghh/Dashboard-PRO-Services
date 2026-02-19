@@ -271,9 +271,6 @@ export default function AgentsDashboard() {
                       </th>
                     </>
                   )}
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Performance
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -282,15 +279,6 @@ export default function AgentsDashboard() {
                   .map((agent, index) => {
                     const isTopPerformer = index < 3;
                     
-                    // Performance based on time thresholds
-                    const getPerformanceCategory = (delaySeconds: number) => {
-                      if (delaySeconds <= 120) return { label: 'Excellent', color: 'text-green-600' };
-                      if (delaySeconds <= 300) return { label: 'Great', color: 'text-blue-600' };
-                      if (delaySeconds <= 600) return { label: 'Slow', color: 'text-yellow-600' };
-                      return { label: 'Very Slow', color: 'text-red-600' };
-                    };
-                    
-                    const performance = getPerformanceCategory(agent.avgDelaySeconds);
                     
                     // Find matching agent hours data
                     const agentHours = agentHoursData?.agents.find(
@@ -373,11 +361,6 @@ export default function AgentsDashboard() {
                             </td>
                           </>
                         )}
-                        <td className="py-4 px-6">
-                          <span className={`font-medium text-sm ${performance.color}`}>
-                            {performance.label}
-                          </span>
-                        </td>
                       </tr>
                     );
                   })}
