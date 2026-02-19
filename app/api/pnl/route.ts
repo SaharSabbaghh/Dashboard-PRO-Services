@@ -2,11 +2,9 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
-import { getPnLConfigHistory, getConfigForDate } from '@/lib/pnl-config-storage';
+import { getPnLConfig } from '@/lib/simple-pnl-config';
 import { aggregateDailyComplaints } from '@/lib/daily-complaints-storage';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
-import type { PnLConfigSnapshot } from '@/lib/pnl-config-types';
-import { DEFAULT_CONFIG_SNAPSHOT } from '@/lib/pnl-config-types';
 
 // Force Node.js runtime for filesystem access (required for fs operations)
 export const runtime = 'nodejs';
@@ -99,23 +97,9 @@ export async function GET(request: Request) {
       
       const dailyData = dailyComplaintsResult.data;
       
-      // Get configuration history for cost calculations
-      const configHistory = await getPnLConfigHistory();
-      
-      // For date-range queries, use the config effective at the END of the range
-      // This ensures we use the most recent pricing for the entire calculation
-      const effectiveDate = endDate || startDate || new Date().toISOString().split('T')[0];
-      const rawConfig = getConfigForDate(configHistory, effectiveDate);
-      
-      // Merge with defaults to handle configs saved before fixedCosts existed
-      const effectiveConfig = {
-        ...DEFAULT_CONFIG_SNAPSHOT,
-        ...rawConfig,
-        services: { ...DEFAULT_CONFIG_SNAPSHOT.services, ...(rawConfig.services || {}) },
-        fixedCosts: { ...DEFAULT_CONFIG_SNAPSHOT.fixedCosts, ...(rawConfig.fixedCosts || {}) },
-      };
-      
-      console.log(`[P&L] Using config effective for date: ${effectiveDate}, config from: ${effectiveConfig.effectiveDate}`);
+      // Get current P&L configuration
+      const config = getPnLConfig();
+      console.log(`[P&L] Using current config, last updated: ${config.lastUpdated}`);
       
       const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
       
@@ -140,7 +124,7 @@ export async function GET(request: Request) {
       // Revenue = (serviceFee + unitCost) × volume
       // Gross Profit = serviceFee × volume
       ALL_SERVICE_KEYS.forEach(key => {
-        const serviceConfig = effectiveConfig.services[key] || DEFAULT_CONFIG_SNAPSHOT.services[key];
+        const serviceConfig = config[key];
         const volume = dailyData.volumes[key] || 0;
         const unitCost = serviceConfig?.unitCost || SERVICE_COSTS[key]; // Use config unitCost, fallback to hardcoded
         const serviceFee = serviceConfig?.serviceFee || 0; // Service fee (markup)
@@ -168,7 +152,7 @@ export async function GET(request: Request) {
       }
       
       // Fixed costs multiplied by number of months
-      const monthlyFixedCosts = effectiveConfig.fixedCosts;
+      const monthlyFixedCosts = config.fixedCosts;
       const fixedCosts = {
         laborCost: monthlyFixedCosts.laborCost * numberOfMonths,
         llm: monthlyFixedCosts.llm * numberOfMonths,
