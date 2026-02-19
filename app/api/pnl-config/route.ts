@@ -10,10 +10,24 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
+    console.log('[P&L Config API] Starting to fetch configuration...');
     const history = await getPnLConfigHistory();
+    console.log('[P&L Config API] Got history with', history.configurations.length, 'configurations');
     
     // Get the most recent configuration
     const currentConfig = history.configurations[history.configurations.length - 1];
+    console.log('[P&L Config API] Current config effective date:', currentConfig?.effectiveDate);
+    
+    // Ensure we always have a valid config
+    if (!currentConfig) {
+      console.error('[P&L Config API] No current config found, this should not happen');
+      const { DEFAULT_CONFIG_SNAPSHOT } = await import('@/lib/pnl-config-types');
+      return NextResponse.json({
+        success: true,
+        currentConfig: DEFAULT_CONFIG_SNAPSHOT,
+        history: [DEFAULT_CONFIG_SNAPSHOT],
+      });
+    }
     
     return NextResponse.json({
       success: true,
@@ -21,11 +35,26 @@ export async function GET() {
       history: history.configurations,
     });
   } catch (error) {
-    console.error('Error fetching P&L config:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch configuration' },
-      { status: 500 }
-    );
+    console.error('[P&L Config API] Error fetching P&L config:', error);
+    console.error('[P&L Config API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Fallback to default config even on error
+    try {
+      const { DEFAULT_CONFIG_SNAPSHOT } = await import('@/lib/pnl-config-types');
+      console.log('[P&L Config API] Falling back to default configuration');
+      return NextResponse.json({
+        success: true,
+        currentConfig: DEFAULT_CONFIG_SNAPSHOT,
+        history: [DEFAULT_CONFIG_SNAPSHOT],
+        warning: 'Using default configuration due to storage error'
+      });
+    } catch (fallbackError) {
+      console.error('[P&L Config API] Even fallback failed:', fallbackError);
+      return NextResponse.json(
+        { success: false, error: `Failed to fetch configuration: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        { status: 500 }
+      );
+    }
   }
 }
 

@@ -29,6 +29,11 @@ export default function PnLConfigEditor() {
         setHistory(data.history);
         setEditedConfig(data.currentConfig.services);
         setEditedFixedCosts(data.currentConfig.fixedCosts);
+        
+        // Show warning if using fallback config
+        if (data.warning) {
+          console.warn('P&L Config Warning:', data.warning);
+        }
       } else {
         setError(data.error || 'Failed to load configuration');
         console.error('API error:', data.error);

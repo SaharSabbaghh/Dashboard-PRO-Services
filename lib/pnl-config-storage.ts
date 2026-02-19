@@ -17,6 +17,7 @@ export async function getPnLConfigHistory(): Promise<PnLConfigHistory> {
   
   // Only try loading custom config on server side
   if (typeof window === 'undefined') {
+    console.log('[P&L Config] Running on server side, checking for custom config...');
     // Try blob storage first
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
@@ -41,19 +42,26 @@ export async function getPnLConfigHistory(): Promise<PnLConfigHistory> {
 
     // Try local file storage
     try {
+      console.log('[P&L Config] Trying local file storage...');
       const fs = await import('fs');
       const path = await import('path');
       
       const configFile = path.join(process.cwd(), 'data', 'pnl-config-history.json');
+      console.log('[P&L Config] Looking for config file at:', configFile);
       
       if (fs.existsSync(configFile)) {
+        console.log('[P&L Config] Local config file exists, reading...');
         const fileContent = fs.readFileSync(configFile, 'utf-8');
         const data = JSON.parse(fileContent) as PnLConfigHistory;
         
         if (data.configurations && Array.isArray(data.configurations)) {
           console.log(`[P&L Config] Successfully loaded ${data.configurations.length} configurations from local file`);
           return data;
+        } else {
+          console.warn('[P&L Config] Local config file has invalid structure');
         }
+      } else {
+        console.log('[P&L Config] No local config file found');
       }
     } catch (error) {
       console.warn('[P&L Config] Error accessing local config file:', error);
@@ -61,7 +69,17 @@ export async function getPnLConfigHistory(): Promise<PnLConfigHistory> {
   }
 
   console.log('[P&L Config] Using default configuration');
-  return DEFAULT_CONFIG_HISTORY;
+  
+  // Ensure the default config has all required fields
+  const safeDefaultHistory = {
+    configurations: [{
+      ...DEFAULT_CONFIG_HISTORY.configurations[0],
+      effectiveDate: DEFAULT_CONFIG_HISTORY.configurations[0].effectiveDate || '2024-01-01',
+      updatedAt: DEFAULT_CONFIG_HISTORY.configurations[0].updatedAt || new Date().toISOString(),
+    }]
+  };
+  
+  return safeDefaultHistory;
 }
 
 /**
