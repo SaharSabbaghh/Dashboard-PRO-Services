@@ -13,46 +13,55 @@ const CONFIG_BLOB_PATH = 'pnl-config-history.json';
  * Get the configuration history from blob storage
  */
 export async function getPnLConfigHistory(): Promise<PnLConfigHistory> {
-  // Always return default config first, then try to load from blob if available
-  console.log('[P&L Config] Loading default configuration');
+  console.log('[P&L Config] Loading configuration...');
   
-  // Check if we're in a server environment and have blob access
-  if (typeof window === 'undefined' && process.env.BLOB_READ_WRITE_TOKEN) {
-    try {
-      const { blobs } = await list({ prefix: CONFIG_BLOB_PATH, limit: 1 });
+  // Only try loading custom config on server side
+  if (typeof window === 'undefined') {
+    // Try blob storage first
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const { blobs } = await list({ prefix: CONFIG_BLOB_PATH, limit: 1 });
 
-      if (blobs.length === 0) {
-        console.log('[P&L Config] No custom config found, using default configuration');
-        return DEFAULT_CONFIG_HISTORY;
+        if (blobs.length > 0) {
+          const response = await fetch(blobs[0].url, { cache: 'no-store' });
+          
+          if (response.ok) {
+            const data = await response.json() as PnLConfigHistory;
+            
+            if (data.configurations && Array.isArray(data.configurations)) {
+              console.log(`[P&L Config] Successfully loaded ${data.configurations.length} configurations from blob storage`);
+              return data;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('[P&L Config] Error accessing blob storage:', error);
       }
-
-      const response = await fetch(blobs[0].url, { cache: 'no-store' });
-      
-      if (!response.ok) {
-        console.warn(`[P&L Config] Failed to fetch custom config: ${response.status} ${response.statusText}`);
-        console.log('[P&L Config] Using default configuration');
-        return DEFAULT_CONFIG_HISTORY;
-      }
-
-      const data = await response.json() as PnLConfigHistory;
-      
-      // Validate the data structure
-      if (!data.configurations || !Array.isArray(data.configurations)) {
-        console.warn('[P&L Config] Invalid custom config structure, using default');
-        return DEFAULT_CONFIG_HISTORY;
-      }
-      
-      console.log(`[P&L Config] Successfully loaded ${data.configurations.length} custom configurations`);
-      return data;
-    } catch (error) {
-      console.warn('[P&L Config] Error accessing blob storage:', error);
-      console.log('[P&L Config] Using default configuration');
-      return DEFAULT_CONFIG_HISTORY;
     }
-  } else {
-    console.log('[P&L Config] Blob storage not available, using default configuration');
-    return DEFAULT_CONFIG_HISTORY;
+
+    // Try local file storage
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const configFile = path.join(process.cwd(), 'data', 'pnl-config-history.json');
+      
+      if (fs.existsSync(configFile)) {
+        const fileContent = fs.readFileSync(configFile, 'utf-8');
+        const data = JSON.parse(fileContent) as PnLConfigHistory;
+        
+        if (data.configurations && Array.isArray(data.configurations)) {
+          console.log(`[P&L Config] Successfully loaded ${data.configurations.length} configurations from local file`);
+          return data;
+        }
+      }
+    } catch (error) {
+      console.warn('[P&L Config] Error accessing local config file:', error);
+    }
   }
+
+  console.log('[P&L Config] Using default configuration');
+  return DEFAULT_CONFIG_HISTORY;
 }
 
 /**
@@ -66,22 +75,40 @@ export function getConfigForDate(history: PnLConfigHistory, date: string): PnLCo
  * Save configuration history to blob storage
  */
 export async function savePnLConfigHistory(history: PnLConfigHistory): Promise<void> {
-  // Only try to save if we have blob storage access
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.warn('[P&L Config] BLOB_READ_WRITE_TOKEN not available, cannot save configuration changes');
-    throw new Error('Blob storage not configured. Configuration changes cannot be saved.');
+  // Try blob storage first, fall back to local storage
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      await put(CONFIG_BLOB_PATH, JSON.stringify(history, null, 2), {
+        access: 'public',
+        addRandomSuffix: false,
+        contentType: 'application/json',
+      });
+      console.log('[P&L Config] Configuration saved successfully to blob storage');
+      return;
+    } catch (error) {
+      console.error('[P&L Config] Error saving to blob storage:', error);
+      // Fall through to local storage
+    }
   }
 
+  // Local storage fallback
   try {
-    await put(CONFIG_BLOB_PATH, JSON.stringify(history, null, 2), {
-      access: 'public',
-      addRandomSuffix: false,
-      contentType: 'application/json',
-    });
-    console.log('[P&L Config] Configuration saved successfully');
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const configDir = path.join(process.cwd(), 'data');
+    const configFile = path.join(configDir, 'pnl-config-history.json');
+    
+    // Ensure directory exists
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(configFile, JSON.stringify(history, null, 2));
+    console.log('[P&L Config] Configuration saved successfully to local file');
   } catch (error) {
-    console.error('[P&L Config] Error saving configuration:', error);
-    throw new Error('Failed to save P&L configuration to blob storage');
+    console.error('[P&L Config] Error saving configuration locally:', error);
+    throw new Error('Failed to save P&L configuration');
   }
 }
 
