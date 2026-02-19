@@ -19,7 +19,7 @@ export interface ProcessedPayment {
   clientId: string;
   status: 'received' | 'pre_pdp' | 'other';
   dateOfPayment: string; // ISO date string "2026-01-14"
-  service: 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other';
+  service: 'oec' | 'owwa' | 'ttl' | 'ttlSingle' | 'ttlDouble' | 'ttlMultiple' | 'tte' | 'tteSingle' | 'tteMultiple' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other';
   amountOfPayment: number; // Parsed payment amount (0 if not provided)
 }
 
@@ -33,7 +33,7 @@ export interface PaymentData {
 /**
  * Maps payment types to P&L services
  */
-export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other'> = {
+export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'ttl' | 'ttlSingle' | 'ttlDouble' | 'ttlMultiple' | 'tte' | 'tteSingle' | 'tteMultiple' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other'> = {
   // OEC payments
   "the maid's overseas employment certificate": 'oec',
   'overseas employment certificate': 'oec',
@@ -79,7 +79,7 @@ export const PAYMENT_TYPE_MAP: Record<string, 'oec' | 'owwa' | 'ttl' | 'tte' | '
 /**
  * Maps payment type string to service category
  */
-export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other' {
+export function mapPaymentTypeToService(paymentType: string): 'oec' | 'owwa' | 'ttl' | 'ttlSingle' | 'ttlDouble' | 'ttlMultiple' | 'tte' | 'tteSingle' | 'tteMultiple' | 'ttj' | 'schengen' | 'gcc' | 'filipina_pp' | 'ethiopian_pp' | 'other' {
   const normalized = paymentType.toLowerCase().trim();
   
   // Direct match
