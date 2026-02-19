@@ -170,8 +170,33 @@ export async function aggregateDailyChatAnalysisResults(
     conversationIds: string[];
   }>();
 
-  // Group conversations by person (client or maid), aggregating their frustration/confusion status
+  // First, deduplicate conversations by conversationId to handle duplicate entries
+  const conversationMap = new Map<string, typeof conversations[0]>();
   conversations.forEach(conv => {
+    const existing = conversationMap.get(conv.conversationId);
+    if (!existing) {
+      conversationMap.set(conv.conversationId, conv);
+    } else {
+      // Keep the one with more data (issues or phrases) or both frustrated/confused flags
+      const existingDataScore = (existing.mainIssues?.length || 0) + (existing.keyPhrases?.length || 0);
+      const currentDataScore = (conv.mainIssues?.length || 0) + (conv.keyPhrases?.length || 0);
+      
+      if (currentDataScore > existingDataScore || 
+          (currentDataScore === existingDataScore && conv.frustrated && conv.confused && !(existing.frustrated && existing.confused))) {
+        conversationMap.set(conv.conversationId, conv);
+      }
+    }
+  });
+  
+  const deduplicatedConversations = Array.from(conversationMap.values());
+  
+  // Log deduplication results
+  if (conversations.length !== deduplicatedConversations.length) {
+    console.log(`[Chat Storage] Deduplication: ${conversations.length} → ${deduplicatedConversations.length} conversations (removed ${conversations.length - deduplicatedConversations.length} duplicates)`);
+  }
+  
+  // Group deduplicated conversations by person (client or maid), aggregating their frustration/confusion status
+  deduplicatedConversations.forEach(conv => {
     // Determine the person key and type
     let personKey: string;
     let personType: 'client' | 'maid' | 'unknown';
@@ -183,8 +208,8 @@ export async function aggregateDailyChatAnalysisResults(
       personKey = `maid_${conv.maidId}`;
       personType = 'maid';
     } else {
-      // Fallback to conversationId if neither clientId nor maidId is available
-      personKey = `unknown_${conv.conversationId}`;
+      // Fallback to conversationId (without 'unknown_' prefix for better deduplication)
+      personKey = conv.conversationId;
       personType = 'unknown';
     }
     
@@ -207,6 +232,18 @@ export async function aggregateDailyChatAnalysisResults(
 
   const uniquePeople = Array.from(personMap.values());
   const totalPeople = uniquePeople.length;
+  
+  // Log person identification results
+  const clientCount = uniquePeople.filter(p => p.personType === 'client').length;
+  const maidCount = uniquePeople.filter(p => p.personType === 'maid').length;
+  const unknownCount = uniquePeople.filter(p => p.personType === 'unknown').length;
+  console.log(`[Chat Storage] Person identification: ${clientCount} clients, ${maidCount} maids, ${unknownCount} unknown (${totalPeople} total people)`);
+  
+  // Log people with multiple conversations
+  const multipleConversations = uniquePeople.filter(p => p.conversationIds.length > 1);
+  if (multipleConversations.length > 0) {
+    console.log(`[Chat Storage] ${multipleConversations.length} people have multiple conversations`);
+  }
 
   // Calculate frustration as count and percentage based on unique people
   const frustratedPeopleCount = uniquePeople.filter(person => person.frustrated).length;
@@ -220,8 +257,8 @@ export async function aggregateDailyChatAnalysisResults(
     ? Math.round((confusedPeopleCount / totalPeople) * 100)
     : 0;
 
-  // Convert conversations to ChatAnalysisResult format for storage
-  const results: ChatAnalysisResult[] = conversations.map(conv => ({
+  // Convert deduplicated conversations to ChatAnalysisResult format for storage
+  const results: ChatAnalysisResult[] = deduplicatedConversations.map(conv => ({
     conversationId: conv.conversationId,
     frustrated: conv.frustrated,
     confused: conv.confused,
