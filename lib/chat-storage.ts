@@ -152,6 +152,8 @@ export async function aggregateDailyChatAnalysisResults(
     chatStartDateTime?: string;
     service?: string;
     skill?: string;
+    clientId?: string;
+    maidId?: string;
   }>,
   analysisDate: string
 ): Promise<ChatAnalysisData> {
