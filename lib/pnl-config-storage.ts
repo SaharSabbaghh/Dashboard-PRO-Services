@@ -13,37 +13,44 @@ const CONFIG_BLOB_PATH = 'pnl-config-history.json';
  * Get the configuration history from blob storage
  */
 export async function getPnLConfigHistory(): Promise<PnLConfigHistory> {
-  try {
-    const { blobs } = await list({ prefix: CONFIG_BLOB_PATH, limit: 1 });
+  // Always return default config first, then try to load from blob if available
+  console.log('[P&L Config] Loading default configuration');
+  
+  // Check if we're in a server environment and have blob access
+  if (typeof window === 'undefined' && process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { blobs } = await list({ prefix: CONFIG_BLOB_PATH, limit: 1 });
 
-    if (blobs.length === 0) {
-      console.log('[P&L Config] No existing config found, using default configuration');
-      return DEFAULT_CONFIG_HISTORY;
-    }
-
-    const response = await fetch(blobs[0].url, { cache: 'no-store' });
-    
-    if (!response.ok) {
-      console.error(`[P&L Config] Failed to fetch config blob: ${response.status} ${response.statusText}`);
-      if (response.status === 403) {
-        console.error('[P&L Config] Access Forbidden (403). Ensure BLOB_READ_WRITE_TOKEN is set and valid, and blob is public.');
+      if (blobs.length === 0) {
+        console.log('[P&L Config] No custom config found, using default configuration');
+        return DEFAULT_CONFIG_HISTORY;
       }
-      return DEFAULT_CONFIG_HISTORY;
-    }
 
-    const data = await response.json() as PnLConfigHistory;
-    
-    // Validate the data structure
-    if (!data.configurations || !Array.isArray(data.configurations)) {
-      console.error('[P&L Config] Invalid config structure, using default');
+      const response = await fetch(blobs[0].url, { cache: 'no-store' });
+      
+      if (!response.ok) {
+        console.warn(`[P&L Config] Failed to fetch custom config: ${response.status} ${response.statusText}`);
+        console.log('[P&L Config] Using default configuration');
+        return DEFAULT_CONFIG_HISTORY;
+      }
+
+      const data = await response.json() as PnLConfigHistory;
+      
+      // Validate the data structure
+      if (!data.configurations || !Array.isArray(data.configurations)) {
+        console.warn('[P&L Config] Invalid custom config structure, using default');
+        return DEFAULT_CONFIG_HISTORY;
+      }
+      
+      console.log(`[P&L Config] Successfully loaded ${data.configurations.length} custom configurations`);
+      return data;
+    } catch (error) {
+      console.warn('[P&L Config] Error accessing blob storage:', error);
+      console.log('[P&L Config] Using default configuration');
       return DEFAULT_CONFIG_HISTORY;
     }
-    
-    console.log(`[P&L Config] Successfully loaded ${data.configurations.length} configurations from blob`);
-    return data;
-  } catch (error) {
-    console.error('[P&L Config] Error fetching P&L config:', error);
-    console.log('[P&L Config] Falling back to default configuration');
+  } else {
+    console.log('[P&L Config] Blob storage not available, using default configuration');
     return DEFAULT_CONFIG_HISTORY;
   }
 }
@@ -59,15 +66,22 @@ export function getConfigForDate(history: PnLConfigHistory, date: string): PnLCo
  * Save configuration history to blob storage
  */
 export async function savePnLConfigHistory(history: PnLConfigHistory): Promise<void> {
+  // Only try to save if we have blob storage access
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.warn('[P&L Config] BLOB_READ_WRITE_TOKEN not available, cannot save configuration changes');
+    throw new Error('Blob storage not configured. Configuration changes cannot be saved.');
+  }
+
   try {
     await put(CONFIG_BLOB_PATH, JSON.stringify(history, null, 2), {
       access: 'public',
       addRandomSuffix: false,
       contentType: 'application/json',
     });
+    console.log('[P&L Config] Configuration saved successfully');
   } catch (error) {
-    console.error('Error saving P&L config:', error);
-    throw new Error('Failed to save P&L configuration');
+    console.error('[P&L Config] Error saving configuration:', error);
+    throw new Error('Failed to save P&L configuration to blob storage');
   }
 }
 

@@ -61,7 +61,11 @@ export default function PnLConfigEditor() {
         alert(data.message);
         await fetchConfig();
       } else {
-        alert(`Error: ${data.error}`);
+        if (data.error?.includes('Blob storage not configured')) {
+          alert('Configuration changes cannot be saved because blob storage is not configured. Changes will only apply temporarily.');
+        } else {
+          alert(`Error: ${data.error}`);
+        }
       }
     } catch (error) {
       console.error('Error saving config:', error);
