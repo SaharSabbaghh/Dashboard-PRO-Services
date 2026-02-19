@@ -5,6 +5,7 @@ import { PnLConfig, SERVICE_NAMES } from '@/lib/simple-pnl-config';
 
 export default function SimplePnLConfig() {
   const [config, setConfig] = useState<PnLConfig | null>(null);
+  const [history, setHistory] = useState<PnLConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -20,7 +21,8 @@ export default function SimplePnLConfig() {
       const data = await response.json();
       
       if (data.success) {
-        setConfig(data.config);
+        setConfig(data.currentConfig);
+        setHistory(data.history || []);
       } else {
         setMessage('Error loading configuration');
       }
@@ -48,8 +50,9 @@ export default function SimplePnLConfig() {
       const data = await response.json();
       
       if (data.success) {
-        setMessage('✅ Configuration saved successfully!');
-        setConfig(data.config);
+        setMessage(`✅ ${data.message}`);
+        setConfig(data.currentConfig);
+        setHistory(data.history || []);
       } else {
         setMessage(`❌ Error: ${data.error}`);
       }
@@ -134,7 +137,7 @@ export default function SimplePnLConfig() {
           <p className="text-sm text-blue-800">
             <strong>Currency:</strong> All amounts are in AED (UAE Dirhams)<br />
             <strong>Formula:</strong> Total Price = Unit Cost + Service Fee | Revenue = Total Price × Volume<br />
-            <strong>Last Updated:</strong> {new Date(config.lastUpdated).toLocaleString()}
+            <strong>Effective Date:</strong> {config.effectiveDate} | <strong>Created:</strong> {new Date(config.createdAt).toLocaleString()}
           </p>
         </div>
 
@@ -220,6 +223,22 @@ export default function SimplePnLConfig() {
           </div>
         </div>
 
+        {/* Configuration History */}
+        {history.length > 1 && (
+          <div className="space-y-4 mb-8">
+            <h3 className="text-lg font-semibold text-slate-800">Configuration History</h3>
+            <div className="bg-slate-50 rounded-lg p-4">
+              <div className="text-sm text-slate-600 mb-2">Previous configurations (for historical data):</div>
+              {history.slice(0, -1).reverse().map((historyConfig, index) => (
+                <div key={index} className="text-xs text-slate-500 py-1">
+                  <strong>Effective:</strong> {historyConfig.effectiveDate} | 
+                  <strong> Created:</strong> {new Date(historyConfig.createdAt).toLocaleDateString()}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Save Button */}
         <div className="flex justify-end">
           <button
@@ -227,7 +246,7 @@ export default function SimplePnLConfig() {
             disabled={saving}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? 'Saving...' : 'Save Configuration'}
+            {saving ? 'Saving...' : `Save Configuration (Effective from ${new Date().toISOString().split('T')[0]})`}
           </button>
         </div>
       </div>

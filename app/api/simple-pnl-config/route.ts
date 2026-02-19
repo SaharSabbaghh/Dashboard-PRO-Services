@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getPnLConfig, updatePnLConfig, type PnLConfig } from '@/lib/simple-pnl-config';
+import { getCurrentPnLConfig, getPnLConfigHistory, addPnLConfig, type PnLConfig } from '@/lib/simple-pnl-config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,11 +9,13 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const config = getPnLConfig();
+    const currentConfig = getCurrentPnLConfig();
+    const history = getPnLConfigHistory();
     
     return NextResponse.json({
       success: true,
-      config
+      currentConfig,
+      history: history.configs
     });
   } catch (error) {
     console.error('Error fetching P&L config:', error);
@@ -29,23 +31,25 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    const updates = await request.json();
+    const configData = await request.json();
     
-    // Validate the updates
-    if (!updates || typeof updates !== 'object') {
+    // Validate the configuration data
+    if (!configData || typeof configData !== 'object') {
       return NextResponse.json(
         { success: false, error: 'Invalid configuration data' },
         { status: 400 }
       );
     }
     
-    // Update the configuration
-    const updatedConfig = updatePnLConfig(updates);
+    // Add new configuration (effective from today)
+    const newConfig = addPnLConfig(configData);
+    const history = getPnLConfigHistory();
     
     return NextResponse.json({
       success: true,
-      message: 'Configuration updated successfully',
-      config: updatedConfig
+      message: `Configuration saved! Changes will apply from ${newConfig.effectiveDate} forward. Historical data keeps original pricing.`,
+      currentConfig: newConfig,
+      history: history.configs
     });
   } catch (error) {
     console.error('Error updating P&L config:', error);

@@ -33,8 +33,14 @@ export interface PnLConfig {
     proTransportation: number;
   };
   
-  // When this config was last updated
-  lastUpdated: string;
+  // When this config becomes effective (YYYY-MM-DD)
+  effectiveDate: string;
+  // When this config was created
+  createdAt: string;
+}
+
+export interface PnLConfigHistory {
+  configs: PnLConfig[];
 }
 
 // Default configuration with your current prices
@@ -60,7 +66,8 @@ export const DEFAULT_PNL_CONFIG: PnLConfig = {
     proTransportation: 2070
   },
   
-  lastUpdated: new Date().toISOString()
+  effectiveDate: '2024-01-01', // Applies to all historical data before any changes
+  createdAt: new Date().toISOString()
 };
 
 // Service names for display
@@ -81,23 +88,59 @@ export const SERVICE_NAMES = {
   filipinaPP: 'Filipina Passport Renewal'
 };
 
-// Simple local storage functions
-let currentConfig: PnLConfig = { ...DEFAULT_PNL_CONFIG };
+// Configuration history storage
+let configHistory: PnLConfigHistory = {
+  configs: [{ ...DEFAULT_PNL_CONFIG }]
+};
 
-export function getPnLConfig(): PnLConfig {
-  return { ...currentConfig };
+export function getPnLConfigHistory(): PnLConfigHistory {
+  return { configs: [...configHistory.configs] };
 }
 
-export function updatePnLConfig(newConfig: Partial<PnLConfig>): PnLConfig {
-  currentConfig = {
-    ...currentConfig,
-    ...newConfig,
-    lastUpdated: new Date().toISOString()
+export function getCurrentPnLConfig(): PnLConfig {
+  // Return the most recent config
+  const configs = configHistory.configs;
+  return { ...configs[configs.length - 1] };
+}
+
+export function getPnLConfigForDate(date: string): PnLConfig {
+  // Find the config that was effective for the given date
+  // Use the most recent config that has effectiveDate <= date
+  const configs = [...configHistory.configs].sort((a, b) => 
+    a.effectiveDate.localeCompare(b.effectiveDate)
+  );
+  
+  for (let i = configs.length - 1; i >= 0; i--) {
+    if (configs[i].effectiveDate <= date) {
+      return { ...configs[i] };
+    }
+  }
+  
+  // Fallback to first config if no match found
+  return { ...configs[0] };
+}
+
+export function addPnLConfig(configData: Omit<PnLConfig, 'effectiveDate' | 'createdAt'>): PnLConfig {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  const newConfig: PnLConfig = {
+    ...configData,
+    effectiveDate: today,
+    createdAt: new Date().toISOString()
   };
-  return { ...currentConfig };
+  
+  configHistory.configs.push(newConfig);
+  
+  // Sort by effective date
+  configHistory.configs.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+  
+  console.log(`[P&L Config] Added new config effective from ${today}`);
+  return { ...newConfig };
 }
 
-export function resetPnLConfig(): PnLConfig {
-  currentConfig = { ...DEFAULT_PNL_CONFIG };
-  return { ...currentConfig };
+export function resetPnLConfig(): PnLConfigHistory {
+  configHistory = {
+    configs: [{ ...DEFAULT_PNL_CONFIG }]
+  };
+  return { ...configHistory };
 }

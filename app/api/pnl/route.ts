@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
-import { getPnLConfig } from '@/lib/simple-pnl-config';
+import { getPnLConfigForDate } from '@/lib/simple-pnl-config';
 import { aggregateDailyComplaints } from '@/lib/daily-complaints-storage';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
 
@@ -97,9 +97,11 @@ export async function GET(request: Request) {
       
       const dailyData = dailyComplaintsResult.data;
       
-      // Get current P&L configuration
-      const config = getPnLConfig();
-      console.log(`[P&L] Using current config, last updated: ${config.lastUpdated}`);
+      // Get P&L configuration for the date range
+      // Use the end date (or start date if no end date) to determine which config to use
+      const configDate = endDate || startDate || new Date().toISOString().split('T')[0];
+      const config = getPnLConfigForDate(configDate);
+      console.log(`[P&L] Using config for date ${configDate}, effective from: ${config.effectiveDate}`);
       
       const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
       
