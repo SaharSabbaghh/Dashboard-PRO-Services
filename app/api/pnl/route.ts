@@ -4,6 +4,8 @@ import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
 import { getPnLConfigForDate } from '@/lib/simple-pnl-config';
 import { aggregateDailyComplaints } from '@/lib/daily-complaints-storage';
+import { ALL_SERVICE_KEYS } from '@/lib/pnl-complaints-types';
+import type { PnLServiceKey } from '@/lib/pnl-complaints-types';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
 
 // Force Node.js runtime for filesystem access (required for fs operations)
@@ -12,10 +14,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Service keys for P&L
-type PnLServiceKey = 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP';
-const ALL_SERVICE_KEYS: PnLServiceKey[] = ['oec', 'owwa', 'ttl', 'tte', 'ttj', 'schengen', 'gcc', 'ethiopianPP', 'filipinaPP'];
-
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
 // Actual costs per service (what it costs the company)
@@ -23,8 +21,14 @@ const PNL_DIR = path.join(process.cwd(), 'P&L');
 const SERVICE_COSTS: Record<PnLServiceKey, number> = {
   oec: 61.5,         // DMW fees
   owwa: 92,          // OWWA fees
-  ttl: 400,          // Embassy + transportation
-  tte: 400,          // Embassy + transportation
+  ttl: 400,          // Embassy + transportation (generic)
+  ttlSingle: 425,    // Tourist Visa to Lebanon – Single Entry
+  ttlDouble: 565,    // Tourist Visa to Lebanon – Double Entry
+  ttlMultiple: 745,  // Tourist Visa to Lebanon – Multiple Entry
+  tte: 400,          // Embassy + transportation (generic)
+  tteSingle: 470,    // Tourist Visa to Egypt – Single Entry
+  tteDouble: 520,    // Tourist Visa to Egypt – Double Entry
+  tteMultiple: 570,  // Tourist Visa to Egypt – Multiple Entry
   ttj: 220,          // Embassy + facilitator
   schengen: 0,       // Processing fees
   gcc: 220,          // Dubai Police fees
