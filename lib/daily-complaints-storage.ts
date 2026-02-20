@@ -218,7 +218,7 @@ export async function aggregateDailyComplaints(
     const salesMap = new Map<string, { complaint: PnLComplaint; date: Date }>();
     
     allComplaints.forEach(complaint => {
-      const serviceKey = getServiceKeyFromComplaintType(complaint.complaintType);
+      const serviceKey = complaint.serviceKey || getServiceKeyFromComplaintType(complaint.complaintType);
       if (!serviceKey) return;
 
       const saleKey = `${serviceKey}_${complaint.contractId}_${complaint.clientId}_${complaint.housemaidId}`;
