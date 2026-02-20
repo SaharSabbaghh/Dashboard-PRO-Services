@@ -225,12 +225,32 @@ export function getServiceKeyFromComplaintType(complaintType: string): PnLServic
     return 'schengen';
   }
   
-  // Travel Visas
+  // Travel Visas - Lebanon (check specific entry types first)
   if (normalized.includes('lebanon')) {
-    return 'ttl';
+    if (normalized.includes('single entry') || normalized.includes('single-entry')) {
+      return 'ttlSingle';
+    }
+    if (normalized.includes('double entry') || normalized.includes('double-entry')) {
+      return 'ttlDouble';
+    }
+    if (normalized.includes('multiple entry') || normalized.includes('multiple-entry')) {
+      return 'ttlMultiple';
+    }
+    return 'ttl'; // Generic Lebanon visa
   }
+  
+  // Travel Visas - Egypt (check specific entry types first)
   if (normalized.includes('egypt')) {
-    return 'tte';
+    if (normalized.includes('single entry') || normalized.includes('single-entry')) {
+      return 'tteSingle';
+    }
+    if (normalized.includes('double entry') || normalized.includes('double-entry')) {
+      return 'tteDouble';
+    }
+    if (normalized.includes('multiple entry') || normalized.includes('multiple-entry')) {
+      return 'tteMultiple';
+    }
+    return 'tte'; // Generic Egypt visa
   }
   if (normalized.includes('jordan')) {
     return 'ttj';
