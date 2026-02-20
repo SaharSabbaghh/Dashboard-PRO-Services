@@ -38,6 +38,7 @@ const COMPLAINT_SERVICE_MAP: Record<PnLServiceKey, keyof ConversionWithComplaint
   ttlMultiple: 'travelVisa',
   tte: 'travelVisa', 
   tteSingle: 'travelVisa',
+  tteDouble: 'travelVisa',
   tteMultiple: 'travelVisa',
   ttj: 'travelVisa',
   schengen: 'travelVisa',
