@@ -19,6 +19,7 @@ export interface PnLConfig {
   ttlMultiple: ServicePricing;
   tte: ServicePricing;
   tteSingle: ServicePricing;
+  tteDouble: ServicePricing;
   tteMultiple: ServicePricing;
   ttj: ServicePricing;
   schengen: ServicePricing;
