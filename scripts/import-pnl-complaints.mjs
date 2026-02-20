@@ -89,37 +89,99 @@ async function main() {
   
   // Inline the processing logic (since we can't import TS)
   const COMPLAINT_TYPE_MAP = {
+    // OEC - Overseas Employment Certificate
     'overseas employment certificate': 'oec',
     'overseas': 'oec',
     'oec': 'oec',
-    'contract verification': 'oec', // Contract Verification also counts as OEC
+    'contract verification': 'oec',
+    'client contract verification': 'oec',
+    'maid contract verification': 'oec',
+    
+    // OWWA
     'client owwa registration': 'owwa',
     'owwa registration': 'owwa',
     'owwa': 'owwa',
+    
+    // Travel visas - Lebanon (specific entry types)
+    'tourist visa to lebanon – single entry': 'ttlSingle',
+    'tourist visa to lebanon - single entry': 'ttlSingle',
+    'tourist visa to lebanon single entry': 'ttlSingle',
+    'tourist visa to lebanon – double entry': 'ttlDouble',
+    'tourist visa to lebanon - double entry': 'ttlDouble',
+    'tourist visa to lebanon double entry': 'ttlDouble',
+    'tourist visa to lebanon – multiple entry': 'ttlMultiple',
+    'tourist visa to lebanon - multiple entry': 'ttlMultiple',
+    'tourist visa to lebanon multiple entry': 'ttlMultiple',
+    
+    // Travel visas - Lebanon (fallback)
     'tourist visa to lebanon': 'ttl',
     'travel to lebanon': 'ttl',
     'ttl': 'ttl',
+    'lebanon': 'ttl',
+    
+    // Travel visas - Egypt (specific entry types)
+    'tourist visa to egypt – single entry': 'tteSingle',
+    'tourist visa to egypt - single entry': 'tteSingle',
+    'tourist visa to egypt single entry': 'tteSingle',
+    'tourist visa to egypt – double entry': 'tteDouble',
+    'tourist visa to egypt - double entry': 'tteDouble',
+    'tourist visa to egypt double entry': 'tteDouble',
+    'tourist visa to egypt – multiple entry': 'tteMultiple',
+    'tourist visa to egypt - multiple entry': 'tteMultiple',
+    'tourist visa to egypt multiple entry': 'tteMultiple',
+    
+    // Travel visas - Egypt (fallback)
     'tourist visa to egypt': 'tte',
     'travel to egypt': 'tte',
     'tte': 'tte',
+    'egypt': 'tte',
+    
+    // Travel visas - Jordan
     'tourist visa to jordan': 'ttj',
     'travel to jordan': 'ttj',
     'ttj': 'ttj',
+    'jordan': 'ttj',
+    'tourist to jordan': 'ttj',
+    
+    // Passport renewals - Ethiopian
     'ethiopian passport renewal': 'ethiopianPP',
     'ethiopian pp': 'ethiopianPP',
+    'ethiopian pp renewal': 'ethiopianPP',
+    
+    // Passport renewals - Filipina
     'filipina passport renewal': 'filipinaPP',
     'filipina pp': 'filipinaPP',
+    'filipina pp renewal': 'filipinaPP',
+    
+    // GCC
     'gcc travel': 'gcc',
     'gcc': 'gcc',
+    'good conduct certificate': 'gcc',
+    'good conduct': 'gcc',
+    
+    // Schengen - includes country-specific variants
     'schengen': 'schengen',
     'schengen visa': 'schengen',
+    'schengen visa to france': 'schengen',
+    'schengen visa to germany': 'schengen',
+    'schengen visa to italy': 'schengen',
+    'schengen visa to spain': 'schengen',
+    'schengen visa to netherlands': 'schengen',
+    'schengen to france': 'schengen',
+    'schengen to germany': 'schengen',
   };
   
   const SERVICE_NAMES = {
     oec: 'Overseas Employment Certificate',
     owwa: 'OWWA Registration',
     ttl: 'Travel to Lebanon',
+    ttlSingle: 'Tourist Visa to Lebanon – Single Entry',
+    ttlDouble: 'Tourist Visa to Lebanon – Double Entry',
+    ttlMultiple: 'Tourist Visa to Lebanon – Multiple Entry',
     tte: 'Travel to Egypt',
+    tteSingle: 'Tourist Visa to Egypt – Single Entry',
+    tteDouble: 'Tourist Visa to Egypt – Double Entry',
+    tteMultiple: 'Tourist Visa to Egypt – Multiple Entry',
     ttj: 'Travel to Jordan',
     schengen: 'Schengen Countries',
     gcc: 'GCC',
@@ -127,11 +189,77 @@ async function main() {
     filipinaPP: 'Filipina Passport Renewal',
   };
   
-  const ALL_SERVICE_KEYS = ['oec', 'owwa', 'ttl', 'tte', 'ttj', 'schengen', 'gcc', 'ethiopianPP', 'filipinaPP'];
+  const ALL_SERVICE_KEYS = [
+    'oec', 
+    'owwa', 
+    'ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple',
+    'tte', 'tteSingle', 'tteDouble', 'tteMultiple',
+    'ttj', 
+    'schengen', 
+    'gcc', 
+    'ethiopianPP', 
+    'filipinaPP'
+  ];
   
   function getServiceKey(complaintType) {
     const normalized = (complaintType || '').toLowerCase().trim();
-    return COMPLAINT_TYPE_MAP[normalized];
+    
+    // First try exact match
+    if (COMPLAINT_TYPE_MAP[normalized]) {
+      return COMPLAINT_TYPE_MAP[normalized];
+    }
+    
+    // Then try partial/contains matching for flexibility
+    // Order matters - check more specific patterns first
+    
+    // OEC: Contract Verification OR anything with "overseas"
+    if (normalized.includes('contract verification') || 
+        normalized.includes('contract verif') ||
+        normalized.includes('client contract verification')) {
+      return 'oec'; // All contract verification counts as OEC
+    }
+    if (normalized.includes('overseas')) {
+      return 'oec'; // Anything with "overseas" is OEC
+    }
+    if (normalized.includes('oec')) {
+      return 'oec';
+    }
+    
+    // OWWA
+    if (normalized.includes('owwa')) {
+      return 'owwa';
+    }
+    
+    // Schengen (check before specific countries)
+    if (normalized.includes('schengen')) {
+      return 'schengen';
+    }
+    
+    // Travel Visas
+    if (normalized.includes('lebanon')) {
+      return 'ttl';
+    }
+    if (normalized.includes('egypt')) {
+      return 'tte';
+    }
+    if (normalized.includes('jordan')) {
+      return 'ttj';
+    }
+    
+    // Passport Renewals
+    if (normalized.includes('ethiopian') && normalized.includes('passport')) {
+      return 'ethiopianPP';
+    }
+    if (normalized.includes('filipina') && normalized.includes('passport')) {
+      return 'filipinaPP';
+    }
+    
+    // GCC
+    if (normalized.includes('gcc') || normalized.includes('good conduct')) {
+      return 'gcc';
+    }
+    
+    return undefined;
   }
   
   function parseDate(dateStr) {

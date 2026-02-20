@@ -63,7 +63,7 @@ async function calculateConversionsForDate(date: string, prospects: any[]) {
             conversions.oec.add(prospectKey);
           } else if (serviceKey === 'owwa' && prospect.isOWWAProspect) {
             conversions.owwa.add(prospectKey);
-          } else if (['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteMultiple', 'ttj', 'schengen', 'gcc'].includes(serviceKey) && prospect.isTravelVisaProspect) {
+          } else if (['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteDouble', 'tteMultiple', 'ttj', 'schengen', 'gcc'].includes(serviceKey) && prospect.isTravelVisaProspect) {
             conversions.travelVisa.add(prospectKey);
           } else if (serviceKey === 'filipinaPP' && prospect.isFilipinaPassportRenewalProspect) {
             conversions.filipinaPassportRenewal.add(prospectKey);

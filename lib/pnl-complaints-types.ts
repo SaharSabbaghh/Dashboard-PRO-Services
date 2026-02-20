@@ -10,6 +10,7 @@ export type PnLServiceKey =
   | 'ttlMultiple'  // Tourist Visa to Lebanon – Multiple Entry
   | 'tte' 
   | 'tteSingle'    // Tourist Visa to Egypt – Single Entry
+  | 'tteDouble'    // Tourist Visa to Egypt – Double Entry
   | 'tteMultiple'  // Tourist Visa to Egypt – Multiple Entry
   | 'ttj' 
   | 'schengen' 
@@ -103,6 +104,9 @@ export const COMPLAINT_TYPE_MAP: Record<string, PnLServiceKey> = {
   'tourist visa to egypt – single entry': 'tteSingle',
   'tourist visa to egypt - single entry': 'tteSingle',
   'tourist visa to egypt single entry': 'tteSingle',
+  'tourist visa to egypt – double entry': 'tteDouble',
+  'tourist visa to egypt - double entry': 'tteDouble',
+  'tourist visa to egypt double entry': 'tteDouble',
   'tourist visa to egypt – multiple entry': 'tteMultiple',
   'tourist visa to egypt - multiple entry': 'tteMultiple',
   'tourist visa to egypt multiple entry': 'tteMultiple',
@@ -158,6 +162,7 @@ export const SERVICE_NAMES: Record<PnLServiceKey, string> = {
   ttlMultiple: 'Tourist Visa to Lebanon – Multiple Entry',
   tte: 'Travel to Egypt',
   tteSingle: 'Tourist Visa to Egypt – Single Entry',
+  tteDouble: 'Tourist Visa to Egypt – Double Entry',
   tteMultiple: 'Tourist Visa to Egypt – Multiple Entry',
   ttj: 'Travel to Jordan',
   schengen: 'Schengen Countries',
@@ -176,6 +181,7 @@ export const ALL_SERVICE_KEYS: PnLServiceKey[] = [
   'ttlMultiple',
   'tte',
   'tteSingle',
+  'tteDouble',
   'tteMultiple',
   'ttj',
   'schengen',

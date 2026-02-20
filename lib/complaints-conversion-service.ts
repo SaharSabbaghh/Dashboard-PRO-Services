@@ -207,10 +207,10 @@ export async function getConversionsWithComplaintCheck(
         },
         travelVisa: { 
           converted: false, 
-          hasComplaint: ['ttl', 'tte', 'ttj', 'schengen', 'gcc'].some(key => 
+          hasComplaint: ['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteDouble', 'tteMultiple', 'ttj', 'schengen', 'gcc'].some(key => 
             complaintChecks[key as PnLServiceKey]?.hasComplaint
           ),
-          complaintTypes: ['ttl', 'tte', 'ttj', 'schengen', 'gcc'].flatMap(key => 
+          complaintTypes: ['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteDouble', 'tteMultiple', 'ttj', 'schengen', 'gcc'].flatMap(key => 
             complaintChecks[key as PnLServiceKey]?.complaintTypes || []
           )
         },
