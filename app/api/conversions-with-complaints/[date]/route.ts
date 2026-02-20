@@ -109,8 +109,8 @@ export async function GET(
     const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
     
     // Create payment lookup maps
-    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
-    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
+    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
+    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
     
     datePayments.forEach(payment => {
       if (!paymentMap.has(payment.contractId)) {
@@ -122,13 +122,17 @@ export async function GET(
       const dates = paymentDatesMap.get(payment.contractId)!;
       
       // Map payment services to prospect service types
-      let prospectService: 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | null = null;
+      let prospectService: 'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | null = null;
       
       if (payment.service === 'oec') {
         prospectService = 'oec';
       } else if (payment.service === 'owwa') {
         prospectService = 'owwa';
-      } else if (payment.service === 'ttl' || payment.service === 'ttlSingle' || payment.service === 'ttlDouble' || payment.service === 'ttlMultiple' || payment.service === 'tte' || payment.service === 'tteSingle' || payment.service === 'tteDouble' || payment.service === 'tteMultiple' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
+      } else if (payment.service === 'ttl' || payment.service === 'ttlSingle' || payment.service === 'ttlDouble' || payment.service === 'ttlMultiple') {
+        prospectService = 'ttl';
+      } else if (payment.service === 'tte' || payment.service === 'tteSingle' || payment.service === 'tteDouble' || payment.service === 'tteMultiple') {
+        prospectService = 'tte';
+      } else if (payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
         prospectService = 'travel_visa';
       } else if (payment.service === 'filipina_pp') {
         prospectService = 'filipina_pp';

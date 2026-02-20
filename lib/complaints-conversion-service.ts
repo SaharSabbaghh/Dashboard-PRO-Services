@@ -13,6 +13,8 @@ export interface ConversionWithComplaintCheck {
   services: {
     oec: { converted: boolean; hasComplaint: boolean; complaintTypes: string[] };
     owwa: { converted: boolean; hasComplaint: boolean; complaintTypes: string[] };
+    ttl: { converted: boolean; hasComplaint: boolean; complaintTypes: string[] };
+    tte: { converted: boolean; hasComplaint: boolean; complaintTypes: string[] };
     travelVisa: { converted: boolean; hasComplaint: boolean; complaintTypes: string[] };
     filipinaPassportRenewal: { converted: boolean; hasComplaint: boolean; complaintTypes: string[] };
     ethiopianPassportRenewal: { converted: boolean; hasComplaint: boolean; complaintTypes: string[] };
@@ -20,6 +22,8 @@ export interface ConversionWithComplaintCheck {
   paymentDates: {
     oec?: string[];
     owwa?: string[];
+    ttl?: string[];
+    tte?: string[];
     travelVisa?: string[];
     filipinaPassportRenewal?: string[];
     ethiopianPassportRenewal?: string[];
@@ -32,14 +36,14 @@ export interface ConversionWithComplaintCheck {
 const COMPLAINT_SERVICE_MAP: Record<PnLServiceKey, keyof ConversionWithComplaintCheck['services']> = {
   oec: 'oec',
   owwa: 'owwa',
-  ttl: 'travelVisa',
-  ttlSingle: 'travelVisa',
-  ttlDouble: 'travelVisa',
-  ttlMultiple: 'travelVisa',
-  tte: 'travelVisa', 
-  tteSingle: 'travelVisa',
-  tteDouble: 'travelVisa',
-  tteMultiple: 'travelVisa',
+  ttl: 'ttl',
+  ttlSingle: 'ttl',
+  ttlDouble: 'ttl',
+  ttlMultiple: 'ttl',
+  tte: 'tte', 
+  tteSingle: 'tte',
+  tteDouble: 'tte',
+  tteMultiple: 'tte',
   ttj: 'travelVisa',
   schengen: 'travelVisa',
   gcc: 'travelVisa',
@@ -117,7 +121,7 @@ export async function checkComplaintsForProspect(
 export async function checkProspectHasComplaints(
   prospect: ProcessedConversation,
   date: string,
-  service: 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'
+  service: 'oec' | 'owwa' | 'ttl' | 'tte' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'
 ): Promise<boolean> {
   // Map prospect service to complaint service keys
   let serviceKeysToCheck: PnLServiceKey[] = [];
@@ -129,8 +133,14 @@ export async function checkProspectHasComplaints(
     case 'owwa':
       serviceKeysToCheck = ['owwa'];
       break;
+    case 'ttl':
+      serviceKeysToCheck = ['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple'];
+      break;
+    case 'tte':
+      serviceKeysToCheck = ['tte', 'tteSingle', 'tteDouble', 'tteMultiple'];
+      break;
     case 'travelVisa':
-      serviceKeysToCheck = ['ttl', 'tte', 'ttj', 'schengen', 'gcc'];
+      serviceKeysToCheck = ['ttj', 'schengen', 'gcc'];
       break;
     case 'filipinaPassportRenewal':
       serviceKeysToCheck = ['filipinaPP'];
@@ -160,8 +170,8 @@ export async function checkProspectHasComplaints(
 export async function getConversionsWithComplaintCheck(
   prospects: ProcessedConversation[],
   date: string,
-  paymentMap: Map<string, Set<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>,
-  paymentDatesMap: Map<string, Map<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>
+  paymentMap: Map<string, Set<'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>,
+  paymentDatesMap: Map<string, Map<'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>
 ): Promise<ConversionWithComplaintCheck[]> {
   const conversions: ConversionWithComplaintCheck[] = [];
 
@@ -179,7 +189,23 @@ export async function getConversionsWithComplaintCheck(
     const servicesToCheck: PnLServiceKey[] = [];
     if (prospect.isOECProspect) servicesToCheck.push('oec');
     if (prospect.isOWWAProspect) servicesToCheck.push('owwa');
-    if (prospect.isTravelVisaProspect) servicesToCheck.push('ttl', 'tte', 'ttj', 'schengen', 'gcc');
+    if (prospect.isTravelVisaProspect) {
+      // Check specific travel visa countries for targeted service matching
+      if (prospect.travelVisaCountries?.includes('Lebanon')) {
+        servicesToCheck.push('ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple');
+      }
+      if (prospect.travelVisaCountries?.includes('Egypt')) {
+        servicesToCheck.push('tte', 'tteSingle', 'tteDouble', 'tteMultiple');
+      }
+      if (prospect.travelVisaCountries?.includes('Jordan')) {
+        servicesToCheck.push('ttj');
+      }
+      // For other countries or general travel visa prospects
+      if (!prospect.travelVisaCountries || prospect.travelVisaCountries.length === 0 || 
+          prospect.travelVisaCountries.some(country => !['Lebanon', 'Egypt', 'Jordan'].includes(country))) {
+        servicesToCheck.push('schengen', 'gcc');
+      }
+    }
     if (prospect.isFilipinaPassportRenewalProspect) servicesToCheck.push('filipinaPP');
     if (prospect.isEthiopianPassportRenewalProspect) servicesToCheck.push('ethiopianPP');
 
@@ -206,12 +232,30 @@ export async function getConversionsWithComplaintCheck(
           hasComplaint: complaintChecks.owwa?.hasComplaint || false,
           complaintTypes: complaintChecks.owwa?.complaintTypes || []
         },
-        travelVisa: { 
+        ttl: { 
           converted: false, 
-          hasComplaint: ['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteDouble', 'tteMultiple', 'ttj', 'schengen', 'gcc'].some(key => 
+          hasComplaint: ['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple'].some(key => 
             complaintChecks[key as PnLServiceKey]?.hasComplaint
           ),
-          complaintTypes: ['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteDouble', 'tteMultiple', 'ttj', 'schengen', 'gcc'].flatMap(key => 
+          complaintTypes: ['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple'].flatMap(key => 
+            complaintChecks[key as PnLServiceKey]?.complaintTypes || []
+          )
+        },
+        tte: { 
+          converted: false, 
+          hasComplaint: ['tte', 'tteSingle', 'tteDouble', 'tteMultiple'].some(key => 
+            complaintChecks[key as PnLServiceKey]?.hasComplaint
+          ),
+          complaintTypes: ['tte', 'tteSingle', 'tteDouble', 'tteMultiple'].flatMap(key => 
+            complaintChecks[key as PnLServiceKey]?.complaintTypes || []
+          )
+        },
+        travelVisa: { 
+          converted: false, 
+          hasComplaint: ['ttj', 'schengen', 'gcc'].some(key => 
+            complaintChecks[key as PnLServiceKey]?.hasComplaint
+          ),
+          complaintTypes: ['ttj', 'schengen', 'gcc'].flatMap(key => 
             complaintChecks[key as PnLServiceKey]?.complaintTypes || []
           )
         },
@@ -243,7 +287,19 @@ export async function getConversionsWithComplaintCheck(
         conversion.paymentDates.owwa = contractDates.get('owwa') || [];
       }
 
-      // Check Travel Visa conversion
+      // Check TTL conversion (Lebanon travel visa)
+      if (prospect.isTravelVisaProspect && prospect.travelVisaCountries?.includes('Lebanon') && paidServices.has('ttl')) {
+        conversion.services.ttl.converted = true;
+        conversion.paymentDates.ttl = contractDates.get('ttl') || [];
+      }
+
+      // Check TTE conversion (Egypt travel visa)
+      if (prospect.isTravelVisaProspect && prospect.travelVisaCountries?.includes('Egypt') && paidServices.has('tte')) {
+        conversion.services.tte.converted = true;
+        conversion.paymentDates.tte = contractDates.get('tte') || [];
+      }
+
+      // Check Travel Visa conversion (other countries)
       if (prospect.isTravelVisaProspect && paidServices.has('travel_visa')) {
         conversion.services.travelVisa.converted = true;
         conversion.paymentDates.travelVisa = contractDates.get('travel_visa') || [];

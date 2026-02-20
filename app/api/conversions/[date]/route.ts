@@ -16,6 +16,8 @@ interface ConversionResult {
   services: {
     oec: boolean;
     owwa: boolean;
+    ttl: boolean;
+    tte: boolean;
     travelVisa: boolean;
     filipinaPassportRenewal: boolean;
     ethiopianPassportRenewal: boolean;
@@ -23,6 +25,8 @@ interface ConversionResult {
   paymentDates: {
     oec?: string[];
     owwa?: string[];
+    ttl?: string[];
+    tte?: string[];
     travelVisa?: string[];
     filipinaPassportRenewal?: string[];
     ethiopianPassportRenewal?: string[];
@@ -85,9 +89,9 @@ export async function GET(
     const datePayments = filterPaymentsByDate(paymentData.payments, date, 'received');
     
     // Create a lookup map for faster searching: contractId -> Set of services
-    // For travel visas, we consolidate all types (ttl, tte, ttj, schengen, gcc) into 'travel_visa' for prospect matching
-    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
-    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
+    // Separate TTL and TTE services for better matching
+    const paymentMap = new Map<string, Set<'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp'>>();
+    const paymentDatesMap = new Map<string, Map<'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp', string[]>>();
     
     datePayments.forEach(payment => {
       if (!paymentMap.has(payment.contractId)) {
@@ -99,14 +103,18 @@ export async function GET(
       const dates = paymentDatesMap.get(payment.contractId)!;
       
       // Map payment services to prospect service types
-      let prospectService: 'oec' | 'owwa' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | null = null;
+      let prospectService: 'oec' | 'owwa' | 'ttl' | 'tte' | 'travel_visa' | 'filipina_pp' | 'ethiopian_pp' | null = null;
       
       if (payment.service === 'oec') {
         prospectService = 'oec';
       } else if (payment.service === 'owwa') {
         prospectService = 'owwa';
-      } else if (payment.service === 'ttl' || payment.service === 'ttlSingle' || payment.service === 'ttlDouble' || payment.service === 'ttlMultiple' || payment.service === 'tte' || payment.service === 'tteSingle' || payment.service === 'tteDouble' || payment.service === 'tteMultiple' || payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
-        prospectService = 'travel_visa'; // Consolidate all travel visa types
+      } else if (payment.service === 'ttl' || payment.service === 'ttlSingle' || payment.service === 'ttlDouble' || payment.service === 'ttlMultiple') {
+        prospectService = 'ttl';
+      } else if (payment.service === 'tte' || payment.service === 'tteSingle' || payment.service === 'tteDouble' || payment.service === 'tteMultiple') {
+        prospectService = 'tte';
+      } else if (payment.service === 'ttj' || payment.service === 'schengen' || payment.service === 'gcc') {
+        prospectService = 'travel_visa';
       } else if (payment.service === 'filipina_pp') {
         prospectService = 'filipina_pp';
       } else if (payment.service === 'ethiopian_pp') {
@@ -141,6 +149,8 @@ export async function GET(
         services: {
           oec: false,
           owwa: false,
+          ttl: false,
+          tte: false,
           travelVisa: false,
           filipinaPassportRenewal: false,
           ethiopianPassportRenewal: false,
@@ -162,7 +172,19 @@ export async function GET(
         conversion.paymentDates.owwa = contractDates.get('owwa') || [];
       }
       
-      // Check Travel Visa payment
+      // Check TTL payment (Lebanon travel visa)
+      if (result.isTravelVisaProspect && result.travelVisaCountries?.includes('Lebanon') && paidServices.has('ttl')) {
+        conversion.services.ttl = true;
+        conversion.paymentDates.ttl = contractDates.get('ttl') || [];
+      }
+      
+      // Check TTE payment (Egypt travel visa)
+      if (result.isTravelVisaProspect && result.travelVisaCountries?.includes('Egypt') && paidServices.has('tte')) {
+        conversion.services.tte = true;
+        conversion.paymentDates.tte = contractDates.get('tte') || [];
+      }
+      
+      // Check Travel Visa payment (other countries)
       if (result.isTravelVisaProspect && paidServices.has('travel_visa')) {
         conversion.services.travelVisa = true;
         conversion.paymentDates.travelVisa = contractDates.get('travel_visa') || [];
