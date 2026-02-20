@@ -20,6 +20,7 @@ const SERVICE_COLORS = {
   ttlMultiple: '#1e40af', // blue-800 (darkest blue for multiple entry)
   tte: '#6db39f',      // soft sage green
   tteSingle: '#10b981',   // emerald-500 (for single entry)
+  tteDouble: '#047857',   // emerald-700 (for double entry)
   tteMultiple: '#059669', // emerald-600 (for multiple entry)
   ttj: '#e5a855',      // warm amber
   schengen: '#8ecae6', // soft sky blue
@@ -37,6 +38,7 @@ const SERVICE_LABELS: Record<string, string> = {
   ttlMultiple: 'Multiple Entry',
   tte: 'Travel to Egypt (General)',
   tteSingle: 'Single Entry',
+  tteDouble: 'Double Entry',
   tteMultiple: 'Multiple Entry',
   ttj: 'Travel to Jordan',
   schengen: 'Schengen Countries',
@@ -83,6 +85,9 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
         if (data.services.tteSingle?.volume > 0) {
           tteServices.push({ key: 'tteSingle', service: data.services.tteSingle });
         }
+        if (data.services.tteDouble?.volume > 0) {
+          tteServices.push({ key: 'tteDouble', service: data.services.tteDouble });
+        }
         if (data.services.tteMultiple?.volume > 0) {
           tteServices.push({ key: 'tteMultiple', service: data.services.tteMultiple });
         }
@@ -118,6 +123,9 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
         }
         if (data.services.tteSingle?.volume > 0) {
           travelServices.push({ key: 'tteSingle', service: data.services.tteSingle });
+        }
+        if (data.services.tteDouble?.volume > 0) {
+          travelServices.push({ key: 'tteDouble', service: data.services.tteDouble });
         }
         if (data.services.tteMultiple?.volume > 0) {
           travelServices.push({ key: 'tteMultiple', service: data.services.tteMultiple });

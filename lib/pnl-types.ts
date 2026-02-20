@@ -67,6 +67,7 @@ export interface PnLData {
     ttlMultiple: ServicePnL;
     tte: ServicePnL;
     tteSingle: ServicePnL;
+    tteDouble: ServicePnL;
     tteMultiple: ServicePnL;
     ttj: ServicePnL;
     schengen: ServicePnL;
@@ -92,6 +93,7 @@ export interface AggregatedPnL {
     ttlMultiple: ServicePnL;
     tte: ServicePnL;
     tteSingle: ServicePnL;
+    tteDouble: ServicePnL;
     tteMultiple: ServicePnL;
     ttj: ServicePnL;
     schengen: ServicePnL;

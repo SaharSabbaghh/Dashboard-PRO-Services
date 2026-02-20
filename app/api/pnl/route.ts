@@ -114,6 +114,7 @@ export async function GET(request: Request) {
         ttlMultiple: 'Tourist Visa to Lebanon – Multiple Entry',
         tte: 'Travel to Egypt',
         tteSingle: 'Tourist Visa to Egypt – Single Entry',
+        tteDouble: 'Tourist Visa to Egypt – Double Entry',
         tteMultiple: 'Tourist Visa to Egypt – Multiple Entry',
         ttj: 'Travel to Jordan',
         schengen: 'Schengen Countries',

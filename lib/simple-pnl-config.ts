@@ -53,6 +53,7 @@ export const DEFAULT_PNL_CONFIG: PnLConfig = {
   ttlMultiple: { unitCost: 745, serviceFee: 0 },
   tte: { unitCost: 400, serviceFee: 0 },
   tteSingle: { unitCost: 470, serviceFee: 0 },
+  tteDouble: { unitCost: 520, serviceFee: 0 },
   tteMultiple: { unitCost: 570, serviceFee: 0 },
   ttj: { unitCost: 320, serviceFee: 0 },
   schengen: { unitCost: 0, serviceFee: 0 },
