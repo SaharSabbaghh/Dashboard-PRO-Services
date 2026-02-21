@@ -43,58 +43,77 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
     filipinaPP: 'Filipina PP',
   };
 
-  // Build chart data - show single/double/multiple entries separately under Lebanon
-  const chartData = Object.entries(data.services)
-    .filter(([key]) => {
-      // Exclude the generic 'ttl' service and individual entry types (we'll add them separately)
-      return key !== 'ttl';
-    })
-    .map(([key, service]) => {
-      // For Lebanon entry types, show them with "Lebanon - " prefix
-      if (key === 'ttlSingle') {
-        return {
+  // Build chart data - combine all Lebanon entries and all Egypt entries into single entries
+  const chartData: Array<{
+    key: string;
+    name: string;
+    revenue: number;
+    cost: number;
+    profit: number;
+    volume: number;
+    color: string;
+  }> = [];
+
+  // Add all services except Lebanon and Egypt entry types
+  Object.entries(data.services).forEach(([key, service]) => {
+    // Exclude individual entry types (they'll be combined under Lebanon/Egypt)
+    if (!['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteDouble', 'tteMultiple'].includes(key)) {
+      const value = viewMode === 'revenue' ? service.totalRevenue : service.volume;
+      if (value > 0) {
+        chartData.push({
           key,
-          name: 'Lebanon - Single Entry',
+          name: serviceLabels[key] || key,
           revenue: service.totalRevenue,
           cost: service.totalCost,
           profit: service.grossProfit,
           volume: service.volume,
-          color: SERVICE_COLORS.ttlSingle || '#3b82f6',
-        };
+          color: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] || '#64748b',
+        });
       }
-      if (key === 'ttlDouble') {
-        return {
-          key,
-          name: 'Lebanon - Double Entry',
-          revenue: service.totalRevenue,
-          cost: service.totalCost,
-          profit: service.grossProfit,
-          volume: service.volume,
-          color: SERVICE_COLORS.ttlDouble || '#1d4ed8',
-        };
-      }
-      if (key === 'ttlMultiple') {
-        return {
-          key,
-          name: 'Lebanon - Multiple Entry',
-          revenue: service.totalRevenue,
-          cost: service.totalCost,
-          profit: service.grossProfit,
-          volume: service.volume,
-          color: SERVICE_COLORS.ttlMultiple || '#1e40af',
-        };
-      }
-      return {
-        key,
-        name: serviceLabels[key] || key,
-        revenue: service.totalRevenue,
-        cost: service.totalCost,
-        profit: service.grossProfit,
-        volume: service.volume,
-        color: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] || '#64748b',
-      };
-    })
-    .filter(item => (viewMode === 'revenue' ? item.revenue > 0 : item.volume > 0));
+    }
+  });
+
+  // Add combined Lebanon entry
+  const lebanonSingle = data.services.ttlSingle || { totalRevenue: 0, volume: 0 };
+  const lebanonDouble = data.services.ttlDouble || { totalRevenue: 0, volume: 0 };
+  const lebanonMultiple = data.services.ttlMultiple || { totalRevenue: 0, volume: 0 };
+  const lebanonGeneral = data.services.ttl || { totalRevenue: 0, volume: 0, totalCost: 0, grossProfit: 0 };
+  const lebanonTotalRevenue = lebanonGeneral.totalRevenue + lebanonSingle.totalRevenue + lebanonDouble.totalRevenue + lebanonMultiple.totalRevenue;
+  const lebanonTotalVolume = lebanonGeneral.volume + lebanonSingle.volume + lebanonDouble.volume + lebanonMultiple.volume;
+  
+  const lebanonValue = viewMode === 'revenue' ? lebanonTotalRevenue : lebanonTotalVolume;
+  if (lebanonValue > 0) {
+    chartData.push({
+      key: 'ttl',
+      name: 'Lebanon',
+      revenue: lebanonTotalRevenue,
+      cost: lebanonGeneral.totalCost || 0,
+      profit: lebanonGeneral.grossProfit || 0,
+      volume: lebanonTotalVolume,
+      color: SERVICE_COLORS.ttl || '#f59e0b',
+    });
+  }
+
+  // Add combined Egypt entry
+  const egyptSingle = data.services.tteSingle || { totalRevenue: 0, volume: 0 };
+  const egyptDouble = data.services.tteDouble || { totalRevenue: 0, volume: 0 };
+  const egyptMultiple = data.services.tteMultiple || { totalRevenue: 0, volume: 0 };
+  const egyptGeneral = data.services.tte || { totalRevenue: 0, volume: 0, totalCost: 0, grossProfit: 0 };
+  const egyptTotalRevenue = egyptGeneral.totalRevenue + egyptSingle.totalRevenue + egyptDouble.totalRevenue + egyptMultiple.totalRevenue;
+  const egyptTotalVolume = egyptGeneral.volume + egyptSingle.volume + egyptDouble.volume + egyptMultiple.volume;
+  
+  const egyptValue = viewMode === 'revenue' ? egyptTotalRevenue : egyptTotalVolume;
+  if (egyptValue > 0) {
+    chartData.push({
+      key: 'tte',
+      name: 'Egypt',
+      revenue: egyptTotalRevenue,
+      cost: egyptGeneral.totalCost || 0,
+      profit: egyptGeneral.grossProfit || 0,
+      volume: egyptTotalVolume,
+      color: SERVICE_COLORS.tte || '#ef4444',
+    });
+  }
 
   // Pie chart data based on view mode
   const pieData = chartData.map(item => ({

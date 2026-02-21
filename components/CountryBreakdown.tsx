@@ -1,19 +1,59 @@
 'use client';
 
-import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface CountryBreakdownProps {
   countryCounts: Record<string, number>;
 }
 
+// Distinct color palette for countries
+const COUNTRY_COLORS = [
+  '#3b82f6', // blue-500
+  '#10b981', // emerald-500
+  '#f59e0b', // amber-500
+  '#ef4444', // red-500
+  '#8b5cf6', // violet-500
+  '#06b6d4', // cyan-500
+  '#84cc16', // lime-500
+  '#f97316', // orange-500
+  '#ec4899', // pink-500
+  '#14b8a6', // teal-500
+  '#a855f7', // purple-500
+  '#eab308', // yellow-500
+  '#22c55e', // green-500
+  '#f43f5e', // rose-500
+  '#6366f1', // indigo-500
+  '#0ea5e9', // sky-500
+  '#64748b', // slate-500
+  '#78716c', // stone-500
+];
+
+// Generate consistent color for a country name
+const getCountryColor = (country: string): string => {
+  // Simple hash function to get consistent color for same country
+  let hash = 0;
+  for (let i = 0; i < country.length; i++) {
+    hash = country.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % COUNTRY_COLORS.length;
+  return COUNTRY_COLORS[index];
+};
+
 export default function CountryBreakdown({ countryCounts }: CountryBreakdownProps) {
   const [showAll, setShowAll] = useState(false);
   
-  const allData = Object.entries(countryCounts)
-    .filter(([country]) => country.toLowerCase() !== 'unspecified')
-    .map(([country, count]) => ({ country, count }))
-    .sort((a, b) => b.count - a.count);
+  // Memoize data with colors to ensure consistency
+  const allData = useMemo(() => {
+    return Object.entries(countryCounts)
+      .filter(([country]) => country.toLowerCase() !== 'unspecified')
+      .map(([country, count]) => ({ 
+        country, 
+        count,
+        color: getCountryColor(country)
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [countryCounts]);
   
   const displayData = showAll ? allData : allData.slice(0, 10);
   const hasMore = allData.length > 10;
@@ -69,14 +109,17 @@ export default function CountryBreakdown({ countryCounts }: CountryBreakdownProp
             />
             <Bar 
               dataKey="count" 
-              fill="#2563eb"
               radius={[0, 4, 4, 0]}
               label={{ 
                 position: 'right', 
                 fill: '#64748b', 
                 fontSize: 11 
               }}
-            />
+            >
+              {displayData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -85,9 +128,15 @@ export default function CountryBreakdown({ countryCounts }: CountryBreakdownProp
       {showAll && (
         <div className="mt-4 pt-4 border-t border-slate-100">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {allData.map(({ country, count }) => (
-              <div key={country} className="flex justify-between px-3 py-2 bg-slate-50 rounded-lg text-sm">
-                <span className="text-slate-600 truncate">{country}</span>
+            {allData.map(({ country, count, color }) => (
+              <div key={country} className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg text-sm">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-slate-600 truncate">{country}</span>
+                </div>
                 <span className="text-slate-800 font-medium ml-2">{count}</span>
               </div>
             ))}

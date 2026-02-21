@@ -15,9 +15,9 @@ const SERVICE_COLORS = {
   oec: '#b45309',      // amber-700 (matches main dashboard OEC)
   owwa: '#7c3aed',     // violet-600 (matches main dashboard OWWA)
   ttl: '#2563eb',      // blue-600 (matches main dashboard travel)
-  ttlSingle: '#3b82f6',   // blue-500 (lighter blue for single entry)
-  ttlDouble: '#1d4ed8',   // blue-700 (darker blue for double entry)
-  ttlMultiple: '#1e40af', // blue-800 (darkest blue for multiple entry)
+  ttlSingle: '#3b82f6',   // blue-500 (distinct blue for single entry)
+  ttlDouble: '#ef4444',   // red-500 (distinct red for double entry)
+  ttlMultiple: '#10b981', // emerald-500 (distinct green for multiple entry)
   tte: '#6db39f',      // soft sage green
   tteSingle: '#10b981',   // emerald-500 (lighter green for single entry)
   tteDouble: '#dc2626',   // red-600 (distinct red for double entry)

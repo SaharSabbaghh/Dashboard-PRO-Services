@@ -76,47 +76,64 @@ export default function ServiceSummaryCards({
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
       {/* Prospects Count */}
-      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col">
-        <p className="text-sm font-medium text-slate-600">Unique {serviceLabels[service]} Prospects</p>
-        <p className="text-3xl font-bold text-slate-800 mt-auto">{prospectCount}</p>
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col h-full">
+        <p className="text-sm font-medium text-slate-600 mb-auto">Unique {serviceLabels[service]} Prospects</p>
+        <div className="mt-auto">
+          <p className="text-3xl font-bold text-slate-800">{prospectCount}</p>
+          <div className="h-5"></div>
+        </div>
       </div>
 
       {/* Conversions */}
-      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col">
-        <p className="text-sm font-medium text-slate-600">Unique Conversions</p>
-        <p className="text-3xl font-bold text-slate-800 mt-auto">{conversionCount}</p>
-        <p className="text-sm text-slate-500 mt-2">
-          {prospectCount > 0 ? `${((conversionCount / prospectCount) * 100).toFixed(1)}% CVR` : '—'}
-        </p>
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col h-full">
+        <p className="text-sm font-medium text-slate-600 mb-auto">Unique Conversions</p>
+        <div className="mt-auto">
+          <p className="text-3xl font-bold text-slate-800">{conversionCount}</p>
+          <div className="h-5 mt-2">
+            <p className="text-sm text-slate-500">
+              {prospectCount > 0 ? `${((conversionCount / prospectCount) * 100).toFixed(1)}% CVR` : '—'}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* CC Contract */}
-      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col">
-        <p className="text-sm font-medium text-slate-600">CC Contract</p>
-        <p className="text-3xl font-bold text-slate-800 mt-auto">{ccCount}</p>
-        <p className="text-sm text-slate-500 mt-2">
-          {totalContract > 0 ? `${((ccCount / totalContract) * 100).toFixed(1)}% of total` : '—'}
-        </p>
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col h-full">
+        <p className="text-sm font-medium text-slate-600 mb-auto">CC Contract</p>
+        <div className="mt-auto">
+          <p className="text-3xl font-bold text-slate-800">{ccCount}</p>
+          <div className="h-5 mt-2">
+            <p className="text-sm text-slate-500">
+              {totalContract > 0 ? `${((ccCount / totalContract) * 100).toFixed(1)}% of total` : '—'}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* MV Contract */}
-      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col">
-        <p className="text-sm font-medium text-slate-600">MV Contract</p>
-        <p className="text-3xl font-bold text-slate-800 mt-auto">{mvCount}</p>
-        <p className="text-sm text-slate-500 mt-2">
-          {totalContract > 0 ? `${((mvCount / totalContract) * 100).toFixed(1)}% of total` : '—'}
-        </p>
+      <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col h-full">
+        <p className="text-sm font-medium text-slate-600 mb-auto">MV Contract</p>
+        <div className="mt-auto">
+          <p className="text-3xl font-bold text-slate-800">{mvCount}</p>
+          <div className="h-5 mt-2">
+            <p className="text-sm text-slate-500">
+              {totalContract > 0 ? `${((mvCount / totalContract) * 100).toFixed(1)}% of total` : '—'}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Avg Confidence */}
-      <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white flex flex-col">
-        <p className="text-sm font-medium text-slate-300">Avg LLM Confidence</p>
-        <p className="text-3xl font-bold mt-auto">{calculateAvgConfidence()}</p>
-        <p className="text-xs text-slate-400 mt-2">
-          AI detection certainty
-        </p>
+      <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white flex flex-col h-full">
+        <p className="text-sm font-medium text-slate-300 mb-auto">Avg LLM Confidence</p>
+        <div className="mt-auto">
+          <p className="text-3xl font-bold">{calculateAvgConfidence()}</p>
+          <p className="text-xs text-slate-400 mt-2">
+            AI detection certainty
+          </p>
+        </div>
       </div>
     </div>
   );

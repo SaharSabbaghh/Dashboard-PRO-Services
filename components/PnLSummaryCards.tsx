@@ -46,7 +46,11 @@ export default function PnLSummaryCards({ data, isLoading, viewMode = 'monthly' 
   return (
     <div className="space-y-4">
       {/* Main cards row */}
-      <div className={`grid grid-cols-2 gap-4 ${viewMode === 'daily' ? 'lg:grid-cols-3' : 'lg:grid-cols-5'}`}>
+      <div className={`grid grid-cols-2 gap-4 ${
+        viewMode === 'daily' 
+          ? 'lg:grid-cols-3' 
+          : 'lg:grid-cols-8'
+      }`}>
         {/* Total Revenue */}
         <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
           <p className="text-sm font-medium text-slate-600">Total Revenue</p>
@@ -99,6 +103,51 @@ export default function PnLSummaryCards({ data, isLoading, viewMode = 'monthly' 
           </div>
         )}
 
+        {/* Labor Cost - Only show in monthly view */}
+        {viewMode === 'monthly' && (
+          <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
+            <p className="text-sm font-medium text-slate-600">Labor Cost</p>
+            <p className="text-3xl font-bold mt-2 text-slate-800">
+              {formatCurrency(data?.summary.fixedCosts.laborCost || 0)}
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              {data?.summary.fixedCosts.total ? 
+                `${((data.summary.fixedCosts.laborCost / data.summary.fixedCosts.total) * 100).toFixed(1)}% of fixed` 
+                : '—'}
+            </p>
+          </div>
+        )}
+
+        {/* LLM Costs - Only show in monthly view */}
+        {viewMode === 'monthly' && (
+          <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
+            <p className="text-sm font-medium text-slate-600">LLM Costs</p>
+            <p className="text-3xl font-bold mt-2 text-slate-800">
+              {formatCurrency(data?.summary.fixedCosts.llm || 0)}
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              {data?.summary.fixedCosts.total ? 
+                `${((data.summary.fixedCosts.llm / data.summary.fixedCosts.total) * 100).toFixed(1)}% of fixed` 
+                : '—'}
+            </p>
+          </div>
+        )}
+
+        {/* PRO Transportation - Only show in monthly view */}
+        {viewMode === 'monthly' && (
+          <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
+            <p className="text-sm font-medium text-slate-600">PRO Transportation</p>
+            <p className="text-3xl font-bold mt-2 text-slate-800">
+              {formatCurrency(data?.summary.fixedCosts.proTransportation || 0)}
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              {data?.summary.fixedCosts.total ? 
+                `${((data.summary.fixedCosts.proTransportation / data.summary.fixedCosts.total) * 100).toFixed(1)}% of fixed` 
+                : '—'}
+            </p>
+          </div>
+        )}
+
         {/* Net Profit - Only show in monthly view */}
         {viewMode === 'monthly' && (
           <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm">
@@ -114,47 +163,6 @@ export default function PnLSummaryCards({ data, isLoading, viewMode = 'monthly' 
           </div>
         )}
       </div>
-
-      {/* Fixed Costs Breakdown row - Only show in monthly view */}
-      {viewMode === 'monthly' && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-            <p className="text-sm font-medium text-slate-600">Labor Cost</p>
-            <p className="text-3xl font-bold mt-2 text-slate-800">
-              {formatCurrency(data?.summary.fixedCosts.laborCost || 0)}
-            </p>
-            <p className="text-xs text-slate-500 mt-3">
-              {data?.summary.fixedCosts.total ? 
-                `${((data.summary.fixedCosts.laborCost / data.summary.fixedCosts.total) * 100).toFixed(1)}% of fixed costs` 
-                : '0% of fixed costs'}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-            <p className="text-sm font-medium text-slate-600">LLM Costs</p>
-            <p className="text-3xl font-bold mt-2 text-slate-800">
-              {formatCurrency(data?.summary.fixedCosts.llm || 0)}
-            </p>
-            <p className="text-xs text-slate-500 mt-3">
-              {data?.summary.fixedCosts.total ? 
-                `${((data.summary.fixedCosts.llm / data.summary.fixedCosts.total) * 100).toFixed(1)}% of fixed costs` 
-                : '0% of fixed costs'}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-            <p className="text-sm font-medium text-slate-600">PRO Transportation</p>
-            <p className="text-3xl font-bold mt-2 text-slate-800">
-              {formatCurrency(data?.summary.fixedCosts.proTransportation || 0)}
-            </p>
-            <p className="text-xs text-slate-500 mt-3">
-              {data?.summary.fixedCosts.total ? 
-                `${((data.summary.fixedCosts.proTransportation / data.summary.fixedCosts.total) * 100).toFixed(1)}% of fixed costs` 
-                : '0% of fixed costs'}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -109,49 +109,59 @@ export default function ProspectCards({
   return (
     <div className="space-y-4">
       {/* Main cards row */}
-      <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-4 items-stretch">
         {cards.map((card) => (
           <div
             key={card.title}
-            className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col"
+            className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col h-full"
           >
-            <p className="text-sm font-medium text-slate-600">{card.title}</p>
-            <p className="text-3xl font-bold mt-auto text-slate-800">
-              {isLoading ? '...' : card.count}
-            </p>
-            {conversions && card.count > 0 && (
-              <p className="text-sm mt-2 text-green-600 font-medium">
-                {card.converted} converted ({card.rate}%)
+            <p className="text-sm font-medium text-slate-600 mb-auto">{card.title}</p>
+            <div className="mt-auto">
+              <p className="text-3xl font-bold text-slate-800">
+                {isLoading ? '...' : card.count}
               </p>
-            )}
+              <div className="h-5 mt-2">
+                {conversions && card.count > 0 && (
+                  <p className="text-sm text-green-600 font-medium">
+                    {card.converted} converted ({card.rate}%)
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         ))}
         
         {/* Total Prospects */}
-        <div className="bg-white border-2 border-slate-200 rounded-xl p-5 shadow-sm flex flex-col">
-          <p className="text-sm font-medium text-slate-600">Total Prospects</p>
-          <p className="text-3xl font-bold mt-auto text-slate-800">
-            {isLoading ? '...' : totalProspects}
-          </p>
-          {conversions && totalProspects > 0 && (
-            <p className="text-sm mt-2 text-green-600 font-medium">
-              {overallRate}% CVR
+        <div className="bg-white border-2 border-slate-200 rounded-xl p-5 shadow-sm flex flex-col h-full">
+          <p className="text-sm font-medium text-slate-600 mb-auto">Total Prospects</p>
+          <div className="mt-auto">
+            <p className="text-3xl font-bold text-slate-800">
+              {isLoading ? '...' : totalProspects}
             </p>
-          )}
-          <p className="text-xs text-slate-400 mt-1">
-            of {totalProcessed} analyzed
-          </p>
+            <div className="h-5 mt-2">
+              {conversions && totalProspects > 0 && (
+                <p className="text-sm text-green-600 font-medium">
+                  {overallRate}% CVR
+                </p>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              of {totalProcessed} analyzed
+            </p>
+          </div>
         </div>
 
         {/* Average Confidence */}
-        <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white flex flex-col">
-          <p className="text-sm font-medium text-slate-300">Avg LLM Confidence</p>
-          <p className="text-3xl font-bold mt-auto">
-            {isLoading ? '...' : avgConfidence !== null ? `${avgConfidence}%` : '—'}
-          </p>
-          <p className="text-xs text-slate-400 mt-2">
-            AI detection certainty
-          </p>
+        <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white flex flex-col h-full">
+          <p className="text-sm font-medium text-slate-300 mb-auto">Avg LLM Confidence</p>
+          <div className="mt-auto">
+            <p className="text-3xl font-bold">
+              {isLoading ? '...' : avgConfidence !== null ? `${avgConfidence}%` : '—'}
+            </p>
+            <p className="text-xs text-slate-400 mt-2">
+              AI detection certainty
+            </p>
+          </div>
         </div>
       </div>
 
