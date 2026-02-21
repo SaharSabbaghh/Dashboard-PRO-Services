@@ -15,6 +15,9 @@ const SERVICE_COLORS = {
   oec: '#3b82f6',      // blue-500
   owwa: '#10b981',     // emerald-500
   ttl: '#f59e0b',      // amber-500
+  ttlSingle: '#3b82f6',   // blue-500 (lighter blue for single entry)
+  ttlDouble: '#1d4ed8',   // blue-700 (darker blue for double entry)
+  ttlMultiple: '#1e40af', // blue-800 (darkest blue for multiple entry)
   tte: '#ef4444',      // red-500
   ttj: '#8b5cf6',      // violet-500
   schengen: '#06b6d4', // cyan-500
@@ -40,17 +43,57 @@ export default function PnLServiceChart({ data }: PnLServiceChartProps) {
     filipinaPP: 'Filipina PP',
   };
 
-  // Build chart data
+  // Build chart data - show single/double/multiple entries separately under Lebanon
   const chartData = Object.entries(data.services)
-    .map(([key, service]) => ({
-      key,
-      name: serviceLabels[key] || key,
-      revenue: service.totalRevenue,
-      cost: service.totalCost,
-      profit: service.grossProfit,
-      volume: service.volume,
-      color: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] || '#64748b',
-    }))
+    .filter(([key]) => {
+      // Exclude the generic 'ttl' service and individual entry types (we'll add them separately)
+      return key !== 'ttl';
+    })
+    .map(([key, service]) => {
+      // For Lebanon entry types, show them with "Lebanon - " prefix
+      if (key === 'ttlSingle') {
+        return {
+          key,
+          name: 'Lebanon - Single Entry',
+          revenue: service.totalRevenue,
+          cost: service.totalCost,
+          profit: service.grossProfit,
+          volume: service.volume,
+          color: SERVICE_COLORS.ttlSingle || '#3b82f6',
+        };
+      }
+      if (key === 'ttlDouble') {
+        return {
+          key,
+          name: 'Lebanon - Double Entry',
+          revenue: service.totalRevenue,
+          cost: service.totalCost,
+          profit: service.grossProfit,
+          volume: service.volume,
+          color: SERVICE_COLORS.ttlDouble || '#1d4ed8',
+        };
+      }
+      if (key === 'ttlMultiple') {
+        return {
+          key,
+          name: 'Lebanon - Multiple Entry',
+          revenue: service.totalRevenue,
+          cost: service.totalCost,
+          profit: service.grossProfit,
+          volume: service.volume,
+          color: SERVICE_COLORS.ttlMultiple || '#1e40af',
+        };
+      }
+      return {
+        key,
+        name: serviceLabels[key] || key,
+        revenue: service.totalRevenue,
+        cost: service.totalCost,
+        profit: service.grossProfit,
+        volume: service.volume,
+        color: SERVICE_COLORS[key as keyof typeof SERVICE_COLORS] || '#64748b',
+      };
+    })
     .filter(item => (viewMode === 'revenue' ? item.revenue > 0 : item.volume > 0));
 
   // Pie chart data based on view mode

@@ -19,9 +19,9 @@ const SERVICE_COLORS = {
   ttlDouble: '#1d4ed8',   // blue-700 (darker blue for double entry)
   ttlMultiple: '#1e40af', // blue-800 (darkest blue for multiple entry)
   tte: '#6db39f',      // soft sage green
-  tteSingle: '#10b981',   // emerald-500 (for single entry)
-  tteDouble: '#047857',   // emerald-700 (for double entry)
-  tteMultiple: '#059669', // emerald-600 (for multiple entry)
+  tteSingle: '#10b981',   // emerald-500 (lighter green for single entry)
+  tteDouble: '#dc2626',   // red-600 (distinct red for double entry)
+  tteMultiple: '#7c3aed', // violet-600 (distinct purple for multiple entry)
   ttj: '#e5a855',      // warm amber
   schengen: '#8ecae6', // soft sky blue
   gcc: '#e5c07b',      // soft golden
@@ -259,8 +259,8 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
         </div>
       </div>
 
-      {/* Charts - only show for multi-service filters */}
-      {services.length > 1 && (
+      {/* Charts - only show for multi-service filters, but for TTL/TTE show only pie chart */}
+      {services.length > 1 && filter !== 'ttl' && filter !== 'tte' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Bar Chart */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -366,6 +366,66 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Total Orders</p>
                 <p className="text-xl font-bold text-slate-800 mt-1">{totals.volume.toLocaleString()}</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* For TTL and TTE, show only pie chart (revenue distribution) */}
+      {(filter === 'ttl' || filter === 'tte') && services.length > 1 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <h3 className="text-base font-semibold text-slate-800 mb-6">Revenue Distribution</h3>
+          
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3 mb-6 text-xs">
+            {pieData.map((item) => (
+              <div key={item.name} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-slate-700 font-medium">{item.name}</span>
+                <span className="text-slate-500">
+                  ({item.percentage}%)
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-center">
+            <ResponsiveContainer width="100%" height={400}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
+                  outerRadius={140}
+                  paddingAngle={2}
+                  dataKey="value"
+                  stroke="#fff"
+                  strokeWidth={2}
+                  animationDuration={400}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => [formatCurrency(Number(value) || 0), 'Revenue']}
+                  contentStyle={tooltipStyle}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Summary */}
+          <div className="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4 text-center">
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Total Revenue</p>
+              <p className="text-xl font-bold text-slate-800 mt-1">{formatCurrency(totals.revenue)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Total Orders</p>
+              <p className="text-xl font-bold text-slate-800 mt-1">{totals.volume.toLocaleString()}</p>
             </div>
           </div>
         </div>

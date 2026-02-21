@@ -113,10 +113,10 @@ export default function ProspectCards({
         {cards.map((card) => (
           <div
             key={card.title}
-            className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm"
+            className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex flex-col"
           >
             <p className="text-sm font-medium text-slate-600">{card.title}</p>
-            <p className="text-3xl font-bold mt-2 text-slate-800">
+            <p className="text-3xl font-bold mt-auto text-slate-800">
               {isLoading ? '...' : card.count}
             </p>
             {conversions && card.count > 0 && (
@@ -128,9 +128,9 @@ export default function ProspectCards({
         ))}
         
         {/* Total Prospects */}
-        <div className="bg-white border-2 border-slate-200 rounded-xl p-5 shadow-sm">
+        <div className="bg-white border-2 border-slate-200 rounded-xl p-5 shadow-sm flex flex-col">
           <p className="text-sm font-medium text-slate-600">Total Prospects</p>
-          <p className="text-3xl font-bold mt-2 text-slate-800">
+          <p className="text-3xl font-bold mt-auto text-slate-800">
             {isLoading ? '...' : totalProspects}
           </p>
           {conversions && totalProspects > 0 && (
@@ -144,9 +144,9 @@ export default function ProspectCards({
         </div>
 
         {/* Average Confidence */}
-        <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white">
+        <div className="bg-slate-800 rounded-xl p-5 border-2 border-slate-700 shadow-sm text-white flex flex-col">
           <p className="text-sm font-medium text-slate-300">Avg LLM Confidence</p>
-          <p className="text-3xl font-bold mt-2">
+          <p className="text-3xl font-bold mt-auto">
             {isLoading ? '...' : avgConfidence !== null ? `${avgConfidence}%` : '—'}
           </p>
           <p className="text-xs text-slate-400 mt-2">

@@ -10,6 +10,7 @@ import DatePickerCalendar from '@/components/DatePickerCalendar';
 import CollapsibleSection from '@/components/CollapsibleSection';
 import ServiceSummaryCards from '@/components/ServiceSummaryCards';
 import ServiceProspectTable from '@/components/ServiceProspectTable';
+import PassportRenewalSummaryCards from '@/components/PassportRenewalSummaryCards';
 import PnLSummaryCards from '@/components/PnLSummaryCards';
 import PnLServiceChart from '@/components/PnLServiceChart';
 import PnLTable from '@/components/PnLTable';
@@ -24,7 +25,7 @@ import type { AggregatedPnL } from '@/lib/pnl-types';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa' | 'filipinaPassportRenewal' | 'ethiopianPassportRenewal'>('overview');
+  const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa' | 'passportRenewal'>('overview');
   const [pnlSubTab, setPnlSubTab] = useState<'overview' | 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP'>('overview');
   const [results, setResults] = useState<Results | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -346,8 +347,7 @@ export default function Dashboard() {
                   { id: 'oec', label: 'OEC', icon: '◈' },
                   { id: 'owwa', label: 'OWWA', icon: '◇' },
                   { id: 'travelVisa', label: 'Travel Visa', icon: '✈' },
-                  { id: 'filipinaPassportRenewal', label: 'Filipina PP', icon: '🇵🇭' },
-                  { id: 'ethiopianPassportRenewal', label: 'Ethiopian PP', icon: '🇪🇹' },
+                  { id: 'passportRenewal', label: 'Passport Renewals', icon: '📘' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -503,12 +503,12 @@ export default function Dashboard() {
                   </>
                 )}
 
-                {/* Filipina Passport Renewal Sub-tab */}
-                {dashboardSubTab === 'filipinaPassportRenewal' && (
+                {/* Passport Renewals Sub-tab (Combined Filipina and Ethiopian) */}
+                {dashboardSubTab === 'passportRenewal' && (
                   <>
-                    <ServiceSummaryCards
-                      service="filipinaPassportRenewal"
-                      prospectCount={getProspectCount('filipinaPassportRenewal')}
+                    <PassportRenewalSummaryCards
+                      filipinaCount={getProspectCount('filipinaPassportRenewal')}
+                      ethiopianCount={getProspectCount('ethiopianPassportRenewal')}
                       conversions={results?.conversions}
                       byContractType={results?.byContractType}
                       prospectDetails={results?.prospectDetails}
@@ -521,6 +521,13 @@ export default function Dashboard() {
                       serviceFilter="filipinaPassportRenewal"
                     />
 
+                    <ServiceBreakdownChart 
+                      prospectDetails={results?.prospectDetails} 
+                      households={results?.households}
+                      byContractType={results?.byContractType}
+                      serviceFilter="ethiopianPassportRenewal"
+                    />
+
                     <CollapsibleSection
                       title="Filipina Passport Renewal Prospect Details"
                       count={getFilteredProspectCount('filipinaPassportRenewal')}
@@ -530,26 +537,6 @@ export default function Dashboard() {
                         service="filipinaPassportRenewal"
                       />
                     </CollapsibleSection>
-                  </>
-                )}
-
-                {/* Ethiopian Passport Renewal Sub-tab */}
-                {dashboardSubTab === 'ethiopianPassportRenewal' && (
-                  <>
-                    <ServiceSummaryCards
-                      service="ethiopianPassportRenewal"
-                      prospectCount={getProspectCount('ethiopianPassportRenewal')}
-                      conversions={results?.conversions}
-                      byContractType={results?.byContractType}
-                      prospectDetails={results?.prospectDetails}
-                    />
-
-                    <ServiceBreakdownChart 
-                      prospectDetails={results?.prospectDetails} 
-                      households={results?.households}
-                      byContractType={results?.byContractType}
-                      serviceFilter="ethiopianPassportRenewal"
-                    />
 
                     <CollapsibleSection
                       title="Ethiopian Passport Renewal Prospect Details"
@@ -571,26 +558,7 @@ export default function Dashboard() {
         {activeTab === 'pnl' && (
           <div className="space-y-6">
             {/* Sub-tabs Navigation */}
-            <div className="flex flex-col gap-3 border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-3">
-                {/* Advanced date picker with daily/monthly modes */}
-                <PnLDatePicker
-                  availableMonths={pnlAvailableMonths}
-                  availableDates={pnlAvailableDates}
-                  selectedStartDate={pnlSelectedDate}
-                  selectedEndDate={pnlSelectedEndDate}
-                  onDateSelect={handlePnLDateSelect}
-                  viewMode={pnlViewMode}
-                  onViewModeChange={setPnlViewMode}
-                />
-                <button
-                  onClick={() => fetchPnLData(pnlSelectedDate, pnlSelectedEndDate, pnlViewMode)}
-                  disabled={pnlLoading}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
-                >
-                  {pnlLoading ? 'Refreshing...' : 'Refresh'}
-                </button>
-              </div>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex gap-1 bg-slate-100 p-1 rounded-lg flex-wrap">
                   {[
                     { id: 'overview', label: 'Overview' },
@@ -617,7 +585,26 @@ export default function Dashboard() {
                     </button>
                   ))}
                 </div>
+              <div className="flex items-center gap-3">
+                {/* Advanced date picker with daily/monthly modes - moved to right */}
+                <PnLDatePicker
+                  availableMonths={pnlAvailableMonths}
+                  availableDates={pnlAvailableDates}
+                  selectedStartDate={pnlSelectedDate}
+                  selectedEndDate={pnlSelectedEndDate}
+                  onDateSelect={handlePnLDateSelect}
+                  viewMode={pnlViewMode}
+                  onViewModeChange={setPnlViewMode}
+                />
+                <button
+                  onClick={() => fetchPnLData(pnlSelectedDate, pnlSelectedEndDate, pnlViewMode)}
+                  disabled={pnlLoading}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+                >
+                  {pnlLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
               </div>
+            </div>
 
             {(pnlSource === 'complaints' || pnlSource === 'excel') && (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
