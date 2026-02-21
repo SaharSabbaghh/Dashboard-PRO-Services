@@ -49,7 +49,7 @@ export default function PnLSummaryCards({ data, isLoading, viewMode = 'monthly' 
       <div className={`grid grid-cols-2 gap-4 ${
         viewMode === 'daily' 
           ? 'lg:grid-cols-3' 
-          : 'lg:grid-cols-8'
+          : 'md:grid-cols-4 lg:grid-cols-8'
       }`}>
         {/* Total Revenue */}
         <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">

@@ -159,23 +159,29 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isOECProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">
-                      {p.oecConverted ? '✓' : '•'}
-                    </span>
+                    p.oecConverted ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">•</span>
+                    )
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isOWWAProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-sky-100 text-sky-700">
-                      {p.owwaConverted ? '✓' : '•'}
-                    </span>
+                    p.owwaConverted ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-sky-100 text-sky-700">•</span>
+                    )
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isTravelVisaProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-700">
-                      {p.travelVisaConverted ? '✓' : '•'}
-                    </span>
+                    p.travelVisaConverted ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-700">•</span>
+                    )
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-slate-600 text-xs">
@@ -183,16 +189,20 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isFilipinaPassportRenewalProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-pink-100 text-pink-700">
-                      {p.filipinaPassportRenewalConverted ? '✓' : '•'}
-                    </span>
+                    p.filipinaPassportRenewalConverted ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-pink-100 text-pink-700">•</span>
+                    )
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isEthiopianPassportRenewalProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">
-                      {p.ethiopianPassportRenewalConverted ? '✓' : '•'}
-                    </span>
+                    p.ethiopianPassportRenewalConverted ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">•</span>
+                    )
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
@@ -378,23 +388,29 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                             </td>
                             <td className="px-4 py-2 text-center text-xs">
                               {member.isOECProspect ? (
-                                <span className={member.oecConverted ? 'text-blue-700 font-medium' : 'text-blue-500'}>
-                                  {member.oecConverted ? '✓' : '•'}
-                                </span>
+                                member.oecConverted ? (
+                                  <span className="px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                                ) : (
+                                  <span className="text-blue-500">•</span>
+                                )
                               ) : '—'}
                             </td>
                             <td className="px-4 py-2 text-center text-xs">
                               {member.isOWWAProspect ? (
-                                <span className={member.owwaConverted ? 'text-sky-700 font-medium' : 'text-sky-500'}>
-                                  {member.owwaConverted ? '✓' : '•'}
-                                </span>
+                                member.owwaConverted ? (
+                                  <span className="px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                                ) : (
+                                  <span className="text-sky-500">•</span>
+                                )
                               ) : '—'}
                             </td>
                             <td className="px-4 py-2 text-center text-xs">
                               {member.isTravelVisaProspect ? (
-                                <span className={member.travelVisaConverted ? 'text-slate-700 font-medium' : 'text-slate-500'}>
-                                  {member.travelVisaConverted ? '✓' : '•'}
-                                </span>
+                                member.travelVisaConverted ? (
+                                  <span className="px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Yes</span>
+                                ) : (
+                                  <span className="text-slate-500">•</span>
+                                )
                               ) : '—'}
                             </td>
                             <td className="px-4 py-2 text-slate-600 text-xs">
