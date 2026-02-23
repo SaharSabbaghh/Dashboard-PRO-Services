@@ -251,7 +251,7 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
         <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm">
           <p className="text-sm font-medium text-slate-600">Service Fee</p>
           <p className="text-3xl font-bold mt-2 text-slate-800">
-            {perOrderServiceFee > 0 ? formatCurrency(perOrderServiceFee) : '—'}
+            {formatCurrency(perOrderServiceFee)}
           </p>
           <p className="text-xs text-slate-500 mt-2">
             Per order
@@ -470,11 +470,13 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-right text-slate-600">
-                      {service.serviceFees > 0 ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">
-                          {formatCurrency(service.serviceFees)}
-                        </span>
-                      ) : '—'}
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md font-medium ${
+                        service.serviceFees > 0 
+                          ? 'bg-blue-50 text-blue-700' 
+                          : 'bg-slate-50 text-slate-500'
+                      }`}>
+                        {formatCurrency(service.serviceFees)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-right">
                       <span className="text-slate-800 font-semibold">{formatCurrency(service.totalRevenue)}</span>
