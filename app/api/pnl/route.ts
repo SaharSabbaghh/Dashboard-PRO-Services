@@ -15,27 +15,29 @@ export const revalidate = 0;
 
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
-// Actual costs per service (what it costs the company)
-const SERVICE_COSTS: Record<PnLServiceKey, number> = {
-  oec: 61.5,         // DMW fees
-  owwa: 92,          // OWWA fees
-  ttl: 400,          // Embassy + transportation (generic)
-  ttlSingle: 425,    // Tourist Visa to Lebanon – Single Entry
-  ttlDouble: 565,    // Tourist Visa to Lebanon – Double Entry
-  ttlMultiple: 745,  // Tourist Visa to Lebanon – Multiple Entry
-  tte: 400,          // Embassy + transportation (generic)
-  tteSingle: 470,    // Tourist Visa to Egypt – Single Entry
-  tteDouble: 520,    // Tourist Visa to Egypt – Double Entry
-  tteMultiple: 570,  // Tourist Visa to Egypt – Multiple Entry
-  ttj: 220,          // Embassy + facilitator
-  schengen: 0,       // Processing fees
-  gcc: 220,          // Dubai Police fees
-  ethiopianPP: 1330, // Government fees
-  filipinaPP: 0,     // Processing fees
+// Price change effective date
+const PRICE_CHANGE_DATE = '2026-02-22';
+
+// Old prices (before February 22, 2026)
+const OLD_SERVICE_COSTS: Record<PnLServiceKey, number> = {
+  oec: 61.5,
+  owwa: 92,
+  ttl: 400,
+  ttlSingle: 425,
+  ttlDouble: 565,
+  ttlMultiple: 745,
+  tte: 400,
+  tteSingle: 370,    // Old price
+  tteDouble: 520,
+  tteMultiple: 470,  // Old price
+  ttj: 320,          // Old price
+  schengen: 0,
+  gcc: 220,
+  ethiopianPP: 1330,
+  filipinaPP: 0,
 };
 
-// Service fees (markup) per service - defaults to 0
-const SERVICE_FEES: Record<PnLServiceKey, number> = {
+const OLD_SERVICE_FEES: Record<PnLServiceKey, number> = {
   oec: 0,
   owwa: 0,
   ttl: 0,
@@ -52,6 +54,52 @@ const SERVICE_FEES: Record<PnLServiceKey, number> = {
   ethiopianPP: 0,
   filipinaPP: 0,
 };
+
+// New prices (from February 22, 2026 onwards)
+const NEW_SERVICE_COSTS: Record<PnLServiceKey, number> = {
+  oec: 61.5,
+  owwa: 92,
+  ttl: 400,
+  ttlSingle: 425,
+  ttlDouble: 565,
+  ttlMultiple: 745,
+  tte: 400,
+  tteSingle: 370,    // Updated Feb 22
+  tteDouble: 520,
+  tteMultiple: 470,  // Updated Feb 22
+  ttj: 320,          // Updated Feb 22
+  schengen: 0,
+  gcc: 220,
+  ethiopianPP: 1330,
+  filipinaPP: 0,
+};
+
+const NEW_SERVICE_FEES: Record<PnLServiceKey, number> = {
+  oec: 0,
+  owwa: 0,
+  ttl: 0,
+  ttlSingle: 100,    // Updated Feb 22
+  ttlDouble: 100,    // Updated Feb 22
+  ttlMultiple: 100,  // Updated Feb 22
+  tte: 0,
+  tteSingle: 100,    // Updated Feb 22
+  tteDouble: 0,
+  tteMultiple: 100,  // Updated Feb 22
+  ttj: 100,          // Updated Feb 22
+  schengen: 0,
+  gcc: 0,
+  ethiopianPP: 120,  // Updated Feb 22
+  filipinaPP: 0,
+};
+
+// Get prices based on date
+function getServiceCosts(date: string): Record<PnLServiceKey, number> {
+  return date >= PRICE_CHANGE_DATE ? NEW_SERVICE_COSTS : OLD_SERVICE_COSTS;
+}
+
+function getServiceFees(date: string): Record<PnLServiceKey, number> {
+  return date >= PRICE_CHANGE_DATE ? NEW_SERVICE_FEES : OLD_SERVICE_FEES;
+}
 
 // Fixed monthly costs
 const MONTHLY_FIXED_COSTS = {
@@ -145,20 +193,101 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
-      // Create P&L for each service
-      // Revenue = (serviceFee + unitCost) × volume
-      // Gross Profit = serviceFee × volume
-      ALL_SERVICE_KEYS.forEach(key => {
-        const volume = dailyData.volumes[key] || 0;
-        const unitCost = SERVICE_COSTS[key];
-        const serviceFee = SERVICE_FEES[key];
+      // Process complaints individually to apply date-aware pricing
+      // Group sales by their first sale date to determine which pricing to use
+      const salesByDate = new Map<string, Array<{ serviceKey: PnLServiceKey }>>();
+      
+      // Process complaintsByService to group by first sale date
+      Object.entries(dailyData.complaintsByService).forEach(([serviceKey, complaints]) => {
+        if (!complaints || complaints.length === 0) return;
         
-        services[key] = createServiceFromVolume(
-          serviceNames[key],
-          volume,
-          unitCost,
-          serviceFee
-        );
+        // Group complaints by sale (contract + client + housemaid) with 3-month dedup
+        const salesMap = new Map<string, { firstSaleDate: string }>();
+        
+        complaints.forEach(complaint => {
+          const saleKey = `${complaint.contractId}_${complaint.clientId}_${complaint.housemaidId}`;
+          const complaintDate = complaint.creationDate.split(/[T ]/)[0]; // Extract YYYY-MM-DD
+          
+          const existing = salesMap.get(saleKey);
+          if (!existing) {
+            salesMap.set(saleKey, { firstSaleDate: complaintDate });
+          } else {
+            // Check if within 3 months
+            const existingDate = new Date(existing.firstSaleDate);
+            const newDate = new Date(complaintDate);
+            const monthsDiff = Math.abs(
+              (newDate.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+            );
+            
+            if (monthsDiff > 3) {
+              // More than 3 months apart - new sale, keep more recent
+              if (newDate > existingDate) {
+                salesMap.set(saleKey, { firstSaleDate: complaintDate });
+              }
+            } else if (complaintDate < existing.firstSaleDate) {
+              // Within 3 months but earlier - update first sale date
+              salesMap.set(saleKey, { firstSaleDate: complaintDate });
+            }
+          }
+        });
+        
+        // Group sales by their first sale date
+        salesMap.forEach(({ firstSaleDate }) => {
+          if (!salesByDate.has(firstSaleDate)) {
+            salesByDate.set(firstSaleDate, []);
+          }
+          salesByDate.get(firstSaleDate)!.push({ serviceKey: serviceKey as PnLServiceKey });
+        });
+      });
+      
+      // Initialize services
+      ALL_SERVICE_KEYS.forEach(key => {
+        services[key] = createServiceFromVolume(serviceNames[key], 0, 0, 0);
+      });
+      
+      // Process each date group with appropriate pricing
+      for (const [firstSaleDate, sales] of salesByDate) {
+        // Get prices for this date
+        const dateCosts = getServiceCosts(firstSaleDate);
+        const dateFees = getServiceFees(firstSaleDate);
+        
+        // Count volumes per service for this date group
+        const dateVolumes: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
+        ALL_SERVICE_KEYS.forEach(key => {
+          dateVolumes[key] = 0;
+        });
+        
+        sales.forEach(({ serviceKey }) => {
+          dateVolumes[serviceKey] = (dateVolumes[serviceKey] || 0) + 1;
+        });
+        
+        // Calculate P&L for this date group and add to totals
+        ALL_SERVICE_KEYS.forEach(key => {
+          const volume = dateVolumes[key] || 0;
+          const unitCost = dateCosts[key];
+          const serviceFee = dateFees[key];
+          
+          const dateServicePnL = createServiceFromVolume(
+            serviceNames[key],
+            volume,
+            unitCost,
+            serviceFee
+          );
+          
+          // Add to aggregated totals
+          services[key].volume += dateServicePnL.volume;
+          services[key].totalRevenue += dateServicePnL.totalRevenue;
+          services[key].totalCost += dateServicePnL.totalCost;
+          services[key].grossProfit += dateServicePnL.grossProfit;
+        });
+      }
+      
+      // Recalculate average prices and fees
+      ALL_SERVICE_KEYS.forEach(key => {
+        if (services[key].volume > 0) {
+          services[key].price = services[key].totalRevenue / services[key].volume;
+          services[key].serviceFees = services[key].grossProfit / services[key].volume;
+        }
       });
       
       const totalRevenue = Object.values(services).reduce((sum, s) => sum + s.totalRevenue, 0);
