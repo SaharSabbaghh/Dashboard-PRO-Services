@@ -6,7 +6,6 @@ import { aggregateDailyComplaints } from '@/lib/daily-complaints-storage';
 import { ALL_SERVICE_KEYS } from '@/lib/pnl-complaints-types';
 import type { PnLServiceKey } from '@/lib/pnl-complaints-types';
 import type { ServicePnL, AggregatedPnL } from '@/lib/pnl-types';
-import { getDefaultPnLConfig, loadPnLConfig } from '@/lib/pnl-config';
 
 // Force Node.js runtime for filesystem access (required for fs operations)
 export const runtime = 'nodejs';
@@ -16,9 +15,50 @@ export const revalidate = 0;
 
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
-// Optional: Set remote config URL via environment variable
-// If not set, uses defaults (no network call)
-const CONFIG_URL = process.env.PNL_CONFIG_URL;
+// Actual costs per service (what it costs the company)
+const SERVICE_COSTS: Record<PnLServiceKey, number> = {
+  oec: 61.5,         // DMW fees
+  owwa: 92,          // OWWA fees
+  ttl: 400,          // Embassy + transportation (generic)
+  ttlSingle: 425,    // Tourist Visa to Lebanon – Single Entry
+  ttlDouble: 565,    // Tourist Visa to Lebanon – Double Entry
+  ttlMultiple: 745,  // Tourist Visa to Lebanon – Multiple Entry
+  tte: 400,          // Embassy + transportation (generic)
+  tteSingle: 470,    // Tourist Visa to Egypt – Single Entry
+  tteDouble: 520,    // Tourist Visa to Egypt – Double Entry
+  tteMultiple: 570,  // Tourist Visa to Egypt – Multiple Entry
+  ttj: 220,          // Embassy + facilitator
+  schengen: 0,       // Processing fees
+  gcc: 220,          // Dubai Police fees
+  ethiopianPP: 1330, // Government fees
+  filipinaPP: 0,     // Processing fees
+};
+
+// Service fees (markup) per service - defaults to 0
+const SERVICE_FEES: Record<PnLServiceKey, number> = {
+  oec: 0,
+  owwa: 0,
+  ttl: 0,
+  ttlSingle: 0,
+  ttlDouble: 0,
+  ttlMultiple: 0,
+  tte: 0,
+  tteSingle: 0,
+  tteDouble: 0,
+  tteMultiple: 0,
+  ttj: 0,
+  schengen: 0,
+  gcc: 0,
+  ethiopianPP: 0,
+  filipinaPP: 0,
+};
+
+// Fixed monthly costs
+const MONTHLY_FIXED_COSTS = {
+  laborCost: 55000,
+  llm: 3650,
+  proTransportation: 2070,
+};
 
 // Create service P&L from volume and config
 // Formula: Revenue = (serviceFee + actualCost) × volume
@@ -85,72 +125,8 @@ export async function GET(request: Request) {
       
       const dailyData = dailyComplaintsResult.data;
       
-      // Get all complaints in range and apply date-aware configs
-      const { getAvailableDailyComplaintsDates, getDailyComplaints } = await import('@/lib/daily-complaints-storage');
-      const datesResult = await getAvailableDailyComplaintsDates();
-      const datesInRange = (datesResult.dates || []).filter(d => {
-        if (startDate && d < startDate) return false;
-        if (endDate && d > endDate) return false;
-        return true;
-      });
-      
-      // Fetch all complaints in the date range
-      const allComplaints: Array<{ complaint: any; date: string }> = [];
-      for (const date of datesInRange) {
-        try {
-          const dateResult = await getDailyComplaints(date);
-          if (dateResult.success && dateResult.data) {
-            dateResult.data.complaints.forEach(complaint => {
-              allComplaints.push({ complaint, date });
-            });
-          }
-        } catch (error) {
-          console.error(`[P&L] Error fetching complaints for ${date}:`, error);
-        }
-      }
-      
-      // Apply 3-month deduplication and group by config
-      const salesMap = new Map<string, { serviceKey: PnLServiceKey; firstSaleDate: string }>();
-      allComplaints.forEach(({ complaint, date }) => {
-        const serviceKey = complaint.serviceKey;
-        if (!serviceKey) return;
-        
-        const saleKey = `${serviceKey}_${complaint.contractId}_${complaint.clientId}_${complaint.housemaidId}`;
-        const complaintDate = complaint.creationDate.split(/[T ]/)[0]; // Extract YYYY-MM-DD
-        
-        const existing = salesMap.get(saleKey);
-        if (!existing) {
-          salesMap.set(saleKey, { serviceKey, firstSaleDate: complaintDate });
-        } else {
-          // Check if within 3 months
-          const existingDate = new Date(existing.firstSaleDate);
-          const newDate = new Date(complaintDate);
-          const monthsDiff = Math.abs(
-            (newDate.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
-          );
-          
-          if (monthsDiff > 3) {
-            // More than 3 months apart - this is a new sale
-            salesMap.set(saleKey, { serviceKey, firstSaleDate: complaintDate });
-          } else if (complaintDate < existing.firstSaleDate) {
-            // Within 3 months but earlier - update first sale date
-            salesMap.set(saleKey, { serviceKey, firstSaleDate: complaintDate });
-          }
-        }
-      });
-      
-      // Group sales by config (based on first sale date)
-      const salesByConfig = new Map<string, Array<{ serviceKey: PnLServiceKey; firstSaleDate: string }>>();
-      salesMap.forEach((sale) => {
-        const configKey = sale.firstSaleDate; // Use first sale date to determine config
-        if (!salesByConfig.has(configKey)) {
-          salesByConfig.set(configKey, []);
-        }
-        salesByConfig.get(configKey)!.push(sale);
-      });
-      
-      // Calculate P&L using appropriate config for each group
       const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
+      
       const serviceNames = {
         oec: 'OEC',
         owwa: 'OWWA',
@@ -169,53 +145,20 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
-      // Initialize services
+      // Create P&L for each service
+      // Revenue = (serviceFee + unitCost) × volume
+      // Gross Profit = serviceFee × volume
       ALL_SERVICE_KEYS.forEach(key => {
-        services[key] = createServiceFromVolume(serviceNames[key], 0, 0, 0);
-      });
-      
-      // Process each config group
-      for (const [firstSaleDate, sales] of salesByConfig) {
-        // Get config active on the first sale date
-        const dateConfig = await loadPnLConfig(CONFIG_URL, firstSaleDate);
+        const volume = dailyData.volumes[key] || 0;
+        const unitCost = SERVICE_COSTS[key];
+        const serviceFee = SERVICE_FEES[key];
         
-        // Count volumes per service for this config group
-        const volumes: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
-        ALL_SERVICE_KEYS.forEach(key => {
-          volumes[key] = 0;
-        });
-        
-        sales.forEach(({ serviceKey }) => {
-          volumes[serviceKey] = (volumes[serviceKey] || 0) + 1;
-        });
-        
-        // Calculate P&L for this config group and add to totals
-        ALL_SERVICE_KEYS.forEach(key => {
-          const volume = volumes[key] || 0;
-          const unitCost = dateConfig.serviceCosts[key];
-          const serviceFee = dateConfig.serviceFees[key];
-          
-          const groupServicePnL = createServiceFromVolume(
-            serviceNames[key],
-            volume,
-            unitCost,
-            serviceFee
-          );
-          
-          // Add to aggregated totals
-          services[key].volume += groupServicePnL.volume;
-          services[key].totalRevenue += groupServicePnL.totalRevenue;
-          services[key].totalCost += groupServicePnL.totalCost;
-          services[key].grossProfit += groupServicePnL.grossProfit;
-        });
-      }
-      
-      // Recalculate average prices and fees
-      ALL_SERVICE_KEYS.forEach(key => {
-        if (services[key].volume > 0) {
-          services[key].price = services[key].totalRevenue / services[key].volume;
-          services[key].serviceFees = services[key].grossProfit / services[key].volume;
-        }
+        services[key] = createServiceFromVolume(
+          serviceNames[key],
+          volume,
+          unitCost,
+          serviceFee
+        );
       });
       
       const totalRevenue = Object.values(services).reduce((sum, s) => sum + s.totalRevenue, 0);
@@ -232,13 +175,12 @@ export async function GET(request: Request) {
         numberOfMonths = yearDiff * 12 + monthDiff + 1;
       }
       
-      // Use the most recent config for fixed costs (or average if multiple configs)
-      const latestConfig = await loadPnLConfig(CONFIG_URL);
+      // Fixed costs multiplied by number of months
       const fixedCosts = {
-        laborCost: latestConfig.monthlyFixedCosts.laborCost * numberOfMonths,
-        llm: latestConfig.monthlyFixedCosts.llm * numberOfMonths,
-        proTransportation: latestConfig.monthlyFixedCosts.proTransportation * numberOfMonths,
-        total: (latestConfig.monthlyFixedCosts.laborCost + latestConfig.monthlyFixedCosts.llm + latestConfig.monthlyFixedCosts.proTransportation) * numberOfMonths,
+        laborCost: MONTHLY_FIXED_COSTS.laborCost * numberOfMonths,
+        llm: MONTHLY_FIXED_COSTS.llm * numberOfMonths,
+        proTransportation: MONTHLY_FIXED_COSTS.proTransportation * numberOfMonths,
+        total: (MONTHLY_FIXED_COSTS.laborCost + MONTHLY_FIXED_COSTS.llm + MONTHLY_FIXED_COSTS.proTransportation) * numberOfMonths,
       };
       
       const aggregated: AggregatedPnL = {
@@ -268,7 +210,9 @@ export async function GET(request: Request) {
         };
       });
 
-      // Get available dates for date picker (reuse datesResult from above)
+      // Get available dates for date picker
+      const { getAvailableDailyComplaintsDates } = await import('@/lib/daily-complaints-storage');
+      const datesResult = await getAvailableDailyComplaintsDates();
       const availableDates = datesResult.success && datesResult.dates ? datesResult.dates : [];
       
       // Convert dates to months for the picker (YYYY-MM format)
@@ -341,11 +285,11 @@ export async function GET(request: Request) {
     }, { status: 404 });
     
   } catch (error) {
-    // Never crash - log and return safe error response
-    console.error('[P&L] Error fetching P&L data:', error);
+    console.error('Error fetching P&L data:', error);
     return NextResponse.json({ 
       error: 'Failed to fetch P&L data',
       details: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     }, { status: 500 });
   }
 }
