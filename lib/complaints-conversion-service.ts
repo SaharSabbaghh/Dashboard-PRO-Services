@@ -72,14 +72,33 @@ export async function checkComplaintsForProspect(
   });
 
   try {
-    // Get complaints data for the date
-    const complaintsResult = await getDailyComplaints(date);
-    if (!complaintsResult.success || !complaintsResult.data) {
+    // Get all available complaints and filter by creationDate matching the prospect date
+    // This ensures we match complaints even if they were stored on a different date
+    const { getAvailableDailyComplaintsDates, getDailyComplaints } = await import('./daily-complaints-storage');
+    const datesResult = await getAvailableDailyComplaintsDates();
+    
+    if (!datesResult.success || !datesResult.dates || datesResult.dates.length === 0) {
       return result; // No complaints data available
     }
 
+    // Fetch all complaints from all dates
+    const allComplaintsResults = await Promise.all(
+      datesResult.dates.map(d => getDailyComplaints(d))
+    );
+    
+    // Combine all complaints and filter by creationDate matching the prospect date
+    const allComplaints = allComplaintsResults
+      .filter(r => r.success && r.data)
+      .flatMap(r => r.data!.complaints)
+      .filter(complaint => {
+        // Match complaints where creationDate matches the prospect date
+        if (!complaint.creationDate) return false;
+        const complaintDate = complaint.creationDate.split('T')[0]; // Extract YYYY-MM-DD
+        return complaintDate === date;
+      });
+
     // Filter complaints for this prospect by contract ID, maid ID, or client ID
-    const prospectComplaints = complaintsResult.data.complaints.filter(complaint => {
+    const prospectComplaints = allComplaints.filter(complaint => {
       return (
         (prospect.contractId && complaint.contractId === prospect.contractId) ||
         (prospect.maidId && complaint.housemaidId === prospect.maidId) ||

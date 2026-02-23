@@ -14,17 +14,33 @@ async function calculateConversionsForDate(date: string, prospects: any[]) {
   }
   
   try {
-    // Get complaints data for this date
-    const { getDailyComplaints } = await import('@/lib/daily-complaints-storage');
-    const complaintsResult = await getDailyComplaints(date);
+    // Get all available complaints and filter by creationDate matching the prospect date
+    // This ensures we match complaints even if they were stored on a different date
+    const { getAvailableDailyComplaintsDates, getDailyComplaints } = await import('@/lib/daily-complaints-storage');
+    const datesResult = await getAvailableDailyComplaintsDates();
     
-    if (!complaintsResult.success || !complaintsResult.data) {
-      console.log(`[${date}] No complaints data found - all conversions = 0`);
+    if (!datesResult.success || !datesResult.dates || datesResult.dates.length === 0) {
+      console.log(`[${date}] No complaints data available - all conversions = 0`);
       return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
     }
 
-    const complaints = complaintsResult.data.complaints;
-    console.log(`[${date}] Found ${complaints.length} complaints for conversion calculation`);
+    // Fetch all complaints from all dates
+    const allComplaintsResults = await Promise.all(
+      datesResult.dates.map(d => getDailyComplaints(d))
+    );
+    
+    // Combine all complaints and filter by creationDate matching the prospect date
+    const complaints = allComplaintsResults
+      .filter(r => r.success && r.data)
+      .flatMap(r => r.data!.complaints)
+      .filter(complaint => {
+        // Match complaints where creationDate matches the prospect date
+        if (!complaint.creationDate) return false;
+        const complaintDate = complaint.creationDate.split('T')[0]; // Extract YYYY-MM-DD
+        return complaintDate === date;
+      });
+    
+    console.log(`[${date}] Found ${complaints.length} complaints with creationDate=${date} for conversion calculation`);
 
     // Create conversion counters
     const conversions = {
