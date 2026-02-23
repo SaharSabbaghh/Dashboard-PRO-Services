@@ -145,9 +145,6 @@ export default function ProspectCards({
                 </p>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              of {totalProcessed} analyzed
-            </p>
           </div>
         </div>
 

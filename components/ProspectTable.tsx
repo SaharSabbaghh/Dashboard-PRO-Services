@@ -42,6 +42,83 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
     });
   };
 
+  const downloadCSV = () => {
+    if (prospects.length === 0) return;
+
+    // Define CSV headers
+    const headers = [
+      'Conversation ID',
+      'Contract ID',
+      'Client ID',
+      'Maid ID',
+      'Client Name',
+      'Maid Name',
+      'Contract Type',
+      'Chat Start Date',
+      'Is OEC Prospect',
+      'OEC Converted',
+      'Is OWWA Prospect',
+      'OWWA Converted',
+      'Is Travel Visa Prospect',
+      'Travel Visa Countries',
+      'Travel Visa Converted',
+      'Is Filipina PP Renewal Prospect',
+      'Filipina PP Renewal Converted',
+      'Is Ethiopian PP Renewal Prospect',
+      'Ethiopian PP Renewal Converted',
+    ];
+
+    // Convert prospects to CSV rows
+    const rows = prospects.map(prospect => [
+      prospect.conversationId || '',
+      prospect.contractId || '',
+      prospect.clientId || '',
+      prospect.maidId || '',
+      prospect.clientName || '',
+      prospect.maidName || '',
+      prospect.contractType || '',
+      prospect.chatStartDateTime || '',
+      prospect.isOECProspect ? 'Yes' : 'No',
+      prospect.oecConverted ? 'Yes' : 'No',
+      prospect.isOWWAProspect ? 'Yes' : 'No',
+      prospect.owwaConverted ? 'Yes' : 'No',
+      prospect.isTravelVisaProspect ? 'Yes' : 'No',
+      prospect.travelVisaCountries?.join('; ') || '',
+      prospect.travelVisaConverted ? 'Yes' : 'No',
+      prospect.isFilipinaPassportRenewalProspect ? 'Yes' : 'No',
+      prospect.filipinaPassportRenewalConverted ? 'Yes' : 'No',
+      prospect.isEthiopianPassportRenewalProspect ? 'Yes' : 'No',
+      prospect.ethiopianPassportRenewalConverted ? 'Yes' : 'No',
+    ]);
+
+    // Escape CSV values (handle commas, quotes, newlines)
+    const escapeCSV = (value: string): string => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    // Build CSV content
+    const csvContent = [
+      headers.map(escapeCSV).join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `prospects_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (prospects.length === 0) {
     return (
       <div className="flex items-center justify-center h-24 bg-white rounded-lg border border-slate-200">
@@ -471,6 +548,19 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
               </button>
             </div>
           )}
+          
+          {/* CSV Download Button */}
+          <button
+            onClick={downloadCSV}
+            disabled={prospects.length === 0}
+            className="px-3 py-1 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+            title="Download prospects as CSV"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            CSV
+          </button>
           
           {viewMode === 'flat' && (
             <select
