@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parsePnLFile, aggregatePnLData } from '@/lib/pnl-parser';
-import { getPnLConfigForDate } from '@/lib/simple-pnl-config';
 import { aggregateDailyComplaints } from '@/lib/daily-complaints-storage';
 import { ALL_SERVICE_KEYS } from '@/lib/pnl-complaints-types';
 import type { PnLServiceKey } from '@/lib/pnl-complaints-types';
@@ -17,7 +16,6 @@ export const revalidate = 0;
 const PNL_DIR = path.join(process.cwd(), 'P&L');
 
 // Actual costs per service (what it costs the company)
-// These should match the unitCost values in the config
 const SERVICE_COSTS: Record<PnLServiceKey, number> = {
   oec: 61.5,         // DMW fees
   owwa: 92,          // OWWA fees
@@ -34,6 +32,32 @@ const SERVICE_COSTS: Record<PnLServiceKey, number> = {
   gcc: 220,          // Dubai Police fees
   ethiopianPP: 1330, // Government fees
   filipinaPP: 0,     // Processing fees
+};
+
+// Service fees (markup) per service - defaults to 0
+const SERVICE_FEES: Record<PnLServiceKey, number> = {
+  oec: 0,
+  owwa: 0,
+  ttl: 0,
+  ttlSingle: 0,
+  ttlDouble: 0,
+  ttlMultiple: 0,
+  tte: 0,
+  tteSingle: 0,
+  tteDouble: 0,
+  tteMultiple: 0,
+  ttj: 0,
+  schengen: 0,
+  gcc: 0,
+  ethiopianPP: 0,
+  filipinaPP: 0,
+};
+
+// Fixed monthly costs
+const MONTHLY_FIXED_COSTS = {
+  laborCost: 55000,
+  llm: 3650,
+  proTransportation: 2070,
 };
 
 // Create service P&L from volume and config
@@ -101,12 +125,6 @@ export async function GET(request: Request) {
       
       const dailyData = dailyComplaintsResult.data;
       
-      // Get P&L configuration for the date range
-      // Use the end date (or start date if no end date) to determine which config to use
-      const configDate = endDate || startDate || new Date().toISOString().split('T')[0];
-      const config = getPnLConfigForDate(configDate);
-      console.log(`[P&L] Using config for date ${configDate}, effective from: ${config.effectiveDate}`);
-      
       const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
       
       const serviceNames = {
@@ -127,14 +145,13 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
-      // Create P&L for each service using config
+      // Create P&L for each service
       // Revenue = (serviceFee + unitCost) × volume
       // Gross Profit = serviceFee × volume
       ALL_SERVICE_KEYS.forEach(key => {
-        const serviceConfig = config[key];
         const volume = dailyData.volumes[key] || 0;
-        const unitCost = serviceConfig?.unitCost || SERVICE_COSTS[key]; // Use config unitCost, fallback to hardcoded
-        const serviceFee = serviceConfig?.serviceFee || 0; // Service fee (markup)
+        const unitCost = SERVICE_COSTS[key];
+        const serviceFee = SERVICE_FEES[key];
         
         services[key] = createServiceFromVolume(
           serviceNames[key],
@@ -159,12 +176,11 @@ export async function GET(request: Request) {
       }
       
       // Fixed costs multiplied by number of months
-      const monthlyFixedCosts = config.fixedCosts;
       const fixedCosts = {
-        laborCost: monthlyFixedCosts.laborCost * numberOfMonths,
-        llm: monthlyFixedCosts.llm * numberOfMonths,
-        proTransportation: monthlyFixedCosts.proTransportation * numberOfMonths,
-        total: (monthlyFixedCosts.laborCost + monthlyFixedCosts.llm + monthlyFixedCosts.proTransportation) * numberOfMonths,
+        laborCost: MONTHLY_FIXED_COSTS.laborCost * numberOfMonths,
+        llm: MONTHLY_FIXED_COSTS.llm * numberOfMonths,
+        proTransportation: MONTHLY_FIXED_COSTS.proTransportation * numberOfMonths,
+        total: (MONTHLY_FIXED_COSTS.laborCost + MONTHLY_FIXED_COSTS.llm + MONTHLY_FIXED_COSTS.proTransportation) * numberOfMonths,
       };
       
       const aggregated: AggregatedPnL = {

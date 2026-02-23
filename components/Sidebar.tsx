@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Receipt, MessageSquare, Users, Settings, Clipboard } from 'lucide-react';
+import { LayoutDashboard, Receipt, MessageSquare, Users, Clipboard } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -13,7 +13,6 @@ const tabs = [
   { id: 'chats', label: 'Chats', Icon: MessageSquare },
   { id: 'agents', label: 'Agents ', Icon: Users },
   { id: 'pnl', label: 'P&L', Icon: Receipt },
-  { id: 'settings', label: 'Settings', Icon: Settings },
 ];
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
