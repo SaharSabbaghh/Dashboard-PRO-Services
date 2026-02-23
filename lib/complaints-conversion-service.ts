@@ -93,7 +93,8 @@ export async function checkComplaintsForProspect(
       .filter(complaint => {
         // Match complaints where creationDate matches the prospect date
         if (!complaint.creationDate) return false;
-        const complaintDate = complaint.creationDate.split('T')[0]; // Extract YYYY-MM-DD
+        // Handle both ISO format (2026-02-22T14:35:48.000) and space format (2026-02-22 14:35:48.000)
+        const complaintDate = complaint.creationDate.split(/[T ]/)[0]; // Extract YYYY-MM-DD
         return complaintDate === date;
       });
 
