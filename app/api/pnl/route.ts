@@ -81,7 +81,7 @@ const NEW_SERVICE_FEES: Record<PnLServiceKey, number> = {
   ttlSingle: 100,    // Updated Feb 22
   ttlDouble: 100,    // Updated Feb 22
   ttlMultiple: 100,  // Updated Feb 22
-  tte: 0,
+  tte: 100,
   tteSingle: 100,    // Updated Feb 22
   tteDouble: 0,
   tteMultiple: 100,  // Updated Feb 22
