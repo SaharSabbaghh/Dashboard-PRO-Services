@@ -56,16 +56,11 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
       'Contract Type',
       'Chat Start Date',
       'Is OEC Prospect',
-      'OEC Converted',
       'Is OWWA Prospect',
-      'OWWA Converted',
       'Is Travel Visa Prospect',
       'Travel Visa Countries',
-      'Travel Visa Converted',
       'Is Filipina PP Renewal Prospect',
-      'Filipina PP Renewal Converted',
       'Is Ethiopian PP Renewal Prospect',
-      'Ethiopian PP Renewal Converted',
     ];
 
     // Convert prospects to CSV rows
@@ -79,16 +74,11 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
       prospect.contractType || '',
       prospect.chatStartDateTime || '',
       prospect.isOECProspect ? 'Yes' : 'No',
-      prospect.oecConverted ? 'Yes' : 'No',
       prospect.isOWWAProspect ? 'Yes' : 'No',
-      prospect.owwaConverted ? 'Yes' : 'No',
       prospect.isTravelVisaProspect ? 'Yes' : 'No',
       prospect.travelVisaCountries?.join('; ') || '',
-      prospect.travelVisaConverted ? 'Yes' : 'No',
       prospect.isFilipinaPassportRenewalProspect ? 'Yes' : 'No',
-      prospect.filipinaPassportRenewalConverted ? 'Yes' : 'No',
       prospect.isEthiopianPassportRenewalProspect ? 'Yes' : 'No',
-      prospect.ethiopianPassportRenewalConverted ? 'Yes' : 'No',
     ]);
 
     // Escape CSV values (handle commas, quotes, newlines)
@@ -173,12 +163,10 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
             <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Countries</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">🇵🇭 PP</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">🇪🇹 PP</th>
-            <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Converted</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {displayedProspects.map((p, index) => {
-            const converted = p.oecConverted || p.owwaConverted || p.travelVisaConverted || p.filipinaPassportRenewalConverted || p.ethiopianPassportRenewalConverted;
             const displayName = p.clientName || p.maidName || '—';
             const personType = p.clientId ? 'Client' : p.maidId ? 'Maid' : '';
             
@@ -236,29 +224,17 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isOECProspect ? (
-                    p.oecConverted ? (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">•</span>
-                    )
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">•</span>
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isOWWAProspect ? (
-                    p.owwaConverted ? (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-sky-100 text-sky-700">•</span>
-                    )
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-sky-100 text-sky-700">•</span>
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isTravelVisaProspect ? (
-                    p.travelVisaConverted ? (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-700">•</span>
-                    )
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-700">•</span>
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-slate-600 text-xs">
@@ -266,28 +242,13 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isFilipinaPassportRenewalProspect ? (
-                    p.filipinaPassportRenewalConverted ? (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-pink-100 text-pink-700">•</span>
-                    )
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-pink-100 text-pink-700">•</span>
                   ) : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isEthiopianPassportRenewalProspect ? (
-                    p.ethiopianPassportRenewalConverted ? (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">•</span>
-                    )
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">•</span>
                   ) : '—'}
-                </td>
-                <td className="px-3 py-2 text-center">
-                  {converted ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-blue-600 text-white font-medium">Yes</span>
-                  ) : (
-                    <span className="text-slate-300">—</span>
-                  )}
                 </td>
               </tr>
             );
@@ -312,7 +273,6 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
           const isExpanded = expandedHouseholds.has(household.householdId);
           const isLinked = !!household.contractId;
           const memberCount = household.members.length;
-          const hasConversion = household.conversions.oec || household.conversions.owwa || household.conversions.travelVisa;
 
           return (
             <div key={`household-${household.householdId}-${hIndex}`} className="bg-white">
@@ -372,29 +332,18 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
 
                 <div className="flex items-center gap-2">
                   {household.prospectTypes.oec && (
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      household.conversions.oec ? 'bg-blue-200 text-blue-800' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      OEC {household.conversions.oec && '✓'}
+                    <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">
+                      OEC
                     </span>
                   )}
                   {household.prospectTypes.owwa && (
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      household.conversions.owwa ? 'bg-sky-200 text-sky-800' : 'bg-sky-100 text-sky-700'
-                    }`}>
-                      OWWA {household.conversions.owwa && '✓'}
+                    <span className="px-2 py-0.5 rounded text-xs bg-sky-100 text-sky-700">
+                      OWWA
                     </span>
                   )}
                   {household.prospectTypes.travelVisa && (
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      household.conversions.travelVisa ? 'bg-slate-300 text-slate-800' : 'bg-slate-200 text-slate-700'
-                    }`}>
-                      Visa {household.conversions.travelVisa && '✓'}
-                    </span>
-                  )}
-                  {hasConversion && (
-                    <span className="px-2 py-0.5 rounded text-xs bg-blue-600 text-white font-medium">
-                      Converted
+                    <span className="px-2 py-0.5 rounded text-xs bg-slate-200 text-slate-700">
+                      Visa
                     </span>
                   )}
                 </div>
@@ -465,29 +414,17 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                             </td>
                             <td className="px-4 py-2 text-center text-xs">
                               {member.isOECProspect ? (
-                                member.oecConverted ? (
-                                  <span className="px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                                ) : (
-                                  <span className="text-blue-500">•</span>
-                                )
+                                <span className="text-blue-500">•</span>
                               ) : '—'}
                             </td>
                             <td className="px-4 py-2 text-center text-xs">
                               {member.isOWWAProspect ? (
-                                member.owwaConverted ? (
-                                  <span className="px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                                ) : (
-                                  <span className="text-sky-500">•</span>
-                                )
+                                <span className="text-sky-500">•</span>
                               ) : '—'}
                             </td>
                             <td className="px-4 py-2 text-center text-xs">
                               {member.isTravelVisaProspect ? (
-                                member.travelVisaConverted ? (
-                                  <span className="px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Yes</span>
-                                ) : (
-                                  <span className="text-slate-500">•</span>
-                                )
+                                <span className="text-slate-500">•</span>
                               ) : '—'}
                             </td>
                             <td className="px-4 py-2 text-slate-600 text-xs">
