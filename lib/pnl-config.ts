@@ -10,6 +10,7 @@ import type { PnLServiceKey } from './pnl-complaints-types';
 import { ALL_SERVICE_KEYS } from './pnl-complaints-types';
 
 const CONFIG_BLOB_KEY = 'pnl-config.json';
+const CONFIG_VERSIONS_KEY = 'pnl-config-versions.json'; // Store all config versions
 
 // ============================================================================
 // Default Configuration (Safe Fallbacks)
@@ -69,6 +70,9 @@ export interface PnLConfig {
     llm: number;
     proTransportation: number;
   };
+  // Metadata
+  effectiveDate?: string; // YYYY-MM-DD - when this config becomes active
+  createdAt?: string; // ISO timestamp - when this config was saved
 }
 
 export interface PnLConfigLoadResult {
@@ -288,9 +292,9 @@ export function parsePnLConfigFromJSON(raw: string | unknown): PnLConfig {
 // ============================================================================
 
 /**
- * Save config to blob storage
+ * Save config to blob storage with effective date
  */
-export async function savePnLConfig(config: PnLConfig): Promise<{
+export async function savePnLConfig(config: PnLConfig, effectiveDate?: string): Promise<{
   success: boolean;
   message: string;
   error?: string;
@@ -299,22 +303,30 @@ export async function savePnLConfig(config: PnLConfig): Promise<{
     // Validate config before saving
     const validated = parseConfig(config);
     
-    const configWithMeta = {
+    const now = new Date();
+    const effectiveDateStr = effectiveDate || now.toISOString().split('T')[0]; // Default to today
+    
+    const configWithMeta: PnLConfig = {
       ...validated,
-      lastUpdated: new Date().toISOString(),
+      effectiveDate: effectiveDateStr,
+      createdAt: now.toISOString(),
     };
     
+    // Save as latest config
     await put(CONFIG_BLOB_KEY, JSON.stringify(configWithMeta, null, 2), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
     
-    console.log('[PnL Config] Saved to blob storage');
+    // Also save to versions list
+    await saveConfigVersion(configWithMeta);
+    
+    console.log('[PnL Config] Saved to blob storage with effective date:', effectiveDateStr);
     
     return {
       success: true,
-      message: 'Config saved successfully',
+      message: `Config saved successfully (effective from ${effectiveDateStr})`,
     };
   } catch (error) {
     console.error('[PnL Config] Error saving config:', error);
@@ -323,6 +335,52 @@ export async function savePnLConfig(config: PnLConfig): Promise<{
       error: error instanceof Error ? error.message : 'Unknown error',
       message: 'Failed to save config',
     };
+  }
+}
+
+/**
+ * Save config version to versions list
+ */
+async function saveConfigVersion(config: PnLConfig): Promise<void> {
+  try {
+    // Load existing versions
+    let versions: PnLConfig[] = [];
+    try {
+      const { blobs } = await list({ prefix: CONFIG_VERSIONS_KEY, limit: 1 });
+      if (blobs.length > 0) {
+        const response = await fetch(blobs[0].url, { cache: 'no-store' });
+        if (response.ok) {
+          versions = await response.json();
+        }
+      }
+    } catch {
+      // No existing versions, start fresh
+    }
+    
+    // Add new version
+    versions.push(config);
+    
+    // Sort by effective date (newest first)
+    versions.sort((a, b) => {
+      const dateA = a.effectiveDate || '';
+      const dateB = b.effectiveDate || '';
+      return dateB.localeCompare(dateA);
+    });
+    
+    // Keep only last 100 versions
+    if (versions.length > 100) {
+      versions = versions.slice(0, 100);
+    }
+    
+    // Save versions
+    await put(CONFIG_VERSIONS_KEY, JSON.stringify(versions, null, 2), {
+      access: 'public',
+      contentType: 'application/json',
+      addRandomSuffix: false,
+    });
+  } catch (error) {
+    console.error('[PnL Config] Error saving config version:', error);
+    // Don't throw - versioning is optional
   }
 }
 
@@ -374,13 +432,92 @@ export async function loadPnLConfigFromBlob(): Promise<{
 }
 
 /**
+ * Get config that was active on a specific date
+ * Returns the most recent config with effectiveDate <= targetDate
+ */
+export async function getConfigForDate(targetDate: string): Promise<PnLConfig> {
+  try {
+    // Load all config versions
+    let versions: PnLConfig[] = [];
+    try {
+      const { blobs } = await list({ prefix: CONFIG_VERSIONS_KEY, limit: 1 });
+      if (blobs.length > 0) {
+        const response = await fetch(blobs[0].url, { cache: 'no-store' });
+        if (response.ok) {
+          versions = await response.json();
+        }
+      }
+    } catch {
+      // No versions, try latest config
+    }
+    
+    // If no versions, try latest config
+    if (versions.length === 0) {
+      const latestResult = await loadPnLConfigFromBlob();
+      if (latestResult.success && latestResult.config) {
+        versions = [latestResult.config];
+      }
+    }
+    
+    // Find config active on target date
+    // Sort by effective date (newest first), then find first where effectiveDate <= targetDate
+    const sortedVersions = [...versions].sort((a, b) => {
+      const dateA = a.effectiveDate || '';
+      const dateB = b.effectiveDate || '';
+      return dateB.localeCompare(dateA);
+    });
+    
+    for (const version of sortedVersions) {
+      const effectiveDate = version.effectiveDate || '';
+      if (!effectiveDate || effectiveDate <= targetDate) {
+        console.log(`[PnL Config] Using config effective from ${effectiveDate} for date ${targetDate}`);
+        return parseConfig(version);
+      }
+    }
+    
+    // Fall back to defaults if no config found
+    console.log(`[PnL Config] No config found for date ${targetDate}, using defaults`);
+    return getDefaultPnLConfig();
+  } catch (error) {
+    console.error('[PnL Config] Error getting config for date:', error);
+    return getDefaultPnLConfig();
+  }
+}
+
+/**
+ * Get all config versions
+ */
+export async function getAllConfigVersions(): Promise<PnLConfig[]> {
+  try {
+    const { blobs } = await list({ prefix: CONFIG_VERSIONS_KEY, limit: 1 });
+    if (blobs.length > 0) {
+      const response = await fetch(blobs[0].url, { cache: 'no-store' });
+      if (response.ok) {
+        const versions = await response.json();
+        return versions.map((v: unknown) => parseConfig(v));
+      }
+    }
+    return [];
+  } catch (error) {
+    console.error('[PnL Config] Error loading config versions:', error);
+    return [];
+  }
+}
+
+/**
  * Load P&L configuration with priority: blob storage > remote URL > defaults
  * 
  * @param remoteUrl Optional remote URL to fetch config from (if blob storage fails)
+ * @param targetDate Optional date to get config active on that date (YYYY-MM-DD)
  * @returns Always returns a valid config (falls back to defaults on error)
  */
-export async function loadPnLConfig(remoteUrl?: string): Promise<PnLConfig> {
-  // Try blob storage first
+export async function loadPnLConfig(remoteUrl?: string, targetDate?: string): Promise<PnLConfig> {
+  // If target date provided, get config for that specific date
+  if (targetDate) {
+    return getConfigForDate(targetDate);
+  }
+  
+  // Try blob storage first (latest config)
   const blobResult = await loadPnLConfigFromBlob();
   if (blobResult.success && blobResult.config) {
     return blobResult.config;

@@ -38,16 +38,20 @@ export async function GET() {
 
 /**
  * POST - Save P&L config
+ * Body: { config: PnLConfig, effectiveDate?: string }
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Parse and validate config
-    const config = parsePnLConfigFromJSON(body);
+    // Extract config and effective date
+    const { config: configData, effectiveDate } = body;
     
-    // Save to blob storage
-    const result = await savePnLConfig(config);
+    // Parse and validate config
+    const config = parsePnLConfigFromJSON(configData || body);
+    
+    // Save to blob storage with effective date
+    const result = await savePnLConfig(config, effectiveDate);
     
     if (result.success) {
       return NextResponse.json({

@@ -54,15 +54,6 @@ export async function GET(request: Request) {
     
     console.log('[P&L] GET request - startDate:', startDate, 'endDate:', endDate, 'viewMode:', viewMode);
     
-    // Load config safely (with fallback to defaults)
-    let pnlConfig;
-    try {
-      pnlConfig = await loadPnLConfig(CONFIG_URL);
-    } catch (error) {
-      console.error('[P&L] Config load error, using defaults:', error);
-      pnlConfig = getDefaultPnLConfig();
-    }
-    
     // Try daily complaints data FIRST (primary source)
     const dailyComplaintsResult = await aggregateDailyComplaints(startDate, endDate);
     const hasDailyData = dailyComplaintsResult.success && dailyComplaintsResult.data;
@@ -94,8 +85,72 @@ export async function GET(request: Request) {
       
       const dailyData = dailyComplaintsResult.data;
       
-      const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
+      // Get all complaints in range and apply date-aware configs
+      const { getAvailableDailyComplaintsDates, getDailyComplaints } = await import('@/lib/daily-complaints-storage');
+      const datesResult = await getAvailableDailyComplaintsDates();
+      const datesInRange = (datesResult.dates || []).filter(d => {
+        if (startDate && d < startDate) return false;
+        if (endDate && d > endDate) return false;
+        return true;
+      });
       
+      // Fetch all complaints in the date range
+      const allComplaints: Array<{ complaint: any; date: string }> = [];
+      for (const date of datesInRange) {
+        try {
+          const dateResult = await getDailyComplaints(date);
+          if (dateResult.success && dateResult.data) {
+            dateResult.data.complaints.forEach(complaint => {
+              allComplaints.push({ complaint, date });
+            });
+          }
+        } catch (error) {
+          console.error(`[P&L] Error fetching complaints for ${date}:`, error);
+        }
+      }
+      
+      // Apply 3-month deduplication and group by config
+      const salesMap = new Map<string, { serviceKey: PnLServiceKey; firstSaleDate: string }>();
+      allComplaints.forEach(({ complaint, date }) => {
+        const serviceKey = complaint.serviceKey;
+        if (!serviceKey) return;
+        
+        const saleKey = `${serviceKey}_${complaint.contractId}_${complaint.clientId}_${complaint.housemaidId}`;
+        const complaintDate = complaint.creationDate.split(/[T ]/)[0]; // Extract YYYY-MM-DD
+        
+        const existing = salesMap.get(saleKey);
+        if (!existing) {
+          salesMap.set(saleKey, { serviceKey, firstSaleDate: complaintDate });
+        } else {
+          // Check if within 3 months
+          const existingDate = new Date(existing.firstSaleDate);
+          const newDate = new Date(complaintDate);
+          const monthsDiff = Math.abs(
+            (newDate.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+          );
+          
+          if (monthsDiff > 3) {
+            // More than 3 months apart - this is a new sale
+            salesMap.set(saleKey, { serviceKey, firstSaleDate: complaintDate });
+          } else if (complaintDate < existing.firstSaleDate) {
+            // Within 3 months but earlier - update first sale date
+            salesMap.set(saleKey, { serviceKey, firstSaleDate: complaintDate });
+          }
+        }
+      });
+      
+      // Group sales by config (based on first sale date)
+      const salesByConfig = new Map<string, Array<{ serviceKey: PnLServiceKey; firstSaleDate: string }>>();
+      salesMap.forEach((sale) => {
+        const configKey = sale.firstSaleDate; // Use first sale date to determine config
+        if (!salesByConfig.has(configKey)) {
+          salesByConfig.set(configKey, []);
+        }
+        salesByConfig.get(configKey)!.push(sale);
+      });
+      
+      // Calculate P&L using appropriate config for each group
+      const services: AggregatedPnL['services'] = {} as AggregatedPnL['services'];
       const serviceNames = {
         oec: 'OEC',
         owwa: 'OWWA',
@@ -114,20 +169,53 @@ export async function GET(request: Request) {
         filipinaPP: 'Filipina Passport Renewal',
       };
       
-      // Create P&L for each service using config
-      // Revenue = (serviceFee + unitCost) × volume
-      // Gross Profit = serviceFee × volume
+      // Initialize services
       ALL_SERVICE_KEYS.forEach(key => {
-        const volume = dailyData.volumes[key] || 0;
-        const unitCost = pnlConfig.serviceCosts[key];
-        const serviceFee = pnlConfig.serviceFees[key];
+        services[key] = createServiceFromVolume(serviceNames[key], 0, 0, 0);
+      });
+      
+      // Process each config group
+      for (const [firstSaleDate, sales] of salesByConfig) {
+        // Get config active on the first sale date
+        const dateConfig = await loadPnLConfig(CONFIG_URL, firstSaleDate);
         
-        services[key] = createServiceFromVolume(
-          serviceNames[key],
-          volume,
-          unitCost,
-          serviceFee
-        );
+        // Count volumes per service for this config group
+        const volumes: Record<PnLServiceKey, number> = {} as Record<PnLServiceKey, number>;
+        ALL_SERVICE_KEYS.forEach(key => {
+          volumes[key] = 0;
+        });
+        
+        sales.forEach(({ serviceKey }) => {
+          volumes[serviceKey] = (volumes[serviceKey] || 0) + 1;
+        });
+        
+        // Calculate P&L for this config group and add to totals
+        ALL_SERVICE_KEYS.forEach(key => {
+          const volume = volumes[key] || 0;
+          const unitCost = dateConfig.serviceCosts[key];
+          const serviceFee = dateConfig.serviceFees[key];
+          
+          const groupServicePnL = createServiceFromVolume(
+            serviceNames[key],
+            volume,
+            unitCost,
+            serviceFee
+          );
+          
+          // Add to aggregated totals
+          services[key].volume += groupServicePnL.volume;
+          services[key].totalRevenue += groupServicePnL.totalRevenue;
+          services[key].totalCost += groupServicePnL.totalCost;
+          services[key].grossProfit += groupServicePnL.grossProfit;
+        });
+      }
+      
+      // Recalculate average prices and fees
+      ALL_SERVICE_KEYS.forEach(key => {
+        if (services[key].volume > 0) {
+          services[key].price = services[key].totalRevenue / services[key].volume;
+          services[key].serviceFees = services[key].grossProfit / services[key].volume;
+        }
       });
       
       const totalRevenue = Object.values(services).reduce((sum, s) => sum + s.totalRevenue, 0);
@@ -144,12 +232,13 @@ export async function GET(request: Request) {
         numberOfMonths = yearDiff * 12 + monthDiff + 1;
       }
       
-      // Fixed costs multiplied by number of months (from config)
+      // Use the most recent config for fixed costs (or average if multiple configs)
+      const latestConfig = await loadPnLConfig(CONFIG_URL);
       const fixedCosts = {
-        laborCost: pnlConfig.monthlyFixedCosts.laborCost * numberOfMonths,
-        llm: pnlConfig.monthlyFixedCosts.llm * numberOfMonths,
-        proTransportation: pnlConfig.monthlyFixedCosts.proTransportation * numberOfMonths,
-        total: (pnlConfig.monthlyFixedCosts.laborCost + pnlConfig.monthlyFixedCosts.llm + pnlConfig.monthlyFixedCosts.proTransportation) * numberOfMonths,
+        laborCost: latestConfig.monthlyFixedCosts.laborCost * numberOfMonths,
+        llm: latestConfig.monthlyFixedCosts.llm * numberOfMonths,
+        proTransportation: latestConfig.monthlyFixedCosts.proTransportation * numberOfMonths,
+        total: (latestConfig.monthlyFixedCosts.laborCost + latestConfig.monthlyFixedCosts.llm + latestConfig.monthlyFixedCosts.proTransportation) * numberOfMonths,
       };
       
       const aggregated: AggregatedPnL = {
@@ -179,9 +268,7 @@ export async function GET(request: Request) {
         };
       });
 
-      // Get available dates for date picker
-      const { getAvailableDailyComplaintsDates } = await import('@/lib/daily-complaints-storage');
-      const datesResult = await getAvailableDailyComplaintsDates();
+      // Get available dates for date picker (reuse datesResult from above)
       const availableDates = datesResult.success && datesResult.dates ? datesResult.dates : [];
       
       // Convert dates to months for the picker (YYYY-MM format)

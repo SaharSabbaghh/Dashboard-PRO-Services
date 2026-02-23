@@ -29,6 +29,10 @@ export default function PnLConfigDashboard() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [source, setSource] = useState<'blob' | 'default'>('default');
+  const [effectiveDate, setEffectiveDate] = useState<string>(() => {
+    // Default to today
+    return new Date().toISOString().split('T')[0];
+  });
 
   useEffect(() => {
     loadConfig();
@@ -70,15 +74,18 @@ export default function PnLConfigDashboard() {
       const res = await fetch('/api/pnl/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          config,
+          effectiveDate,
+        }),
       });
       
       const data = await res.json();
       
       if (data.success) {
-        setSaveStatus({ type: 'success', message: 'Config saved successfully!' });
+        setSaveStatus({ type: 'success', message: data.message || `Config saved successfully! Effective from ${effectiveDate}` });
         setSource('blob');
-        setTimeout(() => setSaveStatus(null), 3000);
+        setTimeout(() => setSaveStatus(null), 5000);
       } else {
         setSaveStatus({ type: 'error', message: data.error || 'Failed to save config' });
       }
@@ -186,6 +193,26 @@ export default function PnLConfigDashboard() {
           >
             {saving ? 'Saving...' : 'Save Config'}
           </button>
+        </div>
+      </div>
+
+      {/* Effective Date */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-blue-900 mb-1">
+              Effective Date
+            </label>
+            <p className="text-xs text-blue-700 mb-2">
+              This config will apply to all P&L complaints from this date onwards. Complaints before this date will use the previous config (or defaults).
+            </p>
+            <input
+              type="date"
+              value={effectiveDate}
+              onChange={(e) => setEffectiveDate(e.target.value)}
+              className="px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+            />
+          </div>
         </div>
       </div>
 
