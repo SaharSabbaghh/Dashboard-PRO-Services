@@ -135,42 +135,93 @@ export async function checkComplaintsForProspect(
 }
 
 /**
- * Check if a prospect has complaints BEFORE a given date
- * Links by contract ID, maid ID, or client ID
- * This is used to exclude prospects that already have open complaints
+ * Get all complaints before a given date (batch operation to avoid rate limiting)
+ * This fetches complaints once and can be reused for multiple prospect checks
  */
-export async function checkProspectHasPreviousComplaints(
-  prospect: { contractId?: string; maidId?: string; clientId?: string },
-  beforeDate: string
-): Promise<boolean> {
+export async function getAllComplaintsBeforeDate(beforeDate: string): Promise<import('./pnl-complaints-types').PnLComplaint[]> {
   try {
     // Get all available complaints
     const { getAvailableDailyComplaintsDates, getDailyComplaints } = await import('./daily-complaints-storage');
     const datesResult = await getAvailableDailyComplaintsDates();
     
     if (!datesResult.success || !datesResult.dates || datesResult.dates.length === 0) {
-      return false; // No complaints data available
+      return []; // No complaints data available
     }
 
-    // Fetch all complaints from all dates
+    // Fetch all complaints from all dates (batch operation)
     const allComplaintsResults = await Promise.all(
       datesResult.dates.map(d => getDailyComplaints(d))
     );
     
-    // Combine all complaints and filter by creationDate BEFORE the prospect date
+    // Combine all complaints and filter by creationDate BEFORE the date
     const allComplaints = allComplaintsResults
       .filter(r => r.success && r.data)
       .flatMap(r => r.data!.complaints)
       .filter(complaint => {
-        // Match complaints where creationDate is BEFORE the prospect date
+        // Match complaints where creationDate is BEFORE the date
         if (!complaint.creationDate) return false;
         // Handle both ISO format (2026-02-22T14:35:48.000) and space format (2026-02-22 14:35:48.000)
         const complaintDate = complaint.creationDate.split(/[T ]/)[0]; // Extract YYYY-MM-DD
         return complaintDate < beforeDate;
       });
 
+    return allComplaints;
+  } catch (error) {
+    console.error('Error fetching complaints before date:', error);
+    return []; // Return empty array on error
+  }
+}
+
+/**
+ * Filter prospects to exclude those with complaints before a given date (batch operation)
+ * This is more efficient than checking each prospect individually
+ */
+export function filterProspectsWithoutPreviousComplaints(
+  prospects: Array<{ contractId?: string; maidId?: string; clientId?: string }>,
+  complaintsBeforeDate: import('./pnl-complaints-types').PnLComplaint[]
+): Array<{ contractId?: string; maidId?: string; clientId?: string }> {
+  // Create a Set of prospect identifiers that have complaints
+  const prospectsWithComplaints = new Set<string>();
+  
+  // Build set of prospect identifiers from complaints
+  complaintsBeforeDate.forEach(complaint => {
+    if (complaint.contractId) {
+      prospectsWithComplaints.add(`contract:${complaint.contractId}`);
+    }
+    if (complaint.housemaidId) {
+      prospectsWithComplaints.add(`maid:${complaint.housemaidId}`);
+    }
+    if (complaint.clientId) {
+      prospectsWithComplaints.add(`client:${complaint.clientId}`);
+    }
+  });
+  
+  // Filter prospects that don't have previous complaints
+  return prospects.filter(prospect => {
+    const hasComplaint = 
+      (prospect.contractId && prospectsWithComplaints.has(`contract:${prospect.contractId}`)) ||
+      (prospect.maidId && prospectsWithComplaints.has(`maid:${prospect.maidId}`)) ||
+      (prospect.clientId && prospectsWithComplaints.has(`client:${prospect.clientId}`));
+    
+    return !hasComplaint;
+  });
+}
+
+/**
+ * Check if a prospect has complaints BEFORE a given date
+ * Links by contract ID, maid ID, or client ID
+ * This is used to exclude prospects that already have open complaints
+ * NOTE: For batch operations, use getAllComplaintsBeforeDate + filterProspectsWithoutPreviousComplaints instead
+ */
+export async function checkProspectHasPreviousComplaints(
+  prospect: { contractId?: string; maidId?: string; clientId?: string },
+  beforeDate: string
+): Promise<boolean> {
+  try {
+    const complaints = await getAllComplaintsBeforeDate(beforeDate);
+    
     // Filter complaints for this prospect by contract ID, maid ID, or client ID
-    const prospectComplaints = allComplaints.filter(complaint => {
+    const prospectComplaints = complaints.filter(complaint => {
       return (
         (prospect.contractId && complaint.contractId === prospect.contractId) ||
         (prospect.maidId && complaint.housemaidId === prospect.maidId) ||
@@ -246,28 +297,32 @@ export async function getConversionsWithComplaintCheck(
 ): Promise<ConversionWithComplaintCheck[]> {
   const conversions: ConversionWithComplaintCheck[] = [];
 
-  for (const prospect of prospects) {
+  // Filter prospects first - fetch complaints once (batch operation to avoid rate limiting)
+  const complaintsBeforeDate = await getAllComplaintsBeforeDate(date);
+  
+  // Filter out prospects with previous complaints using batch operation
+  const prospectsToProcess = filterProspectsWithoutPreviousComplaints(
+    prospects.map(p => ({
+      contractId: p.contractId,
+      maidId: p.maidId,
+      clientId: p.clientId
+    })),
+    complaintsBeforeDate
+  ).map(filtered => {
+    // Find the original prospect object to preserve all fields
+    return prospects.find(p => 
+      (p.contractId && p.contractId === filtered.contractId) ||
+      (p.maidId && p.maidId === filtered.maidId) ||
+      (p.clientId && p.clientId === filtered.clientId)
+    );
+  }).filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+  for (const prospect of prospectsToProcess) {
     if (!prospect.contractId) continue;
     
     const isProspect = prospect.isOECProspect || prospect.isOWWAProspect || prospect.isTravelVisaProspect || 
                        prospect.isFilipinaPassportRenewalProspect || prospect.isEthiopianPassportRenewalProspect;
     if (!isProspect) continue;
-
-    // Exclude prospects that have complaints BEFORE the filtered date
-    // This ensures we only count prospects without previous open complaints
-    const hasPreviousComplaints = await checkProspectHasPreviousComplaints(
-      {
-        contractId: prospect.contractId,
-        maidId: prospect.maidId,
-        clientId: prospect.clientId
-      },
-      date
-    );
-    
-    if (hasPreviousComplaints) {
-      // Skip this prospect - it has complaints before the filtered date
-      continue;
-    }
 
     const paidServices = paymentMap.get(prospect.contractId);
     const contractDates = paymentDatesMap.get(prospect.contractId);

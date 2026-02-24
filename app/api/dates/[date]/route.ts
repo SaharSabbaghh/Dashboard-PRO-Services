@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
-import { checkProspectHasPreviousComplaints } from '@/lib/complaints-conversion-service';
+import { getAllComplaintsBeforeDate, filterProspectsWithoutPreviousComplaints } from '@/lib/complaints-conversion-service';
 
 // Force Node.js runtime for blob storage operations
 export const runtime = 'nodejs';
@@ -144,23 +144,27 @@ export async function GET(
     const allProspects = await getProspectDetailsByDate(date);
     const households = await getProspectsGroupedByHousehold(date);
     
+    // Fetch all complaints before the date once (batch operation to avoid rate limiting)
+    const complaintsBeforeDate = await getAllComplaintsBeforeDate(date);
+    
     // Filter out prospects that have complaints BEFORE the filtered date
     // This ensures we only count prospects without previous open complaints
-    const filteredProspects = [];
-    for (const prospect of allProspects) {
-      const hasPreviousComplaints = await checkProspectHasPreviousComplaints(
-        {
-          contractId: prospect.contractId,
-          maidId: prospect.maidId,
-          clientId: prospect.clientId
-        },
-        date
+    // Using batch filtering to avoid making individual API calls for each prospect
+    const filteredProspects = filterProspectsWithoutPreviousComplaints(
+      allProspects.map(p => ({
+        contractId: p.contractId,
+        maidId: p.maidId,
+        clientId: p.clientId
+      })),
+      complaintsBeforeDate
+    ).map(filtered => {
+      // Find the original prospect object to preserve all fields
+      return allProspects.find(p => 
+        (p.contractId && p.contractId === filtered.contractId) ||
+        (p.maidId && p.maidId === filtered.maidId) ||
+        (p.clientId && p.clientId === filtered.clientId)
       );
-      
-      if (!hasPreviousComplaints) {
-        filteredProspects.push(prospect);
-      }
-    }
+    }).filter((p): p is NonNullable<typeof p> => p !== undefined);
     
     // Recalculate prospect counts from filtered list
     const filteredProspectCounts = {
