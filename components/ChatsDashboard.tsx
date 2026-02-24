@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, AlertTriangle, MessageSquare, Frown, HelpCircle, Clock } from 'lucide-react';
-import type { ChatAnalysisData } from '@/lib/chat-types';
+import type { ChatAnalysisData, ChatTrendData } from '@/lib/chat-types';
 import DatePickerCalendar from '@/components/DatePickerCalendar';
+import ChatTrendChart from '@/components/ChatTrendChart';
 
 export default function ChatsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -13,6 +14,8 @@ export default function ChatsDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'frustrated' | 'confused' | 'both'>('frustrated');
+  const [trendData, setTrendData] = useState<ChatTrendData[]>([]);
+  const [isLoadingTrends, setIsLoadingTrends] = useState(false);
 
   // Fetch available dates
   useEffect(() => {
@@ -64,6 +67,36 @@ export default function ChatsDashboard() {
     };
 
     fetchData();
+  }, [selectedDate]);
+
+  // Fetch trend data when date is selected
+  useEffect(() => {
+    if (!selectedDate) {
+      setTrendData([]);
+      return;
+    }
+
+    const fetchTrendData = async () => {
+      try {
+        setIsLoadingTrends(true);
+        const response = await fetch(`/api/chat-analysis/trends?endDate=${selectedDate}&days=14`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setTrendData(result.data);
+        } else {
+          console.error('Failed to fetch trend data:', result.error);
+          setTrendData([]);
+        }
+      } catch (err) {
+        console.error('Error fetching trend data:', err);
+        setTrendData([]);
+      } finally {
+        setIsLoadingTrends(false);
+      }
+    };
+
+    fetchTrendData();
   }, [selectedDate]);
 
   // Handle date selection from calendar
@@ -291,6 +324,9 @@ export default function ChatsDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Trend Analysis Chart */}
+      <ChatTrendChart data={trendData} isLoading={isLoadingTrends} />
 
       {/* Conversations Section */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
