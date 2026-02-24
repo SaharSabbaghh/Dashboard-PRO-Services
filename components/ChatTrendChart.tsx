@@ -137,7 +137,10 @@ export default function ChatTrendChart({ data, isLoading }: ChatTrendChartProps)
               padding: '8px 12px'
             }}
             labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
-            formatter={(value: number) => [`${value.toFixed(1)}%`, '']}
+            formatter={(value: number | undefined) => {
+              if (value === undefined || value === null) return ['0.0%', ''];
+              return [`${value.toFixed(1)}%`, ''];
+            }}
           />
           <Legend 
             wrapperStyle={{ paddingTop: '20px' }}
