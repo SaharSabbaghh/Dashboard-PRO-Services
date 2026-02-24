@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
+import { checkProspectHasPreviousComplaints } from '@/lib/complaints-conversion-service';
 
 // Force Node.js runtime for blob storage operations
 export const runtime = 'nodejs';
@@ -140,11 +141,38 @@ export async function GET(
     }
     
     const latestRun = await getLatestRun(date);
-    const prospects = await getProspectDetailsByDate(date);
+    const allProspects = await getProspectDetailsByDate(date);
     const households = await getProspectsGroupedByHousehold(date);
     
-    // Calculate conversions from complaints data (not payment data)
-    const conversions = await calculateConversionsForDate(date, prospects);
+    // Filter out prospects that have complaints BEFORE the filtered date
+    // This ensures we only count prospects without previous open complaints
+    const filteredProspects = [];
+    for (const prospect of allProspects) {
+      const hasPreviousComplaints = await checkProspectHasPreviousComplaints(
+        {
+          contractId: prospect.contractId,
+          maidId: prospect.maidId,
+          clientId: prospect.clientId
+        },
+        date
+      );
+      
+      if (!hasPreviousComplaints) {
+        filteredProspects.push(prospect);
+      }
+    }
+    
+    // Recalculate prospect counts from filtered list
+    const filteredProspectCounts = {
+      oec: filteredProspects.filter(p => p.isOECProspect).length,
+      owwa: filteredProspects.filter(p => p.isOWWAProspect).length,
+      travelVisa: filteredProspects.filter(p => p.isTravelVisaProspect).length,
+      filipinaPassportRenewal: filteredProspects.filter(p => p.isFilipinaPassportRenewalProspect).length,
+      ethiopianPassportRenewal: filteredProspects.filter(p => p.isEthiopianPassportRenewalProspect).length,
+    };
+    
+    // Calculate conversions from complaints data (using filtered prospects)
+    const conversions = await calculateConversionsForDate(date, filteredProspects);
     
     // Use stored conversion data from the original processing
     const defaultByContractType = {
@@ -159,19 +187,19 @@ export async function GET(
       totalConversations: data.totalConversations,
       isProcessing: data.isProcessing,
       prospects: {
-        oec: data.summary?.oec || 0,
-        owwa: data.summary?.owwa || 0,
-        travelVisa: data.summary?.travelVisa || 0,
-        filipinaPassportRenewal: data.summary?.filipinaPassportRenewal || 0,
-        ethiopianPassportRenewal: data.summary?.ethiopianPassportRenewal || 0,
-        details: prospects,
+        oec: filteredProspectCounts.oec,
+        owwa: filteredProspectCounts.owwa,
+        travelVisa: filteredProspectCounts.travelVisa,
+        filipinaPassportRenewal: filteredProspectCounts.filipinaPassportRenewal,
+        ethiopianPassportRenewal: filteredProspectCounts.ethiopianPassportRenewal,
+        details: filteredProspects,
       },
       conversions, // Now dynamically calculated from complaints
       countryCounts: data.summary?.countryCounts || {},
       byContractType: data.summary?.byContractType || defaultByContractType,
       latestRun,
       households,
-      prospectDetails: prospects, // Add this for compatibility
+      prospectDetails: filteredProspects, // Add this for compatibility
     });
     
   } catch (error) {

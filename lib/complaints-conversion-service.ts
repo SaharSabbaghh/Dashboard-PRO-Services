@@ -135,6 +135,57 @@ export async function checkComplaintsForProspect(
 }
 
 /**
+ * Check if a prospect has complaints BEFORE a given date
+ * Links by contract ID, maid ID, or client ID
+ * This is used to exclude prospects that already have open complaints
+ */
+export async function checkProspectHasPreviousComplaints(
+  prospect: { contractId?: string; maidId?: string; clientId?: string },
+  beforeDate: string
+): Promise<boolean> {
+  try {
+    // Get all available complaints
+    const { getAvailableDailyComplaintsDates, getDailyComplaints } = await import('./daily-complaints-storage');
+    const datesResult = await getAvailableDailyComplaintsDates();
+    
+    if (!datesResult.success || !datesResult.dates || datesResult.dates.length === 0) {
+      return false; // No complaints data available
+    }
+
+    // Fetch all complaints from all dates
+    const allComplaintsResults = await Promise.all(
+      datesResult.dates.map(d => getDailyComplaints(d))
+    );
+    
+    // Combine all complaints and filter by creationDate BEFORE the prospect date
+    const allComplaints = allComplaintsResults
+      .filter(r => r.success && r.data)
+      .flatMap(r => r.data!.complaints)
+      .filter(complaint => {
+        // Match complaints where creationDate is BEFORE the prospect date
+        if (!complaint.creationDate) return false;
+        // Handle both ISO format (2026-02-22T14:35:48.000) and space format (2026-02-22 14:35:48.000)
+        const complaintDate = complaint.creationDate.split(/[T ]/)[0]; // Extract YYYY-MM-DD
+        return complaintDate < beforeDate;
+      });
+
+    // Filter complaints for this prospect by contract ID, maid ID, or client ID
+    const prospectComplaints = allComplaints.filter(complaint => {
+      return (
+        (prospect.contractId && complaint.contractId === prospect.contractId) ||
+        (prospect.maidId && complaint.housemaidId === prospect.maidId) ||
+        (prospect.clientId && complaint.clientId === prospect.clientId)
+      );
+    });
+
+    return prospectComplaints.length > 0;
+  } catch (error) {
+    console.error('Error checking previous complaints for prospect:', error);
+    return false; // Return false on error (don't exclude prospect)
+  }
+}
+
+/**
  * Check if a prospect has complaints for a specific service on a given date
  * Links by contract ID, maid ID, or client ID
  */
@@ -201,6 +252,22 @@ export async function getConversionsWithComplaintCheck(
     const isProspect = prospect.isOECProspect || prospect.isOWWAProspect || prospect.isTravelVisaProspect || 
                        prospect.isFilipinaPassportRenewalProspect || prospect.isEthiopianPassportRenewalProspect;
     if (!isProspect) continue;
+
+    // Exclude prospects that have complaints BEFORE the filtered date
+    // This ensures we only count prospects without previous open complaints
+    const hasPreviousComplaints = await checkProspectHasPreviousComplaints(
+      {
+        contractId: prospect.contractId,
+        maidId: prospect.maidId,
+        clientId: prospect.clientId
+      },
+      date
+    );
+    
+    if (hasPreviousComplaints) {
+      // Skip this prospect - it has complaints before the filtered date
+      continue;
+    }
 
     const paidServices = paymentMap.get(prospect.contractId);
     const contractDates = paymentDatesMap.get(prospect.contractId);
