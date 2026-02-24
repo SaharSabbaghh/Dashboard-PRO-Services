@@ -55,6 +55,8 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
       'Maid Name',
       'Contract Type',
       'Chat Start Date',
+      'Has Complaint (Converted)',
+      'Converted Services',
       'Is OEC Prospect',
       'Is OWWA Prospect',
       'Is Travel Visa Prospect',
@@ -73,6 +75,8 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
       prospect.maidName || '',
       prospect.contractType || '',
       prospect.chatStartDateTime || '',
+      (prospect as any).hasComplaintOnDate ? 'Yes' : 'No',
+      (prospect as any).convertedServices?.join('; ') || '',
       prospect.isOECProspect ? 'Yes' : 'No',
       prospect.isOWWAProspect ? 'Yes' : 'No',
       prospect.isTravelVisaProspect ? 'Yes' : 'No',
@@ -157,6 +161,7 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
             <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Contract</th>
             <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Name</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Type</th>
+            <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Converted</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">OEC</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">OWWA</th>
             <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Visa</th>
@@ -221,6 +226,22 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                   <span className={getContractTypeBadge(p.contractType)}>
                     {p.contractType || 'Contract Detail Not Found'}
                   </span>
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {(p as any).hasComplaintOnDate ? (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">
+                        ✓ Yes
+                      </span>
+                      {(p as any).convertedServices && (p as any).convertedServices.length > 0 && (
+                        <span className="text-[10px] text-slate-500" title={(p as any).convertedServices.join(', ')}>
+                          {(p as any).convertedServices.join(', ')}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-500">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isOECProspect ? (
@@ -358,6 +379,7 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                         <th className="px-4 py-1.5 text-left text-[10px] font-medium text-slate-500 uppercase">ID</th>
                         <th className="px-4 py-1.5 text-left text-[10px] font-medium text-slate-500 uppercase">Person</th>
                         <th className="px-4 py-1.5 text-center text-[10px] font-medium text-slate-500 uppercase">Type</th>
+                        <th className="px-4 py-1.5 text-center text-[10px] font-medium text-slate-500 uppercase">Converted</th>
                         <th className="px-4 py-1.5 text-center text-[10px] font-medium text-slate-500 uppercase">OEC</th>
                         <th className="px-4 py-1.5 text-center text-[10px] font-medium text-slate-500 uppercase">OWWA</th>
                         <th className="px-4 py-1.5 text-center text-[10px] font-medium text-slate-500 uppercase">Visa</th>
@@ -411,6 +433,22 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                               <span className={getContractTypeBadge(member.contractType).replace('text-xs', 'text-[10px]')}>
                                 {member.contractType || 'Contract Detail Not Found'}
                               </span>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              {(member as any).hasComplaintOnDate ? (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <span className="px-1 py-0.5 rounded text-[10px] bg-green-100 text-green-700 font-medium">
+                                    ✓
+                                  </span>
+                                  {(member as any).convertedServices && (member as any).convertedServices.length > 0 && (
+                                    <span className="text-[9px] text-slate-500" title={(member as any).convertedServices.join(', ')}>
+                                      {(member as any).convertedServices.join(', ')}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-300">—</span>
+                              )}
                             </td>
                             <td className="px-4 py-2 text-center text-xs">
                               {member.isOECProspect ? (

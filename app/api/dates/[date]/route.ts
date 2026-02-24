@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDailyData, getLatestRun, getProspectDetailsByDate, getProspectsGroupedByHousehold } from '@/lib/unified-storage';
 import { getAllComplaintsBeforeDate, filterProspectsWithoutPreviousComplaints } from '@/lib/complaints-conversion-service';
+import { getServiceKeyFromComplaintType } from '@/lib/pnl-complaints-types';
 
 // Force Node.js runtime for blob storage operations
 export const runtime = 'nodejs';
@@ -8,21 +9,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Helper function to calculate conversions from complaints data only
-async function calculateConversionsForDate(date: string, prospects: any[]) {
-  if (prospects.length === 0) {
-    return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
-  }
-  
+// Helper function to get complaints for a specific date
+async function getComplaintsForDate(date: string) {
   try {
-    // Get all available complaints and filter by creationDate matching the prospect date
-    // This ensures we match complaints even if they were stored on a different date
     const { getAvailableDailyComplaintsDates, getDailyComplaints } = await import('@/lib/daily-complaints-storage');
     const datesResult = await getAvailableDailyComplaintsDates();
     
     if (!datesResult.success || !datesResult.dates || datesResult.dates.length === 0) {
-      console.log(`[${date}] No complaints data available - all conversions = 0`);
-      return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
+      return [];
     }
 
     // Fetch all complaints from all dates
@@ -42,6 +36,72 @@ async function calculateConversionsForDate(date: string, prospects: any[]) {
         return complaintDate === date;
       });
     
+    return complaints;
+  } catch (error) {
+    console.error('Error fetching complaints for date:', error);
+    return [];
+  }
+}
+
+// Helper function to enrich prospects with complaint conversion status
+function enrichProspectsWithComplaintStatus(
+  prospects: any[],
+  complaints: any[]
+): any[] {
+  
+  return prospects.map(prospect => {
+    // Check if this prospect has complaints that match their prospect type
+    const matchingComplaints = complaints.filter(complaint => {
+      // Link by contract ID, maid ID, or client ID
+      return (
+        (prospect.contractId && complaint.contractId === prospect.contractId) ||
+        (prospect.maidId && complaint.housemaidId === prospect.maidId) ||
+        (prospect.clientId && complaint.clientId === prospect.clientId)
+      );
+    });
+
+    // Determine which services converted based on complaints
+    const convertedServices: string[] = [];
+    let hasComplaintOnDate = false;
+
+    if (matchingComplaints.length > 0) {
+      hasComplaintOnDate = true;
+      
+      for (const complaint of matchingComplaints) {
+        const serviceKey = getServiceKeyFromComplaintType(complaint.complaintType);
+        if (!serviceKey) continue;
+        
+        // Map complaint service to prospect service
+        if (serviceKey === 'oec' && prospect.isOECProspect && !convertedServices.includes('OEC')) {
+          convertedServices.push('OEC');
+        } else if (serviceKey === 'owwa' && prospect.isOWWAProspect && !convertedServices.includes('OWWA')) {
+          convertedServices.push('OWWA');
+        } else if (['ttl', 'ttlSingle', 'ttlDouble', 'ttlMultiple', 'tte', 'tteSingle', 'tteDouble', 'tteMultiple', 'ttj', 'schengen', 'gcc'].includes(serviceKey) && prospect.isTravelVisaProspect && !convertedServices.includes('Travel Visa')) {
+          convertedServices.push('Travel Visa');
+        } else if (serviceKey === 'filipinaPP' && prospect.isFilipinaPassportRenewalProspect && !convertedServices.includes('Filipina PP')) {
+          convertedServices.push('Filipina PP');
+        } else if (serviceKey === 'ethiopianPP' && prospect.isEthiopianPassportRenewalProspect && !convertedServices.includes('Ethiopian PP')) {
+          convertedServices.push('Ethiopian PP');
+        }
+      }
+    }
+
+    return {
+      ...prospect,
+      hasComplaintOnDate,
+      convertedServices,
+    };
+  });
+}
+
+// Helper function to calculate conversions from complaints data only
+async function calculateConversionsForDate(date: string, prospects: any[]) {
+  if (prospects.length === 0) {
+    return { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 };
+  }
+  
+  try {
+    const complaints = await getComplaintsForDate(date);
     console.log(`[${date}] Found ${complaints.length} complaints with creationDate=${date} for conversion calculation`);
 
     // Create conversion counters
@@ -166,6 +226,12 @@ export async function GET(
       );
     }).filter((p): p is NonNullable<typeof p> => p !== undefined);
     
+    // Get complaints for this date to enrich prospects with conversion status
+    const complaintsOnDate = await getComplaintsForDate(date);
+    
+    // Enrich prospects with complaint conversion status
+    const enrichedProspects = enrichProspectsWithComplaintStatus(filteredProspects, complaintsOnDate);
+    
     // Recalculate prospect counts from filtered list
     const filteredProspectCounts = {
       oec: filteredProspects.filter(p => p.isOECProspect).length,
@@ -196,14 +262,14 @@ export async function GET(
         travelVisa: filteredProspectCounts.travelVisa,
         filipinaPassportRenewal: filteredProspectCounts.filipinaPassportRenewal,
         ethiopianPassportRenewal: filteredProspectCounts.ethiopianPassportRenewal,
-        details: filteredProspects,
+        details: enrichedProspects,
       },
       conversions, // Now dynamically calculated from complaints
       countryCounts: data.summary?.countryCounts || {},
       byContractType: data.summary?.byContractType || defaultByContractType,
       latestRun,
       households,
-      prospectDetails: filteredProspects, // Add this for compatibility
+      prospectDetails: enrichedProspects, // Add this for compatibility (with complaint conversion status)
     });
     
   } catch (error) {

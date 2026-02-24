@@ -86,7 +86,7 @@ const NEW_SERVICE_FEES: Record<PnLServiceKey, number> = {
   tteDouble: 0,
   tteMultiple: 100,  // Updated Feb 22
   ttj: 100,          // Updated Feb 22
-  schengen: 0,
+  schengen: 100,
   gcc: 0,
   ethiopianPP: 120,  // Updated Feb 22
   filipinaPP: 0,
