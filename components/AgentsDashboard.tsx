@@ -160,7 +160,7 @@ export default function AgentsDashboard() {
 
       {/* Stats Cards */}
       {delayData && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           {/* Total Agents */}
           <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -168,33 +168,6 @@ export default function AgentsDashboard() {
             </div>
             <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.agentStats.length}</div>
             <div className="text-sm font-medium text-slate-600">Active Agents</div>
-          </div>
-
-          {/* Total Conversations */}
-          <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.totalConversations}</div>
-            <div className="text-sm font-medium text-slate-600">Total Conversations</div>
-          </div>
-
-          {/* Average Reply Time */}
-          <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <Clock className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.overallAvgDelayFormatted}</div>
-            <div className="text-sm font-medium text-slate-600">Avg Reply Time</div>
-          </div>
-
-          {/* Median Reply Time */}
-          <div className="bg-slate-800 rounded-xl p-6 border-2 border-slate-700 shadow-sm text-white">
-            <div className="flex items-center justify-between mb-2">
-              <Award className="w-6 h-6 text-slate-300" />
-            </div>
-            <div className="text-3xl font-bold text-white mb-1">{delayData.medianDelayFormatted}</div>
-            <div className="text-sm font-medium text-slate-300">Median Reply Time</div>
           </div>
         </div>
       )}
@@ -253,10 +226,7 @@ export default function AgentsDashboard() {
                     Agent Name
                   </th>
                   <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Avg Response
-                  </th>
-                  <th className="text-center py-3 px-6 text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Conversations
+                    Avg Response Time
                   </th>
                   {agentHoursData && (
                     <>
@@ -334,11 +304,6 @@ export default function AgentsDashboard() {
                             <Clock className="w-4 h-4 text-slate-500" />
                             <span className="font-bold text-slate-900 text-sm">{agent.avgDelayFormatted}</span>
                           </div>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm">
-                            {agent.conversationCount}
-                          </span>
                         </td>
                         {agentHoursData && (
                           <>

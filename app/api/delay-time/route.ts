@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { processDelayTimeRecords, saveDelayTimeData, getLatestDelayTimeData } from '@/lib/chat-storage';
+import { processDelayTimeRecords, processAgentResponseTimeRecords, saveDelayTimeData, getLatestDelayTimeData } from '@/lib/chat-storage';
 import type { DelayTimeRequest, DelayTimeResponse } from '@/lib/chat-types';
 import { list } from '@vercel/blob';
 
@@ -14,27 +14,69 @@ export async function POST(request: Request) {
     const body: DelayTimeRequest = await request.json();
     
     // Validate request
-    if (!body.analysisDate || !body.records || !Array.isArray(body.records)) {
+    if (!body.records || !Array.isArray(body.records)) {
       return NextResponse.json<DelayTimeResponse>({
         success: false,
         message: 'Invalid request format',
-        error: 'analysisDate and records array are required',
+        error: 'records array is required',
       }, { status: 400 });
     }
 
-    // Process and aggregate the delay time records
-    const delayTimeData = processDelayTimeRecords(body.records, body.analysisDate);
-    
-    // Save to blob storage
-    await saveDelayTimeData(delayTimeData);
+    let analysisDate = body.analysisDate;
+
+    // Validate that records have the expected format (new format with REPORT_DATE, AGENT_FULL_NAME, AVG_ADJUSTED_RESPONSE_TIME)
+    if (body.records.length > 0) {
+      const firstRecord = body.records[0];
+      if ('REPORT_DATE' in firstRecord && 'AGENT_FULL_NAME' in firstRecord && 'AVG_ADJUSTED_RESPONSE_TIME' in firstRecord) {
+        // New format: per-agent response time data
+        // Extract analysisDate from REPORT_DATE if not provided
+        if (!analysisDate && firstRecord.REPORT_DATE) {
+          analysisDate = firstRecord.REPORT_DATE;
+        }
+        
+        if (!analysisDate) {
+          return NextResponse.json<DelayTimeResponse>({
+            success: false,
+            message: 'Invalid request format',
+            error: 'analysisDate is required (can be provided in body or extracted from REPORT_DATE)',
+          }, { status: 400 });
+        }
+
+        const delayTimeData = processAgentResponseTimeRecords(body.records, analysisDate);
+        await saveDelayTimeData(delayTimeData);
+      } else if ('agentFullName' in firstRecord && 'avgDelayDdHhMmSs' in firstRecord) {
+        // Legacy format: delay time records
+        if (!analysisDate) {
+          return NextResponse.json<DelayTimeResponse>({
+            success: false,
+            message: 'Invalid request format',
+            error: 'analysisDate is required for legacy format',
+          }, { status: 400 });
+        }
+        const delayTimeData = processDelayTimeRecords(body.records as any, analysisDate);
+        await saveDelayTimeData(delayTimeData);
+      } else {
+        return NextResponse.json<DelayTimeResponse>({
+          success: false,
+          message: 'Invalid request format',
+          error: 'Records must have REPORT_DATE, AGENT_FULL_NAME, and AVG_ADJUSTED_RESPONSE_TIME fields',
+        }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json<DelayTimeResponse>({
+        success: false,
+        message: 'Invalid request format',
+        error: 'Records array cannot be empty',
+      }, { status: 400 });
+    }
     
     return NextResponse.json<DelayTimeResponse>({
       success: true,
       message: 'Delay time data ingested successfully',
       data: {
-        analysisId: `delay-${body.analysisDate}`,
+        analysisId: `delay-${analysisDate}`,
         processedRecords: body.records.length,
-        analysisDate: body.analysisDate,
+        analysisDate: analysisDate!,
       },
     });
   } catch (error) {

@@ -7,7 +7,8 @@ import type {
   ChatInsight,
   DelayTimeData,
   AgentDelayRecord,
-  AgentDelayStats
+  AgentDelayStats,
+  AgentResponseTimeRecord
 } from './chat-types';
 
 const CHAT_BLOB_PREFIX = 'chat-analysis';
@@ -525,6 +526,20 @@ function parseDelayToSeconds(delayStr: string): number {
 }
 
 /**
+ * Parse response time from HH:MM:SS format to seconds
+ */
+function parseResponseTimeToSeconds(timeStr: string): number {
+  const parts = timeStr.split(':').map(Number);
+  
+  if (parts.length === 3) {
+    const [hours, minutes, seconds] = parts;
+    return (hours * 3600) + (minutes * 60) + seconds;
+  }
+  
+  return 0;
+}
+
+/**
  * Format seconds to HH:MM:SS
  */
 function formatSecondsToTime(seconds: number): string {
@@ -552,7 +567,7 @@ function calculateMedian(numbers: number[]): number {
 }
 
 /**
- * Process and aggregate delay time records
+ * Process and aggregate delay time records (legacy format)
  */
 export function processDelayTimeRecords(
   records: AgentDelayRecord[],
@@ -562,11 +577,6 @@ export function processDelayTimeRecords(
     return {
       lastUpdated: new Date().toISOString(),
       analysisDate,
-      overallAvgDelaySeconds: 0,
-      overallAvgDelayFormatted: '00:00:00',
-      medianDelaySeconds: 0,
-      medianDelayFormatted: '00:00:00',
-      totalConversations: 0,
       agentStats: [],
     };
   }
@@ -591,12 +601,6 @@ export function processDelayTimeRecords(
     }
   });
 
-  // Calculate overall metrics
-  const overallAvgDelaySeconds = Math.round(
-    allDelays.reduce((sum, d) => sum + d, 0) / allDelays.length
-  );
-  const medianDelaySeconds = Math.round(calculateMedian(allDelays));
-
   // Calculate per-agent stats
   const agentStats: AgentDelayStats[] = Array.from(agentMap.entries())
     .map(([agentName, data]) => {
@@ -608,8 +612,6 @@ export function processDelayTimeRecords(
         agentName,
         avgDelaySeconds,
         avgDelayFormatted: formatSecondsToTime(avgDelaySeconds),
-        conversationCount: data.delays.length,
-        noReplyCount: data.noReplyCount,
       };
     })
     .sort((a, b) => b.avgDelaySeconds - a.avgDelaySeconds); // Sort by slowest first
@@ -617,11 +619,43 @@ export function processDelayTimeRecords(
   return {
     lastUpdated: new Date().toISOString(),
     analysisDate,
-    overallAvgDelaySeconds,
-    overallAvgDelayFormatted: formatSecondsToTime(overallAvgDelaySeconds),
-    medianDelaySeconds,
-    medianDelayFormatted: formatSecondsToTime(medianDelaySeconds),
-    totalConversations: records.length,
+    agentStats,
+  };
+}
+
+/**
+ * Process per-agent response time records (new format)
+ * Filters out "Total" entries as they represent daily average
+ */
+export function processAgentResponseTimeRecords(
+  records: AgentResponseTimeRecord[],
+  analysisDate: string
+): DelayTimeData {
+  if (records.length === 0) {
+    return {
+      lastUpdated: new Date().toISOString(),
+      analysisDate,
+      agentStats: [],
+    };
+  }
+
+  // Filter out "Total" entries and process per-agent data
+  const agentStats: AgentDelayStats[] = records
+    .filter(record => record.AGENT_FULL_NAME !== 'Total')
+    .map(record => {
+      const delaySeconds = parseResponseTimeToSeconds(record.AVG_ADJUSTED_RESPONSE_TIME);
+      
+      return {
+        agentName: record.AGENT_FULL_NAME,
+        avgDelaySeconds: delaySeconds,
+        avgDelayFormatted: record.AVG_ADJUSTED_RESPONSE_TIME, // Already in HH:MM:SS format
+      };
+    })
+    .sort((a, b) => a.avgDelaySeconds - b.avgDelaySeconds); // Sort by fastest first
+
+  return {
+    lastUpdated: new Date().toISOString(),
+    analysisDate,
     agentStats,
   };
 }

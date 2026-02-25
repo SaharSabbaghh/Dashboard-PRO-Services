@@ -114,28 +114,28 @@ export interface AgentDelayRecord {
   endedWithConsumerNoReply: string; // "Yes" or "No"
 }
 
+// New input format for per-agent response time data
+export interface AgentResponseTimeRecord {
+  REPORT_DATE: string; // Format: YYYY-MM-DD
+  AGENT_FULL_NAME: string; // Agent name, or "Total" for daily average
+  AVG_ADJUSTED_RESPONSE_TIME: string; // Format: HH:MM:SS
+}
+
 export interface AgentDelayStats {
   agentName: string;
   avgDelaySeconds: number;
   avgDelayFormatted: string; // HH:MM:SS format
-  conversationCount: number;
-  noReplyCount: number;
 }
 
 export interface DelayTimeData {
   lastUpdated: string;
   analysisDate: string;
-  overallAvgDelaySeconds: number;
-  overallAvgDelayFormatted: string; // HH:MM:SS format
-  medianDelaySeconds: number;
-  medianDelayFormatted: string;
-  totalConversations: number;
   agentStats: AgentDelayStats[];
 }
 
 export interface DelayTimeRequest {
-  analysisDate: string;
-  records: AgentDelayRecord[];
+  analysisDate?: string; // Optional - can be extracted from REPORT_DATE in records
+  records: AgentResponseTimeRecord[];
 }
 
 export interface DelayTimeResponse {
