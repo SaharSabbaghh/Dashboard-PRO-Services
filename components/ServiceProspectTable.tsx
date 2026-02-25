@@ -52,21 +52,14 @@ export default function ServiceProspectTable({ prospects, service }: ServicePros
     }
   };
 
-  const getConvertedStatus = (prospect: ProspectDetail): boolean => {
-    switch (service) {
-      case 'oec':
-        return prospect.oecConverted || false;
-      case 'owwa':
-        return prospect.owwaConverted || false;
-      case 'travelVisa':
-        return prospect.travelVisaConverted || false;
-      case 'filipinaPassportRenewal':
-        return prospect.filipinaPassportRenewalConverted || false;
-      case 'ethiopianPassportRenewal':
-        return prospect.ethiopianPassportRenewalConverted || false;
-      default:
-        return false;
-    }
+  const getConvertedStatus = (prospect: ProspectDetail): { hasComplaint: boolean; convertedServices: string[] } => {
+    const hasComplaintOnDate = (prospect as any).hasComplaintOnDate || false;
+    const convertedServices = (prospect as any).convertedServices || [];
+    
+    return {
+      hasComplaint: hasComplaintOnDate,
+      convertedServices: convertedServices
+    };
   };
 
   const filteredProspects = getFilteredProspects();
@@ -164,11 +157,23 @@ export default function ServiceProspectTable({ prospects, service }: ServicePros
                 {prospect.chatStartDateTime ? new Date(prospect.chatStartDateTime).toLocaleDateString() : '—'}
               </td>
               <td className="py-3 px-5 text-center">
-                {getConvertedStatus(prospect) ? (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Yes</span>
-                ) : (
-                  <span className="text-xs text-slate-400">No</span>
-                )}
+                {(() => {
+                  const { hasComplaint, convertedServices } = getConvertedStatus(prospect);
+                  return hasComplaint ? (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">
+                        ✓ Yes
+                      </span>
+                      {convertedServices && convertedServices.length > 0 && (
+                        <span className="text-[10px] text-slate-500" title={convertedServices.join(', ')}>
+                          {convertedServices.join(', ')}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-500">—</span>
+                  );
+                })()}
               </td>
             </tr>
           ))}

@@ -155,8 +155,14 @@ export default function PnLServiceDetail({ data, filter }: PnLServiceDetailProps
     { volume: 0, revenue: 0, cost: 0, grossProfit: 0, serviceFees: 0 }
   );
   
-  // For single service, get the per-order service fee
-  const perOrderServiceFee = services.length === 1 ? services[0].service.serviceFees : 0;
+  // Calculate per-order service fee:
+  // - For single service: use that service's fee directly
+  // - For multiple services: calculate weighted average (total gross profit / total volume)
+  const perOrderServiceFee = services.length === 1 
+    ? services[0].service.serviceFees 
+    : totals.volume > 0 
+      ? totals.grossProfit / totals.volume 
+      : 0;
 
   // Chart data
   const chartData = services.map(({ key, service }) => ({
