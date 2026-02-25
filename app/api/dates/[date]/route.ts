@@ -294,6 +294,30 @@ export async function GET(
       }
     }
     
+    // Recalculate countryCounts based on filtered travel visa prospects (excluding those with previous complaints)
+    const recalculatedCountryCounts: Record<string, number> = {};
+    for (const [, members] of householdMap) {
+      const hasTravelVisa = members.some(m => m.isTravelVisaProspect);
+      
+      if (hasTravelVisa) {
+        // Collect all unique countries from all members in household
+        const householdCountries = new Set<string>();
+        for (const member of members) {
+          if (member.isTravelVisaProspect) {
+            for (const country of member.travelVisaCountries || []) {
+              if (country && country.toLowerCase() !== 'unspecified') {
+                householdCountries.add(country);
+              }
+            }
+          }
+        }
+        // Count each country once per household
+        for (const country of householdCountries) {
+          recalculatedCountryCounts[country] = (recalculatedCountryCounts[country] || 0) + 1;
+        }
+      }
+    }
+    
     return NextResponse.json({
       date,
       fileName: data.fileName,
@@ -309,7 +333,7 @@ export async function GET(
         details: enrichedProspects,
       },
       conversions, // Now dynamically calculated from complaints
-      countryCounts: data.summary?.countryCounts || {},
+      countryCounts: recalculatedCountryCounts, // Recalculated based on filtered prospects
       byContractType: recalculatedByContractType, // Recalculated based on filtered prospects
       latestRun,
       households,
