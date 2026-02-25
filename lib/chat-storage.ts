@@ -639,6 +639,16 @@ export function processAgentResponseTimeRecords(
     };
   }
 
+  // Extract daily average from "Total" entry
+  const totalRecord = records.find(record => record.AGENT_FULL_NAME === 'Total');
+  let dailyAverageDelaySeconds: number | undefined;
+  let dailyAverageDelayFormatted: string | undefined;
+  
+  if (totalRecord) {
+    dailyAverageDelaySeconds = parseResponseTimeToSeconds(totalRecord.AVG_ADJUSTED_RESPONSE_TIME);
+    dailyAverageDelayFormatted = totalRecord.AVG_ADJUSTED_RESPONSE_TIME; // Already in HH:MM:SS format
+  }
+
   // Filter out "Total" entries and process per-agent data
   const agentStats: AgentDelayStats[] = records
     .filter(record => record.AGENT_FULL_NAME !== 'Total')
@@ -656,6 +666,8 @@ export function processAgentResponseTimeRecords(
   return {
     lastUpdated: new Date().toISOString(),
     analysisDate,
+    dailyAverageDelaySeconds,
+    dailyAverageDelayFormatted,
     agentStats,
   };
 }

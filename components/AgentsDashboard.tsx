@@ -160,7 +160,7 @@ export default function AgentsDashboard() {
 
       {/* Stats Cards */}
       {delayData && (
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Total Agents */}
           <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -169,6 +169,17 @@ export default function AgentsDashboard() {
             <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.agentStats.length}</div>
             <div className="text-sm font-medium text-slate-600">Active Agents</div>
           </div>
+
+          {/* Daily Average Delay */}
+          {delayData.dailyAverageDelayFormatted && (
+            <div className="bg-white rounded-xl p-6 border-2 border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <Clock className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="text-3xl font-bold text-slate-900 mb-1">{delayData.dailyAverageDelayFormatted}</div>
+              <div className="text-sm font-medium text-slate-600">Daily Avg Response Time</div>
+            </div>
+          )}
         </div>
       )}
 

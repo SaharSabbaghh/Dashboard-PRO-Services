@@ -130,6 +130,8 @@ export interface AgentDelayStats {
 export interface DelayTimeData {
   lastUpdated: string;
   analysisDate: string;
+  dailyAverageDelaySeconds?: number;
+  dailyAverageDelayFormatted?: string; // HH:MM:SS format
   agentStats: AgentDelayStats[];
 }
 
