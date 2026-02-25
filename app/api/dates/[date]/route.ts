@@ -244,11 +244,55 @@ export async function GET(
     // Calculate conversions from complaints data (using filtered prospects)
     const conversions = await calculateConversionsForDate(date, filteredProspects);
     
-    // Use stored conversion data from the original processing
-    const defaultByContractType = {
+    // Recalculate byContractType based on filtered prospects (excluding those with previous complaints)
+    const recalculatedByContractType = {
       CC: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
       MV: { oec: 0, owwa: 0, travelVisa: 0, filipinaPassportRenewal: 0, ethiopianPassportRenewal: 0 },
     };
+    
+    // Group filtered prospects by household to calculate contract type counts
+    const householdMap = new Map<string, typeof filteredProspects>();
+    for (const prospect of filteredProspects) {
+      const householdKey = prospect.contractId || `standalone_${prospect.maidId || prospect.clientId || 'unknown'}`;
+      if (!householdMap.has(householdKey)) {
+        householdMap.set(householdKey, []);
+      }
+      householdMap.get(householdKey)!.push(prospect);
+    }
+    
+    // Count prospects per household by contract type
+    for (const [, members] of householdMap) {
+      // Determine contract type for this household (use first non-empty)
+      const contractType = members.find(m => m.contractType)?.contractType || '';
+      
+      // Check if ANY member in household is a prospect (count household once)
+      const hasOEC = members.some(m => m.isOECProspect);
+      const hasOWWA = members.some(m => m.isOWWAProspect);
+      const hasTravelVisa = members.some(m => m.isTravelVisaProspect);
+      const hasFilipinaPassportRenewal = members.some(m => m.isFilipinaPassportRenewalProspect);
+      const hasEthiopianPassportRenewal = members.some(m => m.isEthiopianPassportRenewalProspect);
+      
+      if (hasOEC) {
+        if (contractType === 'CC') recalculatedByContractType.CC.oec++;
+        else if (contractType === 'MV') recalculatedByContractType.MV.oec++;
+      }
+      if (hasOWWA) {
+        if (contractType === 'CC') recalculatedByContractType.CC.owwa++;
+        else if (contractType === 'MV') recalculatedByContractType.MV.owwa++;
+      }
+      if (hasTravelVisa) {
+        if (contractType === 'CC') recalculatedByContractType.CC.travelVisa++;
+        else if (contractType === 'MV') recalculatedByContractType.MV.travelVisa++;
+      }
+      if (hasFilipinaPassportRenewal) {
+        if (contractType === 'CC') recalculatedByContractType.CC.filipinaPassportRenewal++;
+        else if (contractType === 'MV') recalculatedByContractType.MV.filipinaPassportRenewal++;
+      }
+      if (hasEthiopianPassportRenewal) {
+        if (contractType === 'CC') recalculatedByContractType.CC.ethiopianPassportRenewal++;
+        else if (contractType === 'MV') recalculatedByContractType.MV.ethiopianPassportRenewal++;
+      }
+    }
     
     return NextResponse.json({
       date,
@@ -266,7 +310,7 @@ export async function GET(
       },
       conversions, // Now dynamically calculated from complaints
       countryCounts: data.summary?.countryCounts || {},
-      byContractType: data.summary?.byContractType || defaultByContractType,
+      byContractType: recalculatedByContractType, // Recalculated based on filtered prospects
       latestRun,
       households,
       prospectDetails: enrichedProspects, // Add this for compatibility (with complaint conversion status)
