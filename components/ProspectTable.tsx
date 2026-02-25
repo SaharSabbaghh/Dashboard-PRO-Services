@@ -224,14 +224,28 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                   )}
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {p.isOECProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">•</span>
-                  ) : '—'}
+                  {(() => {
+                    const convertedServices = (p as any).convertedServices || [];
+                    const isConverted = convertedServices.includes('OEC');
+                    if (isConverted) {
+                      return <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">Yes</span>;
+                    }
+                    return p.isOECProspect ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">•</span>
+                    ) : '—';
+                  })()}
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {p.isOWWAProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-sky-100 text-sky-700">•</span>
-                  ) : '—'}
+                  {(() => {
+                    const convertedServices = (p as any).convertedServices || [];
+                    const isConverted = convertedServices.includes('OWWA');
+                    if (isConverted) {
+                      return <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">Yes</span>;
+                    }
+                    return p.isOWWAProspect ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-sky-100 text-sky-700">•</span>
+                    ) : '—';
+                  })()}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {p.isTravelVisaProspect ? (
@@ -242,14 +256,28 @@ export default function ProspectTable({ prospects, households }: ProspectTablePr
                   {p.travelVisaCountries?.length > 0 ? p.travelVisaCountries.join(', ') : '—'}
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {p.isFilipinaPassportRenewalProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-pink-100 text-pink-700">•</span>
-                  ) : '—'}
+                  {(() => {
+                    const convertedServices = (p as any).convertedServices || [];
+                    const isConverted = convertedServices.includes('Filipina PP');
+                    if (isConverted) {
+                      return <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">Yes</span>;
+                    }
+                    return p.isFilipinaPassportRenewalProspect ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-pink-100 text-pink-700">•</span>
+                    ) : '—';
+                  })()}
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {p.isEthiopianPassportRenewalProspect ? (
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">•</span>
-                  ) : '—'}
+                  {(() => {
+                    const convertedServices = (p as any).convertedServices || [];
+                    const isConverted = convertedServices.includes('Ethiopian PP');
+                    if (isConverted) {
+                      return <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">Yes</span>;
+                    }
+                    return p.isEthiopianPassportRenewalProspect ? (
+                      <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700">•</span>
+                    ) : '—';
+                  })()}
                 </td>
               </tr>
             );
