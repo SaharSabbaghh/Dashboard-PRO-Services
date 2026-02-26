@@ -155,6 +155,7 @@ export async function aggregateDailyChatAnalysisResults(
     skill?: string;
     clientId?: string;
     maidId?: string;
+    contractId?: string;
   }>,
   analysisDate: string
 ): Promise<ChatAnalysisData> {
@@ -162,40 +163,115 @@ export async function aggregateDailyChatAnalysisResults(
     return createEmptyChatAnalysisData(analysisDate);
   }
 
-  // Get unique people (clients OR maids) from conversations
-  const personMap = new Map<string, {
-    personId: string;
-    personType: 'client' | 'maid' | 'unknown';
-    frustrated: boolean;
-    confused: boolean;
-    conversationIds: string[];
-  }>();
+  console.log(`[Chat Storage] Starting aggregation of ${conversations.length} conversations`);
 
-  // First, expand conversations that have comma-separated conversation IDs
-  // This handles cases where conversationId = "CH123,CH456,CH789"
-  const expandedConversations: Array<typeof conversations[0] & { originalConversationId: string }> = [];
-  conversations.forEach(conv => {
-    // Split by comma and filter out empty strings
-    const conversationIds = conv.conversationId.split(',').map(id => id.trim()).filter(Boolean);
+  // Step 1: Merge conversations by entity (contract > client > maid > conversation)
+  // This merges messages, conversation IDs, and other fields for the same entity
+  const entityMap = new Map<string, typeof conversations[0] & { mergedConversationIds: Set<string> }>();
+  
+  for (const conv of conversations) {
+    const clientId = conv.clientId;
+    const maidId = conv.maidId;
+    const contractId = conv.contractId;
+    const convId = conv.conversationId;
     
-    if (conversationIds.length === 0) {
-      // Skip if no valid conversation IDs
-      return;
+    // Determine entity key (priority: contract > client > maid > conversation)
+    let entityKey = '';
+    if (contractId) {
+      entityKey = `contract_${contractId}`;
+    } else if (clientId) {
+      entityKey = `client_${clientId}`;
+    } else if (maidId) {
+      entityKey = `maid_${maidId}`;
+    } else if (convId) {
+      // Split comma-separated IDs and use the first one for entity key
+      const firstConvId = convId.split(',')[0].trim();
+      entityKey = `conv_${firstConvId}`;
+    } else {
+      entityKey = `unknown_${Date.now()}_${Math.random()}`;
     }
     
-    // Create an entry for each conversation ID
+    // If entity already exists, merge the conversations
+    if (entityMap.has(entityKey)) {
+      const existing = entityMap.get(entityKey)!;
+      
+      // Merge conversation IDs (split comma-separated and add to set)
+      const existingConvIds = existing.mergedConversationIds || new Set<string>();
+      const newConvIds = convId.split(',').map(id => id.trim()).filter(Boolean);
+      newConvIds.forEach(id => existingConvIds.add(id));
+      existing.mergedConversationIds = existingConvIds;
+      
+      // Merge mainIssues (combine unique issues)
+      const existingIssues = new Set(existing.mainIssues || []);
+      (conv.mainIssues || []).forEach(issue => existingIssues.add(issue));
+      existing.mainIssues = Array.from(existingIssues);
+      
+      // Merge keyPhrases (combine unique phrases)
+      const existingPhrases = new Set(existing.keyPhrases || []);
+      (conv.keyPhrases || []).forEach(phrase => existingPhrases.add(phrase));
+      existing.keyPhrases = Array.from(existingPhrases);
+      
+      // Keep earliest chat start time
+      const existingTime = existing.chatStartDateTime ? new Date(existing.chatStartDateTime).getTime() : Infinity;
+      const newTime = conv.chatStartDateTime ? new Date(conv.chatStartDateTime).getTime() : Infinity;
+      if (newTime < existingTime && conv.chatStartDateTime) {
+        existing.chatStartDateTime = conv.chatStartDateTime;
+      }
+      
+      // Preserve frustrated/confused flags (if either has it, keep it)
+      existing.frustrated = existing.frustrated || conv.frustrated;
+      existing.confused = existing.confused || conv.confused;
+      
+      // Keep the service/skill if missing
+      if (!existing.service && conv.service) existing.service = conv.service;
+      if (!existing.skill && conv.skill) existing.skill = conv.skill;
+      
+      // Fill in any missing IDs
+      if (!existing.clientId && conv.clientId) existing.clientId = conv.clientId;
+      if (!existing.maidId && conv.maidId) existing.maidId = conv.maidId;
+      if (!existing.contractId && conv.contractId) existing.contractId = conv.contractId;
+      
+    } else {
+      // New entity - add to map
+      const newConvIds = new Set<string>();
+      convId.split(',').map(id => id.trim()).filter(Boolean).forEach(id => newConvIds.add(id));
+      entityMap.set(entityKey, {
+        ...conv,
+        mergedConversationIds: newConvIds,
+      });
+    }
+  }
+  
+  const mergedByEntity = Array.from(entityMap.values());
+  console.log(`[Chat Storage] Merged by entity: ${conversations.length} → ${mergedByEntity.length} unique entities`);
+
+  // Step 2: Expand merged conversation IDs into individual conversation entries
+  // This handles cases where conversationId = "CH123,CH456,CH789" after entity merging
+  const expandedConversations: Array<typeof conversations[0] & { originalConversationId: string }> = [];
+  mergedByEntity.forEach(entity => {
+    const conversationIds = Array.from(entity.mergedConversationIds || [entity.conversationId]);
+    
     conversationIds.forEach(convId => {
       expandedConversations.push({
-        ...conv,
         conversationId: convId,
-        originalConversationId: conv.conversationId, // Keep original for reference
+        frustrated: entity.frustrated,
+        confused: entity.confused,
+        mainIssues: entity.mainIssues || [],
+        keyPhrases: entity.keyPhrases || [],
+        chatStartDateTime: entity.chatStartDateTime,
+        service: entity.service,
+        skill: entity.skill,
+        clientId: entity.clientId,
+        maidId: entity.maidId,
+        contractId: entity.contractId,
+        originalConversationId: Array.from(entity.mergedConversationIds || []).join(','), // Keep original for reference
       });
     });
   });
   
-  console.log(`[Chat Storage] Expanded ${conversations.length} conversations into ${expandedConversations.length} entries (handling comma-separated IDs)`);
+  console.log(`[Chat Storage] Expanded ${mergedByEntity.length} entities into ${expandedConversations.length} conversation entries`);
 
-  // Now deduplicate by individual conversationId to handle duplicate entries
+  // Step 3: Deduplicate by individual conversationId (in case same conversation ID appears in different entities)
   const conversationMap = new Map<string, typeof expandedConversations[0]>();
   let duplicateCount = 0;
   let flagMismatchCount = 0;
@@ -217,7 +293,7 @@ export async function aggregateDailyChatAnalysisResults(
       }
       
       // Merge duplicates: preserve frustrated/confused flags (if either has it, keep it)
-      // and keep the one with more data (issues or phrases)
+      // Merge issues and phrases, keep the one with more data
       const existingDataScore = (existing.mainIssues?.length || 0) + (existing.keyPhrases?.length || 0);
       const currentDataScore = (conv.mainIssues?.length || 0) + (conv.keyPhrases?.length || 0);
       
@@ -225,19 +301,27 @@ export async function aggregateDailyChatAnalysisResults(
       const mergedFrustrated = existing.frustrated || conv.frustrated;
       const mergedConfused = existing.confused || conv.confused;
       
-      // Keep the one with more data, but merge the flags
+      // Merge issues and phrases
+      const mergedIssues = new Set([...(existing.mainIssues || []), ...(conv.mainIssues || [])]);
+      const mergedPhrases = new Set([...(existing.keyPhrases || []), ...(conv.keyPhrases || [])]);
+      
+      // Keep the one with more data, but merge the flags and data
       if (currentDataScore > existingDataScore) {
         conversationMap.set(conv.conversationId, {
           ...conv,
           frustrated: mergedFrustrated,
           confused: mergedConfused,
+          mainIssues: Array.from(mergedIssues),
+          keyPhrases: Array.from(mergedPhrases),
         });
       } else {
-        // Keep existing but update flags
+        // Keep existing but update flags and merge data
         conversationMap.set(conv.conversationId, {
           ...existing,
           frustrated: mergedFrustrated,
           confused: mergedConfused,
+          mainIssues: Array.from(mergedIssues),
+          keyPhrases: Array.from(mergedPhrases),
         });
       }
     }
@@ -247,24 +331,28 @@ export async function aggregateDailyChatAnalysisResults(
   
   // Log deduplication results
   if (duplicateCount > 0) {
-    console.log(`[Chat Storage] Deduplication: ${expandedConversations.length} expanded → ${deduplicatedConversations.length} unique conversations (removed ${duplicateCount} duplicates, ${flagMismatchCount} with flag mismatches)`);
+    console.log(`[Chat Storage] Final deduplication: ${expandedConversations.length} expanded → ${deduplicatedConversations.length} unique conversations (removed ${duplicateCount} duplicates, ${flagMismatchCount} with flag mismatches)`);
   }
   
-  // Group deduplicated conversations by person (client or maid), aggregating their frustration/confusion status
+  // Step 4: Group deduplicated conversations by person (contract > client > maid > conversation)
+  // This is for calculating frustration/confusion percentages
   deduplicatedConversations.forEach(conv => {
-    // Determine the person key and type
+    // Determine the person key and type using same priority as entity merging
     let personKey: string;
     let personType: 'client' | 'maid' | 'unknown';
     
-    if (conv.clientId) {
+    if (conv.contractId) {
+      personKey = `contract_${conv.contractId}`;
+      personType = 'client'; // Contracts are associated with clients
+    } else if (conv.clientId) {
       personKey = `client_${conv.clientId}`;
       personType = 'client';
     } else if (conv.maidId) {
       personKey = `maid_${conv.maidId}`;
       personType = 'maid';
     } else {
-      // Fallback to conversationId (without 'unknown_' prefix for better deduplication)
-      personKey = conv.conversationId;
+      // Fallback to conversationId
+      personKey = `conv_${conv.conversationId}`;
       personType = 'unknown';
     }
     
@@ -281,7 +369,9 @@ export async function aggregateDailyChatAnalysisResults(
       // If any conversation for this person is frustrated/confused, mark person as such
       existing.frustrated = existing.frustrated || conv.frustrated;
       existing.confused = existing.confused || conv.confused;
-      existing.conversationIds.push(conv.conversationId);
+      if (!existing.conversationIds.includes(conv.conversationId)) {
+        existing.conversationIds.push(conv.conversationId);
+      }
     }
   });
 
