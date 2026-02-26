@@ -81,7 +81,7 @@ export default function NPSScoreDistributionChart({ metrics, isLoading }: NPSSco
               borderRadius: '8px',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}
-            formatter={(value: number) => [value, 'Responses']}
+            formatter={(value) => [`${Number(value) || 0}`, 'Responses']}
             labelFormatter={(label) => `Score: ${label}`}
           />
           <Bar dataKey="count" radius={[8, 8, 0, 0]}>
