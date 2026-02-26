@@ -1,5 +1,5 @@
 import { put, list } from '@vercel/blob';
-import type { OperationsData, OperationMetric } from './operations-types';
+import type { OperationsData, OperationMetric, OperationsTrendData } from './operations-types';
 
 const BLOB_PREFIX = 'operations/';
 
@@ -254,4 +254,41 @@ export async function getOperationsDateRange(
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
+}
+
+/**
+ * Get operations trend data for a date range
+ * Returns daily totals for cases delayed and done today
+ */
+export async function getOperationsTrendData(endDate: string, days: number = 14): Promise<OperationsTrendData[]> {
+  const trendData: OperationsTrendData[] = [];
+  const end = new Date(endDate);
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(end);
+    date.setDate(end.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const dayResult = await getDailyOperations(dateStr);
+    if (dayResult.success && dayResult.data) {
+      // Calculate totals for the day
+      const totalCasesDelayed = dayResult.data.operations.reduce((sum, op) => sum + op.casesDelayed, 0);
+      const totalDoneToday = dayResult.data.operations.reduce((sum, op) => sum + op.doneToday, 0);
+      
+      trendData.push({
+        date: dateStr,
+        casesDelayed: totalCasesDelayed,
+        doneToday: totalDoneToday,
+      });
+    } else {
+      // If no data for this day, add zeros
+      trendData.push({
+        date: dateStr,
+        casesDelayed: 0,
+        doneToday: 0,
+      });
+    }
+  }
+  
+  return trendData;
 }

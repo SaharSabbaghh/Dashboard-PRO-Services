@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, CheckCircle, AlertTriangle, FileText, MessageSquare } from 'lucide-react';
-import type { OperationsData, ProspectMetric, OperationMetric, SalesMetric } from '@/lib/operations-types';
+import type { OperationsData, ProspectMetric, OperationMetric, SalesMetric, OperationsTrendData } from '@/lib/operations-types';
 import DatePickerCalendar from '@/components/DatePickerCalendar';
+import OperationsTrendChart from '@/components/OperationsTrendChart';
 
 export default function OperationsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -14,6 +15,8 @@ export default function OperationsDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [mtdData, setMtdData] = useState<Record<string, number>>({});
   const [selectedNotes, setSelectedNotes] = useState<string | null>(null);
+  const [trendData, setTrendData] = useState<OperationsTrendData[]>([]);
+  const [isLoadingTrends, setIsLoadingTrends] = useState(false);
 
   // Fetch available dates
   useEffect(() => {
@@ -201,6 +204,36 @@ export default function OperationsDashboard() {
 
     fetchMTDData();
   }, [selectedDate]); // Recalculate MTD when selected date changes
+
+  // Fetch trend data when date is selected
+  useEffect(() => {
+    if (!selectedDate) {
+      setTrendData([]);
+      return;
+    }
+
+    const fetchTrendData = async () => {
+      try {
+        setIsLoadingTrends(true);
+        const response = await fetch(`/api/operations/trends?endDate=${selectedDate}&days=14`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setTrendData(result.data);
+        } else {
+          console.error('Failed to fetch trend data:', result.error);
+          setTrendData([]);
+        }
+      } catch (err) {
+        console.error('Error fetching trend data:', err);
+        setTrendData([]);
+      } finally {
+        setIsLoadingTrends(false);
+      }
+    };
+
+    fetchTrendData();
+  }, [selectedDate]);
 
   // Handle date selection from calendar
   const handleDateSelect = (startDate: string | null, endDate?: string | null) => {
@@ -398,6 +431,9 @@ export default function OperationsDashboard() {
         </div>
       </div>
 
+
+      {/* Trend Analysis Chart */}
+      <OperationsTrendChart data={trendData} isLoading={isLoadingTrends} />
 
       {/* Operations Section */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">

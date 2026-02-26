@@ -38,6 +38,13 @@ export interface OperationsResponse {
   error?: string;
 }
 
+// Trend data for operations
+export interface OperationsTrendData {
+  date: string;
+  casesDelayed: number; // Total cases delayed
+  doneToday: number; // Total cases done today
+}
+
 // Service mapping for consistency with other dashboards
 export const OPERATIONS_SERVICE_MAPPING: Record<string, string> = {
   'OEC': 'oec',
