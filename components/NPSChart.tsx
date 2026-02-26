@@ -77,7 +77,7 @@ export default function NPSChart({ data, isLoading }: NPSChartProps) {
             cy="50%"
             labelLine={true}
             label={({ name, value, percent }) => {
-              const percentage = (percent * 100).toFixed(1);
+              const percentage = percent !== undefined ? (percent * 100).toFixed(1) : '0';
               return `${name}\n${value} (${percentage}%)`;
             }}
             outerRadius={100}
