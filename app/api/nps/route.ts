@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
 import { parse, isAfter, isBefore, parseISO } from 'date-fns';
+import { getNPSData } from '@/lib/nps-storage';
 import type { NPSAggregatedData, NPSMetrics, NPSServiceMetrics, NPSRawData } from '@/lib/nps-types';
 
 /**
@@ -171,19 +171,17 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    // Use absolute path to NPS data file
-    const npsDataPath = '/Users/saharsabbagh/Downloads/nps_data.json';
+    // Get NPS data from blob storage or filesystem
+    const result = await getNPSData();
     
-    // Check if file exists
-    if (!fs.existsSync(npsDataPath)) {
+    if (!result.success || !result.data) {
       return NextResponse.json({
         success: false,
-        error: 'NPS data file not found at ' + npsDataPath,
+        error: result.error || 'NPS data not found',
       }, { status: 404 });
     }
 
-    const fileContent = fs.readFileSync(npsDataPath, 'utf-8');
-    const npsData: NPSRawData = JSON.parse(fileContent);
+    const npsData = result.data;
 
     // Aggregate data for the date range
     const aggregated = aggregateNPSData(npsData, startDate || undefined, endDate || undefined);

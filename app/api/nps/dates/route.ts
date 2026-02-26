@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
 import { parse } from 'date-fns';
+import { getNPSData } from '@/lib/nps-storage';
 
 interface NPSRawData {
   [dateKey: string]: {
@@ -34,19 +34,17 @@ function parseNPSDate(dateStr: string): string | null {
 
 export async function GET() {
   try {
-    // Use absolute path to NPS data file
-    const npsDataPath = '/Users/saharsabbagh/Downloads/nps_data.json';
+    // Get NPS data from blob storage or filesystem
+    const result = await getNPSData();
     
-    // Check if file exists
-    if (!fs.existsSync(npsDataPath)) {
+    if (!result.success || !result.data) {
       return NextResponse.json({
         success: false,
-        error: 'NPS data file not found at ' + npsDataPath,
+        error: result.error || 'NPS data not found',
       }, { status: 404 });
     }
 
-    const fileContent = fs.readFileSync(npsDataPath, 'utf-8');
-    const npsData: NPSRawData = JSON.parse(fileContent);
+    const npsData = result.data;
 
     // Extract all date keys and convert to ISO format
     const dates: string[] = [];
