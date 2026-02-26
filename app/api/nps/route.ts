@@ -5,34 +5,20 @@ import type { NPSAggregatedData, NPSMetrics, NPSServiceMetrics, NPSRawData } fro
 
 /**
  * Parse date from "Feb 9" format to ISO date string (YYYY-MM-DD)
- * Tries current year first, then previous year if that fails
+ * NPS data is from 2026, so we parse with 2026 as the year
  */
-function parseNPSDate(dateStr: string, year: number = new Date().getFullYear()): string | null {
+function parseNPSDate(dateStr: string): string | null {
   try {
-    // Try current year first
+    // NPS data is from 2026
+    const year = 2026;
     const parsed = parse(`${dateStr} ${year}`, 'MMM d yyyy', new Date());
     if (!isNaN(parsed.getTime())) {
-      const isoDate = parsed.toISOString().split('T')[0];
-      // If parsed date is in the future (more than 30 days), it's likely from previous year
-      const daysDiff = (parsed.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24);
-      if (daysDiff > 30) {
-        // Try previous year
-        const prevYearParsed = parse(`${dateStr} ${year - 1}`, 'MMM d yyyy', new Date());
-        if (!isNaN(prevYearParsed.getTime())) {
-          return prevYearParsed.toISOString().split('T')[0];
-        }
-      }
-      return isoDate;
-    }
-    
-    // Try previous year
-    const prevYearParsed = parse(`${dateStr} ${year - 1}`, 'MMM d yyyy', new Date());
-    if (!isNaN(prevYearParsed.getTime())) {
-      return prevYearParsed.toISOString().split('T')[0];
+      return parsed.toISOString().split('T')[0];
     }
     
     return null;
-  } catch {
+  } catch (error) {
+    console.error(`Error parsing date "${dateStr}":`, error);
     return null;
   }
 }
@@ -126,7 +112,6 @@ function aggregateNPSData(
   startDate?: string,
   endDate?: string
 ): NPSAggregatedData {
-  const currentYear = new Date().getFullYear();
   const allScores: Array<{ nps_score: number; services: Record<string, number> }> = [];
   const serviceNames = new Set<string>();
 
@@ -136,7 +121,7 @@ function aggregateNPSData(
 
   // Collect all scores within date range
   for (const [dateKey, dayData] of Object.entries(npsData)) {
-    const isoDate = parseNPSDate(dateKey, currentYear);
+    const isoDate = parseNPSDate(dateKey);
     if (!isoDate) continue;
 
     const date = parseISO(isoDate);

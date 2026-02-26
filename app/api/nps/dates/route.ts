@@ -14,34 +14,20 @@ interface NPSRawData {
 
 /**
  * Parse date from "Feb 9" format to ISO date string (YYYY-MM-DD)
- * Tries current year first, then previous year if that fails
+ * NPS data is from 2026, so we parse with 2026 as the year
  */
-function parseNPSDate(dateStr: string, year: number = new Date().getFullYear()): string | null {
+function parseNPSDate(dateStr: string): string | null {
   try {
-    // Try current year first
+    // NPS data is from 2026
+    const year = 2026;
     const parsed = parse(`${dateStr} ${year}`, 'MMM d yyyy', new Date());
     if (!isNaN(parsed.getTime())) {
-      const isoDate = parsed.toISOString().split('T')[0];
-      // If parsed date is in the future (more than 30 days), it's likely from previous year
-      const daysDiff = (parsed.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24);
-      if (daysDiff > 30) {
-        // Try previous year
-        const prevYearParsed = parse(`${dateStr} ${year - 1}`, 'MMM d yyyy', new Date());
-        if (!isNaN(prevYearParsed.getTime())) {
-          return prevYearParsed.toISOString().split('T')[0];
-        }
-      }
-      return isoDate;
-    }
-    
-    // Try previous year
-    const prevYearParsed = parse(`${dateStr} ${year - 1}`, 'MMM d yyyy', new Date());
-    if (!isNaN(prevYearParsed.getTime())) {
-      return prevYearParsed.toISOString().split('T')[0];
+      return parsed.toISOString().split('T')[0];
     }
     
     return null;
-  } catch {
+  } catch (error) {
+    console.error(`Error parsing date "${dateStr}":`, error);
     return null;
   }
 }
@@ -63,18 +49,26 @@ export async function GET() {
     const npsData: NPSRawData = JSON.parse(fileContent);
 
     // Extract all date keys and convert to ISO format
-    const currentYear = new Date().getFullYear();
     const dates: string[] = [];
+    const dateKeys = Object.keys(npsData);
+    
+    console.log(`[NPS Dates] Found ${dateKeys.length} date keys in file`);
+    console.log(`[NPS Dates] Sample keys:`, dateKeys.slice(0, 5));
 
-    for (const dateKey of Object.keys(npsData)) {
-      const isoDate = parseNPSDate(dateKey, currentYear);
+    for (const dateKey of dateKeys) {
+      const isoDate = parseNPSDate(dateKey);
       if (isoDate) {
         dates.push(isoDate);
+      } else {
+        console.warn(`[NPS Dates] Failed to parse date key: "${dateKey}"`);
       }
     }
 
     // Sort dates
     dates.sort();
+    
+    console.log(`[NPS Dates] Successfully parsed ${dates.length} dates`);
+    console.log(`[NPS Dates] Sample dates:`, dates.slice(0, 5));
 
     return NextResponse.json({
       success: true,
