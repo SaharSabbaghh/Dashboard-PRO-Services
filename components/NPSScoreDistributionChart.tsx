@@ -60,19 +60,26 @@ export default function NPSScoreDistributionChart({ metrics, isLoading }: NPSSco
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6">
       <h3 className="text-lg font-semibold text-slate-800 mb-6">NPS Score Distribution (0-10)</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart 
+          data={chartData} 
+          layout="vertical"
+          margin={{ top: 20, right: 30, left: 40, bottom: 5 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis 
-            dataKey="label" 
+            type="number"
             stroke="#64748b"
             tick={{ fill: '#64748b', fontSize: 12 }}
-            label={{ value: 'NPS Score', position: 'insideBottom', offset: -5, style: { fill: '#64748b' } }}
+            label={{ value: 'Count', position: 'insideBottom', offset: -5, style: { fill: '#64748b' } }}
           />
           <YAxis 
+            type="category"
+            dataKey="label"
             stroke="#64748b"
             tick={{ fill: '#64748b', fontSize: 12 }}
-            label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
+            width={40}
+            label={{ value: 'NPS Score', angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
           />
           <Tooltip 
             contentStyle={{ 
@@ -84,7 +91,7 @@ export default function NPSScoreDistributionChart({ metrics, isLoading }: NPSSco
             formatter={(value) => [`${Number(value) || 0}`, 'Responses']}
             labelFormatter={(label) => `Score: ${label}`}
           />
-          <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+          <Bar dataKey="count" radius={[0, 8, 8, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getBarColor(entry.score)} />
             ))}
