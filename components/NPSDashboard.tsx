@@ -5,6 +5,7 @@ import DatePickerCalendar from '@/components/DatePickerCalendar';
 import NPSSummaryCard from '@/components/NPSSummaryCard';
 import NPSChart from '@/components/NPSChart';
 import NPSScoreDistributionChart from '@/components/NPSScoreDistributionChart';
+import NPSServiceScoreDistribution from '@/components/NPSServiceScoreDistribution';
 import NPSServiceDetail from '@/components/NPSServiceDetail';
 import type { NPSAggregatedData } from '@/lib/nps-types';
 
@@ -161,6 +162,9 @@ export default function NPSDashboard() {
           <NPSSummaryCard metrics={data?.overall || null} isLoading={isLoading} />
           <NPSChart data={data} isLoading={isLoading} />
           <NPSScoreDistributionChart metrics={data?.overall || null} isLoading={isLoading} />
+          {data?.services && data.services.length > 0 && (
+            <NPSServiceScoreDistribution services={data.services} isLoading={isLoading} />
+          )}
         </>
       )}
 
