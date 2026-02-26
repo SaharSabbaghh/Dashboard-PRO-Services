@@ -19,6 +19,7 @@ import PnLDatePicker from '@/components/PnLDatePicker';
 import ChatsDashboard from '@/components/ChatsDashboard';
 import AgentsDashboard from '@/components/AgentsDashboard';
 import OperationsDashboard from '@/components/OperationsDashboard';
+import NPSDashboard from '@/components/NPSDashboard';
 import type { Results, ServiceFilter, ProspectDetail, HouseholdGroup } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
@@ -550,6 +551,17 @@ export default function Dashboard() {
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {/* NPS Dashboard Section - Below Sales Dashboard */}
+        {activeTab === 'dashboard' && (
+          <div className="mt-12 pt-12 border-t border-slate-200">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">NPS Dashboard</h2>
+              <p className="text-sm text-slate-600">Net Promoter Score metrics and service breakdowns</p>
+            </div>
+            <NPSDashboard />
           </div>
         )}
 
