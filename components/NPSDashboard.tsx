@@ -99,9 +99,9 @@ export default function NPSDashboard() {
   }
 
   return (
-    <div className="space-y-6 -mt-3">
+    <div className="space-y-6">
       {/* Header with Sub-tabs and Date Picker */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3 pt-3">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div className="flex gap-1 bg-slate-100 p-1 rounded-lg flex-wrap">
           <button
             onClick={() => setActiveServiceTab('overview')}
