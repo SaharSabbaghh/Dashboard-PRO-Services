@@ -25,7 +25,7 @@ import type { AggregatedPnL } from '@/lib/pnl-types';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa' | 'passportRenewal'>('overview');
+  const [dashboardSubTab, setDashboardSubTab] = useState<'overview' | 'oec' | 'owwa' | 'travelVisa' | 'passportRenewal' | 'nps'>('overview');
   const [pnlSubTab, setPnlSubTab] = useState<'overview' | 'oec' | 'owwa' | 'ttl' | 'tte' | 'ttj' | 'schengen' | 'gcc' | 'ethiopianPP' | 'filipinaPP'>('overview');
   const [results, setResults] = useState<Results | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -348,6 +348,7 @@ export default function Dashboard() {
                   { id: 'owwa', label: 'OWWA', icon: '◇' },
                   { id: 'travelVisa', label: 'Travel Visa', icon: '✈' },
                   { id: 'passportRenewal', label: 'Passport Renewals', icon: '📘' },
+                  { id: 'nps', label: 'NPS', icon: '⭐' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -549,19 +550,13 @@ export default function Dashboard() {
                     </CollapsibleSection>
                   </>
                 )}
+
+                {/* NPS Sub-tab */}
+                {dashboardSubTab === 'nps' && (
+                  <NPSDashboard />
+                )}
               </>
             )}
-          </div>
-        )}
-
-        {/* NPS Dashboard Section - Below Sales Dashboard */}
-        {activeTab === 'dashboard' && (
-          <div className="mt-12 pt-12 border-t border-slate-200">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">NPS Dashboard</h2>
-              <p className="text-sm text-slate-600">Net Promoter Score metrics and service breakdowns</p>
-            </div>
-            <NPSDashboard />
           </div>
         )}
 
