@@ -1,72 +1,24 @@
 import { NextResponse } from 'next/server';
-import { parse } from 'date-fns';
-import { getNPSData } from '@/lib/nps-storage';
-
-interface NPSRawData {
-  [dateKey: string]: {
-    date: string;
-    scores: Array<{
-      nps_score: number;
-      services: Record<string, number>;
-    }>;
-  };
-}
-
-/**
- * Parse date from "Feb 9" format to ISO date string (YYYY-MM-DD)
- * NPS data is from 2026, so we parse with 2026 as the year
- */
-function parseNPSDate(dateStr: string): string | null {
-  try {
-    // NPS data is from 2026
-    const year = 2026;
-    const parsed = parse(`${dateStr} ${year}`, 'MMM d yyyy', new Date());
-    if (!isNaN(parsed.getTime())) {
-      return parsed.toISOString().split('T')[0];
-    }
-    
-    return null;
-  } catch (error) {
-    console.error(`Error parsing date "${dateStr}":`, error);
-    return null;
-  }
-}
+import { getAvailableNPSDates } from '@/lib/nps-storage';
 
 export async function GET() {
   try {
-    // Get NPS data from blob storage or filesystem
-    const result = await getNPSData();
+    // Get available dates directly from blob storage (more efficient)
+    const result = await getAvailableNPSDates();
     
-    if (!result.success || !result.data) {
+    if (!result.success) {
       return NextResponse.json({
         success: false,
-        error: result.error || 'NPS data not found',
-      }, { status: 404 });
+        error: result.error || 'Failed to fetch NPS dates',
+      }, { status: 500 });
     }
 
-    const npsData = result.data;
-
-    // Extract all date keys and convert to ISO format
-    const dates: string[] = [];
-    const dateKeys = Object.keys(npsData);
+    const dates = result.dates || [];
     
-    console.log(`[NPS Dates] Found ${dateKeys.length} date keys in file`);
-    console.log(`[NPS Dates] Sample keys:`, dateKeys.slice(0, 5));
-
-    for (const dateKey of dateKeys) {
-      const isoDate = parseNPSDate(dateKey);
-      if (isoDate) {
-        dates.push(isoDate);
-      } else {
-        console.warn(`[NPS Dates] Failed to parse date key: "${dateKey}"`);
-      }
+    console.log(`[NPS Dates] Found ${dates.length} available dates`);
+    if (dates.length > 0) {
+      console.log(`[NPS Dates] Sample dates:`, dates.slice(0, 5));
     }
-
-    // Sort dates
-    dates.sort();
-    
-    console.log(`[NPS Dates] Successfully parsed ${dates.length} dates`);
-    console.log(`[NPS Dates] Sample dates:`, dates.slice(0, 5));
 
     return NextResponse.json({
       success: true,
