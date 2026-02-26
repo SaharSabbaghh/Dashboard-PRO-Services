@@ -31,10 +31,22 @@ function calculateMetrics(scores: Array<{ nps_score: number; services: Record<st
   let promoters = 0;
   let detractors = 0;
   let passives = 0;
+  const scoreDistribution: Record<number, number> = {};
+
+  // Initialize score distribution for 0-10
+  for (let i = 0; i <= 10; i++) {
+    scoreDistribution[i] = 0;
+  }
 
   for (const entry of scores) {
     const count = entry.services.TOTAL || 0;
     total += count;
+
+    // Add to score distribution
+    const score = entry.nps_score;
+    if (score >= 0 && score <= 10) {
+      scoreDistribution[score] = (scoreDistribution[score] || 0) + count;
+    }
 
     if (entry.nps_score >= 9) {
       promoters += count;
@@ -59,6 +71,7 @@ function calculateMetrics(scores: Array<{ nps_score: number; services: Record<st
     promoterPercentage: Math.round(promoterPercentage * 100) / 100,
     detractorPercentage: Math.round(detractorPercentage * 100) / 100,
     passivePercentage: Math.round(passivePercentage * 100) / 100,
+    scoreDistribution,
   };
 }
 
@@ -73,10 +86,22 @@ function calculateServiceMetrics(
   let promoters = 0;
   let detractors = 0;
   let passives = 0;
+  const scoreDistribution: Record<number, number> = {};
+
+  // Initialize score distribution for 0-10
+  for (let i = 0; i <= 10; i++) {
+    scoreDistribution[i] = 0;
+  }
 
   for (const entry of scores) {
     const count = entry.services[serviceName] || 0;
     total += count;
+
+    // Add to score distribution
+    const score = entry.nps_score;
+    if (score >= 0 && score <= 10) {
+      scoreDistribution[score] = (scoreDistribution[score] || 0) + count;
+    }
 
     if (entry.nps_score >= 9) {
       promoters += count;
@@ -101,6 +126,7 @@ function calculateServiceMetrics(
     promoterPercentage: Math.round(promoterPercentage * 100) / 100,
     detractorPercentage: Math.round(detractorPercentage * 100) / 100,
     passivePercentage: Math.round(passivePercentage * 100) / 100,
+    scoreDistribution,
   };
 }
 

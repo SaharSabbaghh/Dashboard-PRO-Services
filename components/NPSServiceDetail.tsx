@@ -2,6 +2,7 @@
 
 import type { NPSServiceMetrics } from '@/lib/nps-types';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import NPSScoreDistributionChart from '@/components/NPSScoreDistributionChart';
 
 interface NPSServiceDetailProps {
   serviceMetrics: NPSServiceMetrics[];
@@ -94,6 +95,11 @@ export default function NPSServiceDetail({ serviceMetrics, isLoading }: NPSServi
                 {item.metrics.detractorPercentage.toFixed(1)}%
               </p>
             </div>
+          </div>
+          
+          {/* Score Distribution Chart */}
+          <div className="mt-6">
+            <NPSScoreDistributionChart metrics={item.metrics} isLoading={isLoading} />
           </div>
         </div>
       ))}

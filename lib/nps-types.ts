@@ -25,6 +25,7 @@ export interface NPSMetrics {
   promoterPercentage: number;
   detractorPercentage: number;
   passivePercentage: number;
+  scoreDistribution: Record<number, number>; // Count for each score 0-10
 }
 
 export interface NPSServiceMetrics {
