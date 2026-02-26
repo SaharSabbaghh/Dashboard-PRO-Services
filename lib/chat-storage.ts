@@ -171,12 +171,36 @@ export async function aggregateDailyChatAnalysisResults(
     conversationIds: string[];
   }>();
 
-  // First, deduplicate conversations by conversationId to handle duplicate entries
-  const conversationMap = new Map<string, typeof conversations[0]>();
+  // First, expand conversations that have comma-separated conversation IDs
+  // This handles cases where conversationId = "CH123,CH456,CH789"
+  const expandedConversations: Array<typeof conversations[0] & { originalConversationId: string }> = [];
+  conversations.forEach(conv => {
+    // Split by comma and filter out empty strings
+    const conversationIds = conv.conversationId.split(',').map(id => id.trim()).filter(Boolean);
+    
+    if (conversationIds.length === 0) {
+      // Skip if no valid conversation IDs
+      return;
+    }
+    
+    // Create an entry for each conversation ID
+    conversationIds.forEach(convId => {
+      expandedConversations.push({
+        ...conv,
+        conversationId: convId,
+        originalConversationId: conv.conversationId, // Keep original for reference
+      });
+    });
+  });
+  
+  console.log(`[Chat Storage] Expanded ${conversations.length} conversations into ${expandedConversations.length} entries (handling comma-separated IDs)`);
+
+  // Now deduplicate by individual conversationId to handle duplicate entries
+  const conversationMap = new Map<string, typeof expandedConversations[0]>();
   let duplicateCount = 0;
   let flagMismatchCount = 0;
   
-  conversations.forEach(conv => {
+  expandedConversations.forEach(conv => {
     const existing = conversationMap.get(conv.conversationId);
     if (!existing) {
       conversationMap.set(conv.conversationId, conv);
@@ -187,8 +211,8 @@ export async function aggregateDailyChatAnalysisResults(
       if (existing.frustrated !== conv.frustrated || existing.confused !== conv.confused) {
         flagMismatchCount++;
         console.log(`[Chat Storage] Found duplicate conversationId ${conv.conversationId} with different flags:`, {
-          existing: { frustrated: existing.frustrated, confused: existing.confused },
-          current: { frustrated: conv.frustrated, confused: conv.confused },
+          existing: { frustrated: existing.frustrated, confused: existing.confused, originalId: existing.originalConversationId },
+          current: { frustrated: conv.frustrated, confused: conv.confused, originalId: conv.originalConversationId },
         });
       }
       
@@ -219,11 +243,11 @@ export async function aggregateDailyChatAnalysisResults(
     }
   });
   
-  const deduplicatedConversations = Array.from(conversationMap.values());
+  const deduplicatedConversations = Array.from(conversationMap.values()).map(({ originalConversationId, ...rest }) => rest);
   
   // Log deduplication results
   if (duplicateCount > 0) {
-    console.log(`[Chat Storage] Deduplication: ${conversations.length} → ${deduplicatedConversations.length} conversations (removed ${duplicateCount} duplicates, ${flagMismatchCount} with flag mismatches)`);
+    console.log(`[Chat Storage] Deduplication: ${expandedConversations.length} expanded → ${deduplicatedConversations.length} unique conversations (removed ${duplicateCount} duplicates, ${flagMismatchCount} with flag mismatches)`);
   }
   
   // Group deduplicated conversations by person (client or maid), aggregating their frustration/confusion status
