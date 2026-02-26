@@ -336,6 +336,14 @@ export async function aggregateDailyChatAnalysisResults(
   
   // Step 4: Group deduplicated conversations by person (contract > client > maid > conversation)
   // This is for calculating frustration/confusion percentages
+  const personMap = new Map<string, {
+    personId: string;
+    personType: 'client' | 'maid' | 'unknown';
+    frustrated: boolean;
+    confused: boolean;
+    conversationIds: string[];
+  }>();
+  
   deduplicatedConversations.forEach(conv => {
     // Determine the person key and type using same priority as entity merging
     let personKey: string;
