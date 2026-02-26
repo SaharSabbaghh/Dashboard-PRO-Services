@@ -173,18 +173,48 @@ export async function aggregateDailyChatAnalysisResults(
 
   // First, deduplicate conversations by conversationId to handle duplicate entries
   const conversationMap = new Map<string, typeof conversations[0]>();
+  let duplicateCount = 0;
+  let flagMismatchCount = 0;
+  
   conversations.forEach(conv => {
     const existing = conversationMap.get(conv.conversationId);
     if (!existing) {
       conversationMap.set(conv.conversationId, conv);
     } else {
-      // Keep the one with more data (issues or phrases) or both frustrated/confused flags
+      duplicateCount++;
+      
+      // Check for flag mismatches
+      if (existing.frustrated !== conv.frustrated || existing.confused !== conv.confused) {
+        flagMismatchCount++;
+        console.log(`[Chat Storage] Found duplicate conversationId ${conv.conversationId} with different flags:`, {
+          existing: { frustrated: existing.frustrated, confused: existing.confused },
+          current: { frustrated: conv.frustrated, confused: conv.confused },
+        });
+      }
+      
+      // Merge duplicates: preserve frustrated/confused flags (if either has it, keep it)
+      // and keep the one with more data (issues or phrases)
       const existingDataScore = (existing.mainIssues?.length || 0) + (existing.keyPhrases?.length || 0);
       const currentDataScore = (conv.mainIssues?.length || 0) + (conv.keyPhrases?.length || 0);
       
-      if (currentDataScore > existingDataScore || 
-          (currentDataScore === existingDataScore && conv.frustrated && conv.confused && !(existing.frustrated && existing.confused))) {
-        conversationMap.set(conv.conversationId, conv);
+      // Always preserve frustrated/confused flags - if either duplicate has it, keep it
+      const mergedFrustrated = existing.frustrated || conv.frustrated;
+      const mergedConfused = existing.confused || conv.confused;
+      
+      // Keep the one with more data, but merge the flags
+      if (currentDataScore > existingDataScore) {
+        conversationMap.set(conv.conversationId, {
+          ...conv,
+          frustrated: mergedFrustrated,
+          confused: mergedConfused,
+        });
+      } else {
+        // Keep existing but update flags
+        conversationMap.set(conv.conversationId, {
+          ...existing,
+          frustrated: mergedFrustrated,
+          confused: mergedConfused,
+        });
       }
     }
   });
@@ -192,8 +222,8 @@ export async function aggregateDailyChatAnalysisResults(
   const deduplicatedConversations = Array.from(conversationMap.values());
   
   // Log deduplication results
-  if (conversations.length !== deduplicatedConversations.length) {
-    console.log(`[Chat Storage] Deduplication: ${conversations.length} → ${deduplicatedConversations.length} conversations (removed ${conversations.length - deduplicatedConversations.length} duplicates)`);
+  if (duplicateCount > 0) {
+    console.log(`[Chat Storage] Deduplication: ${conversations.length} → ${deduplicatedConversations.length} conversations (removed ${duplicateCount} duplicates, ${flagMismatchCount} with flag mismatches)`);
   }
   
   // Group deduplicated conversations by person (client or maid), aggregating their frustration/confusion status
