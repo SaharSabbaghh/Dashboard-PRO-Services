@@ -74,12 +74,25 @@ export default function OperationsTrendChart({ data, isLoading }: OperationsTren
     }
   };
 
-  const getTrendColor = (trend: string) => {
+  // For delayed cases: increasing is bad (red), decreasing is good (green)
+  const getDelayedTrendColor = (trend: string) => {
     switch (trend) {
       case 'increasing':
         return 'text-red-600';
       case 'decreasing':
         return 'text-green-600';
+      default:
+        return 'text-slate-600';
+    }
+  };
+
+  // For done cases: increasing is good (green), decreasing is bad (red)
+  const getDoneTrendColor = (trend: string) => {
+    switch (trend) {
+      case 'increasing':
+        return 'text-green-600';
+      case 'decreasing':
+        return 'text-red-600';
       default:
         return 'text-slate-600';
     }
@@ -118,13 +131,13 @@ export default function OperationsTrendChart({ data, isLoading }: OperationsTren
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-600" />
-              <span className={`font-medium ${getTrendColor(delayedTrend)}`}>
+              <span className={`font-medium ${getDelayedTrendColor(delayedTrend)}`}>
                 Cases Delayed {getDelayedTrendLabel(delayedTrend)}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-green-600" />
-              <span className={`font-medium ${getTrendColor(doneTrend)}`}>
+              <span className={`font-medium ${getDoneTrendColor(doneTrend)}`}>
                 Cases Done {getDoneTrendLabel(doneTrend)}
               </span>
             </div>
@@ -199,7 +212,7 @@ export default function OperationsTrendChart({ data, isLoading }: OperationsTren
               {data.length > 0 ? data[data.length - 1].casesDelayed : 0}
             </span>
             {data.length > 1 && (
-              <span className={`text-sm ${getTrendColor(delayedTrend)}`}>
+              <span className={`text-sm ${getDelayedTrendColor(delayedTrend)}`}>
                 {delayedTrend === 'increasing' ? '↑' : delayedTrend === 'decreasing' ? '↓' : '→'}
                 {Math.abs(data[data.length - 1].casesDelayed - data[0].casesDelayed)}
               </span>
@@ -214,7 +227,7 @@ export default function OperationsTrendChart({ data, isLoading }: OperationsTren
               {data.length > 0 ? data[data.length - 1].doneToday : 0}
             </span>
             {data.length > 1 && (
-              <span className={`text-sm ${getTrendColor(doneTrend)}`}>
+              <span className={`text-sm ${getDoneTrendColor(doneTrend)}`}>
                 {doneTrend === 'increasing' ? '↑' : doneTrend === 'decreasing' ? '↓' : '→'}
                 {Math.abs(data[data.length - 1].doneToday - data[0].doneToday)}
               </span>
