@@ -498,6 +498,62 @@ export async function aggregateDailyChatAnalysisResults(
     console.log(`[Chat Storage] Final deduplication: ${expandedConversations.length} expanded → ${deduplicatedConversations.length} unique conversations (removed ${duplicateCount} duplicates, ${flagMismatchCount} with flag mismatches)`);
   }
   
+  // Step 3.5: Merge conversations with same entity and content (for conversationResults)
+  // This prevents duplicate entries in the UI when multiple conversation IDs belong to same entity
+  const contentMergeMap = new Map<string, typeof deduplicatedConversations[0] & { allConversationIds: string[] }>();
+  
+  for (const conv of deduplicatedConversations) {
+    // Create a content key based on entity + content
+    const entityKey = conv.contractId 
+      ? `contract_${conv.contractId}`
+      : conv.clientId 
+      ? `client_${conv.clientId}`
+      : conv.maidId 
+      ? `maid_${conv.maidId}`
+      : `conv_${conv.conversationId}`;
+    
+    // Normalize timestamp to minute precision
+    let timestampKey = '';
+    if (conv.chatStartDateTime) {
+      const date = new Date(conv.chatStartDateTime);
+      timestampKey = date.toISOString().split('T')[0] + '_' + 
+                    String(date.getUTCHours()).padStart(2, '0') + ':' + 
+                    String(date.getUTCMinutes()).padStart(2, '0');
+    }
+    
+    // Create content hash
+    const issuesStr = (conv.mainIssues || []).map(i => i.trim().toLowerCase()).sort().join('|');
+    const phrasesStr = (conv.keyPhrases || []).map(p => p.trim().toLowerCase()).sort().join('|');
+    const contentHash = `${issuesStr}_${phrasesStr}`.substring(0, 100);
+    
+    const contentKey = `${entityKey}_${timestampKey}_${conv.service || ''}_${conv.skill || ''}_${contentHash}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    
+    if (contentMergeMap.has(contentKey)) {
+      // Merge - add conversation ID to the list
+      const existing = contentMergeMap.get(contentKey)!;
+      if (!existing.allConversationIds.includes(conv.conversationId)) {
+        existing.allConversationIds.push(conv.conversationId);
+      }
+      // Preserve flags
+      existing.frustrated = existing.frustrated || conv.frustrated;
+      existing.confused = existing.confused || conv.confused;
+    } else {
+      // New entry
+      contentMergeMap.set(contentKey, {
+        ...conv,
+        allConversationIds: [conv.conversationId],
+      });
+    }
+  }
+  
+  // Use the merged conversations for creating conversationResults (but keep original for person grouping)
+  const mergedForResults = Array.from(contentMergeMap.values()).map(({ allConversationIds, ...rest }) => ({
+    ...rest,
+    conversationId: allConversationIds.join(','), // Store all IDs as comma-separated
+  }));
+  
+  console.log(`[Chat Storage] Content merge for results: ${deduplicatedConversations.length} → ${mergedForResults.length} unique conversation entries`);
+  
   // Step 4: Group deduplicated conversations by person (contract > client > maid > conversation)
   // This is for calculating frustration/confusion percentages
   const personMap = new Map<string, {
@@ -574,9 +630,10 @@ export async function aggregateDailyChatAnalysisResults(
     ? Math.round((confusedPeopleCount / totalPeople) * 100)
     : 0;
 
-  // Convert deduplicated conversations to ChatAnalysisResult format for storage
-  const results: ChatAnalysisResult[] = deduplicatedConversations.map(conv => ({
-    conversationId: conv.conversationId,
+  // Convert merged conversations to ChatAnalysisResult format for storage
+  // Use mergedForResults to avoid duplicate entries in UI for same entity/content
+  const results: ChatAnalysisResult[] = mergedForResults.map(conv => ({
+    conversationId: conv.conversationId, // Already contains comma-separated IDs if merged
     frustrated: conv.frustrated,
     confused: conv.confused,
     mainIssues: conv.mainIssues,
