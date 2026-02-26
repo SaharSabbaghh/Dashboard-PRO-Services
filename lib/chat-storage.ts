@@ -165,15 +165,83 @@ export async function aggregateDailyChatAnalysisResults(
 
   console.log(`[Chat Storage] Starting aggregation of ${conversations.length} conversations`);
 
+  // Step 0: First merge by conversation ID (if same conversation ID appears, merge regardless of entity)
+  // This handles cases where the same conversation ID appears with different contract/client/maid IDs
+  const conversationIdMap = new Map<string, typeof conversations[0] & { mergedConversationIds: Set<string> }>();
+  
+  for (const conv of conversations) {
+    const convId = conv.conversationId;
+    const convIds = convId.split(',').map(id => id.trim()).filter(Boolean);
+    
+    // Check if any of these conversation IDs already exist
+    let mergeKey: string | null = null;
+    for (const id of convIds) {
+      // Check if this conversation ID already exists in any merged entity
+      for (const [key, existing] of conversationIdMap.entries()) {
+        const existingIds = Array.from(existing.mergedConversationIds || [existing.conversationId]);
+        if (existingIds.includes(id)) {
+          mergeKey = key;
+          break;
+        }
+      }
+      if (mergeKey) break;
+    }
+    
+    if (mergeKey && conversationIdMap.has(mergeKey)) {
+      // Merge with existing conversation
+      const existing = conversationIdMap.get(mergeKey)!;
+      
+      // Merge conversation IDs
+      const existingConvIds = existing.mergedConversationIds || new Set<string>();
+      convIds.forEach(id => existingConvIds.add(id));
+      existing.mergedConversationIds = existingConvIds;
+      
+      // Merge issues and phrases
+      const mergedIssues = new Set([...(existing.mainIssues || []), ...(conv.mainIssues || [])]);
+      const mergedPhrases = new Set([...(existing.keyPhrases || []), ...(conv.keyPhrases || [])]);
+      existing.mainIssues = Array.from(mergedIssues);
+      existing.keyPhrases = Array.from(mergedPhrases);
+      
+      // Preserve flags
+      existing.frustrated = existing.frustrated || conv.frustrated;
+      existing.confused = existing.confused || conv.confused;
+      
+      // Keep earliest timestamp
+      const existingTime = existing.chatStartDateTime ? new Date(existing.chatStartDateTime).getTime() : Infinity;
+      const newTime = conv.chatStartDateTime ? new Date(conv.chatStartDateTime).getTime() : Infinity;
+      if (newTime < existingTime && conv.chatStartDateTime) {
+        existing.chatStartDateTime = conv.chatStartDateTime;
+      }
+      
+      // Merge entity IDs (keep all contract/client/maid IDs)
+      if (conv.contractId && !existing.contractId) existing.contractId = conv.contractId;
+      if (conv.clientId && !existing.clientId) existing.clientId = conv.clientId;
+      if (conv.maidId && !existing.maidId) existing.maidId = conv.maidId;
+      if (conv.service && !existing.service) existing.service = conv.service;
+      if (conv.skill && !existing.skill) existing.skill = conv.skill;
+      
+    } else {
+      // New conversation - use first conversation ID as key
+      const newConvIds = new Set(convIds);
+      conversationIdMap.set(convIds[0], {
+        ...conv,
+        mergedConversationIds: newConvIds,
+      });
+    }
+  }
+  
+  const mergedByConversationId = Array.from(conversationIdMap.values());
+  console.log(`[Chat Storage] Merged by conversation ID: ${conversations.length} → ${mergedByConversationId.length} conversations`);
+
   // Step 1: Merge conversations by entity (contract > client > maid > conversation)
   // This merges messages, conversation IDs, and other fields for the same entity
   const entityMap = new Map<string, typeof conversations[0] & { mergedConversationIds: Set<string> }>();
   
-  for (const conv of conversations) {
+  for (const conv of mergedByConversationId) {
     const clientId = conv.clientId;
     const maidId = conv.maidId;
     const contractId = conv.contractId;
-    const convId = conv.conversationId;
+    const convIds = Array.from(conv.mergedConversationIds || [conv.conversationId]);
     
     // Determine entity key (priority: contract > client > maid > conversation)
     let entityKey = '';
@@ -183,10 +251,9 @@ export async function aggregateDailyChatAnalysisResults(
       entityKey = `client_${clientId}`;
     } else if (maidId) {
       entityKey = `maid_${maidId}`;
-    } else if (convId) {
-      // Split comma-separated IDs and use the first one for entity key
-      const firstConvId = convId.split(',')[0].trim();
-      entityKey = `conv_${firstConvId}`;
+    } else if (convIds.length > 0) {
+      // Use the first conversation ID for entity key
+      entityKey = `conv_${convIds[0]}`;
     } else {
       entityKey = `unknown_${Date.now()}_${Math.random()}`;
     }
@@ -195,10 +262,9 @@ export async function aggregateDailyChatAnalysisResults(
     if (entityMap.has(entityKey)) {
       const existing = entityMap.get(entityKey)!;
       
-      // Merge conversation IDs (split comma-separated and add to set)
+      // Merge conversation IDs (already merged in Step 0, just combine sets)
       const existingConvIds = existing.mergedConversationIds || new Set<string>();
-      const newConvIds = convId.split(',').map(id => id.trim()).filter(Boolean);
-      newConvIds.forEach(id => existingConvIds.add(id));
+      convIds.forEach(id => existingConvIds.add(id));
       existing.mergedConversationIds = existingConvIds;
       
       // Merge mainIssues (combine unique issues)
@@ -232,18 +298,116 @@ export async function aggregateDailyChatAnalysisResults(
       if (!existing.contractId && conv.contractId) existing.contractId = conv.contractId;
       
     } else {
-      // New entity - add to map
-      const newConvIds = new Set<string>();
-      convId.split(',').map(id => id.trim()).filter(Boolean).forEach(id => newConvIds.add(id));
+      // New entity - add to map (use already merged conversation IDs from Step 0)
       entityMap.set(entityKey, {
         ...conv,
-        mergedConversationIds: newConvIds,
+        mergedConversationIds: new Set(convIds),
       });
     }
   }
   
-  const mergedByEntity = Array.from(entityMap.values());
+  let mergedByEntity = Array.from(entityMap.values());
   console.log(`[Chat Storage] Merged by entity: ${conversations.length} → ${mergedByEntity.length} unique entities`);
+
+  // Step 1.5: Merge conversations that share conversation IDs or phrases (for conversations without entity IDs)
+  // This handles cases where the same conversation appears with different conversation IDs
+  const phraseBasedMergeMap = new Map<string, typeof mergedByEntity[0]>();
+  const conversationIdIndex = new Map<string, string>(); // conversationId -> mergeKey
+  
+  for (const entity of mergedByEntity) {
+    // If entity has contract/client/maid ID, keep as-is (already properly merged)
+    if (entity.contractId || entity.clientId || entity.maidId) {
+      const entityKey = entity.contractId 
+        ? `contract_${entity.contractId}`
+        : entity.clientId 
+        ? `client_${entity.clientId}`
+        : `maid_${entity.maidId}`;
+      phraseBasedMergeMap.set(entityKey, entity);
+      // Index conversation IDs for this entity
+      const convIds = Array.from(entity.mergedConversationIds || [entity.conversationId]);
+      convIds.forEach(id => conversationIdIndex.set(id, entityKey));
+      continue;
+    }
+    
+    // For conversations without entity IDs, check if they share conversation IDs or phrases
+    const convIds = Array.from(entity.mergedConversationIds || [entity.conversationId]);
+    let mergeKey: string | null = null;
+    
+    // Check if any conversation ID already exists in another entity
+    for (const convId of convIds) {
+      if (conversationIdIndex.has(convId)) {
+        mergeKey = conversationIdIndex.get(convId)!;
+        break;
+      }
+    }
+    
+    // If no shared conversation ID, check for shared phrases
+    if (!mergeKey && entity.keyPhrases && entity.keyPhrases.length > 0) {
+      // Create a phrase-based key from sorted phrases (normalized)
+      const phraseKey = entity.keyPhrases
+        .map(p => p.trim().toLowerCase())
+        .sort()
+        .join('|')
+        .substring(0, 200); // Limit length
+      
+      // Check if any existing entity (without entity IDs) has matching phrases
+      for (const [key, existing] of phraseBasedMergeMap.entries()) {
+        if (key.startsWith('phrase_') && existing.keyPhrases && existing.keyPhrases.length > 0) {
+          const existingPhraseKey = existing.keyPhrases
+            .map(p => p.trim().toLowerCase())
+            .sort()
+            .join('|')
+            .substring(0, 200);
+          
+          // If phrases match (exact match)
+          if (phraseKey === existingPhraseKey && phraseKey.length > 0) {
+            mergeKey = key;
+            break;
+          }
+        }
+      }
+      
+      // If no matching phrases found, create new phrase-based key
+      if (!mergeKey && phraseKey.length > 0) {
+        mergeKey = `phrase_${phraseKey}`;
+      }
+    }
+    
+    // If no merge key found, use conversation ID as fallback
+    if (!mergeKey) {
+      mergeKey = `conv_${convIds[0]}`;
+    }
+    
+    // Merge with existing or create new
+    if (phraseBasedMergeMap.has(mergeKey)) {
+      const existing = phraseBasedMergeMap.get(mergeKey)!;
+      
+      // Merge conversation IDs
+      const existingConvIds = existing.mergedConversationIds || new Set<string>();
+      convIds.forEach(id => existingConvIds.add(id));
+      existing.mergedConversationIds = existingConvIds;
+      
+      // Merge phrases and issues
+      const mergedPhrases = new Set([...(existing.keyPhrases || []), ...(entity.keyPhrases || [])]);
+      const mergedIssues = new Set([...(existing.mainIssues || []), ...(entity.mainIssues || [])]);
+      existing.keyPhrases = Array.from(mergedPhrases);
+      existing.mainIssues = Array.from(mergedIssues);
+      
+      // Preserve flags
+      existing.frustrated = existing.frustrated || entity.frustrated;
+      existing.confused = existing.confused || entity.confused;
+      
+      // Update conversation ID index
+      convIds.forEach(id => conversationIdIndex.set(id, mergeKey!));
+    } else {
+      // New entity
+      phraseBasedMergeMap.set(mergeKey, entity);
+      convIds.forEach(id => conversationIdIndex.set(id, mergeKey!));
+    }
+  }
+  
+  mergedByEntity = Array.from(phraseBasedMergeMap.values());
+  console.log(`[Chat Storage] Merged by conversation IDs/phrases: ${mergedByEntity.length} unique entities`);
 
   // Step 2: Expand merged conversation IDs into individual conversation entries
   // This handles cases where conversationId = "CH123,CH456,CH789" after entity merging
