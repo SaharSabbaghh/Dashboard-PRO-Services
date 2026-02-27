@@ -55,8 +55,8 @@ export default function StudiesDashboard() {
             setData(results.data);
             setIsLoading(false);
           },
-          error: (error) => {
-            setError(error.message);
+          error: (error: any) => {
+            setError(error?.message || 'Failed to parse CSV');
             setIsLoading(false);
           },
         });
