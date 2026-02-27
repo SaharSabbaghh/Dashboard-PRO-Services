@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
+import { join } from 'path';
 
 export async function GET() {
   try {
-    // Read the CSV file from Downloads folder using absolute path
-    const csvPath = '/Users/saharsabbagh/Downloads/flow.csv';
+    // Read the CSV file from lib directory
+    const csvPath = join(process.cwd(), 'lib', 'flow.csv');
     const csvContent = readFileSync(csvPath, 'utf-8');
     
     return new NextResponse(csvContent, {
