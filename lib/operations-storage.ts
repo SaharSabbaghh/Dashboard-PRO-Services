@@ -280,13 +280,6 @@ export async function getOperationsTrendData(endDate: string, days: number = 14)
         casesDelayed: totalCasesDelayed,
         doneToday: totalDoneToday,
       });
-    } else {
-      // If no data for this day, add zeros
-      trendData.push({
-        date: dateStr,
-        casesDelayed: 0,
-        doneToday: 0,
-      });
     }
   }
   
