@@ -83,6 +83,7 @@ export async function storeNPSData(npsData: NPSRawData): Promise<{
           access: 'public',
           contentType: 'application/json',
           addRandomSuffix: false,
+          allowOverwrite: true,
         });
         storedDates.push(isoDate);
       }

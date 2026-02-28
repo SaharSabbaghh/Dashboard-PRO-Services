@@ -39,7 +39,8 @@ function calculateMetrics(scores: Array<{ nps_score: number; services: Record<st
   }
 
   for (const entry of scores) {
-    const count = entry.services.TOTAL || 0;
+    // Calculate total by summing all service counts (support both TOTAL field and sum of individual services)
+    const count = entry.services.TOTAL || Object.values(entry.services).reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0);
     total += count;
 
     // Add to score distribution

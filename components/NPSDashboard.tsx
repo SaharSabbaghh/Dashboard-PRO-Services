@@ -25,10 +25,6 @@ export default function NPSDashboard() {
         const result = await res.json();
         if (result.success && result.dates) {
           setAvailableDates(result.dates);
-          // Auto-select the most recent date
-          if (result.dates.length > 0 && !selectedDate) {
-            setSelectedDate(result.dates[result.dates.length - 1]);
-          }
         }
       } catch (err) {
         console.error('Error fetching NPS dates:', err);
@@ -37,6 +33,14 @@ export default function NPSDashboard() {
 
     fetchDates();
   }, []);
+
+  // Auto-select the most recent date when dates are loaded
+  useEffect(() => {
+    if (availableDates.length > 0 && !selectedDate) {
+      const latestDate = availableDates[availableDates.length - 1];
+      setSelectedDate(latestDate);
+    }
+  }, [availableDates, selectedDate]);
 
   // Fetch data based on selected date
   useEffect(() => {
