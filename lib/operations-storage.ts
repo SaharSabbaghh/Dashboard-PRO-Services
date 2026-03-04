@@ -258,27 +258,73 @@ export async function getOperationsDateRange(
 
 /**
  * Get operations trend data for a date range
- * Returns daily totals for cases delayed and done today
+ * Returns daily totals for cases delayed, done today, pending cases, and MTD completed
  */
 export async function getOperationsTrendData(endDate: string, days: number = 14): Promise<OperationsTrendData[]> {
   const trendData: OperationsTrendData[] = [];
   const end = new Date(endDate);
+  
+  // Track cumulative MTD completed per month
+  const mtdTotalsByServiceByMonth: Record<string, Record<string, number>> = {};
   
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(end);
     date.setDate(end.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
     
+    // Calculate start of month for this date
+    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
     const dayResult = await getDailyOperations(dateStr);
     if (dayResult.success && dayResult.data) {
       // Calculate totals for the day
       const totalCasesDelayed = dayResult.data.operations.reduce((sum, op) => sum + op.casesDelayed, 0);
       const totalDoneToday = dayResult.data.operations.reduce((sum, op) => sum + op.doneToday, 0);
+      const totalPendingUs = dayResult.data.operations.reduce((sum, op) => sum + op.pendingUs, 0);
+      const totalPendingClient = dayResult.data.operations.reduce((sum, op) => sum + op.pendingClient, 0);
+      const totalPendingProVisit = dayResult.data.operations.reduce((sum, op) => sum + op.pendingProVisit, 0);
+      const totalPendingGov = dayResult.data.operations.reduce((sum, op) => sum + op.pendingGov, 0);
+      const totalPending = totalPendingUs + totalPendingProVisit;
+      
+      // Calculate MTD completed (cumulative from start of month to this date)
+      let mtdCompleted = 0;
+      if (dateStr >= startOfMonthStr && dateStr <= endDate) {
+        // Initialize month totals if needed
+        if (!mtdTotalsByServiceByMonth[monthKey]) {
+          mtdTotalsByServiceByMonth[monthKey] = {};
+        }
+        
+        // Fetch all days from start of month to this date to calculate MTD accurately
+        // For efficiency, we'll accumulate as we go through the dates
+        const monthTotals = mtdTotalsByServiceByMonth[monthKey];
+        
+        // Update MTD totals for each service for this day
+        dayResult.data.operations.forEach(op => {
+          if (!monthTotals[op.serviceType]) {
+            monthTotals[op.serviceType] = 0;
+          }
+          // Only add if this date is within the month
+          if (dateStr >= startOfMonthStr) {
+            monthTotals[op.serviceType] += op.doneToday;
+          }
+        });
+        
+        // Sum all MTD totals for this month
+        mtdCompleted = Object.values(monthTotals).reduce((sum, val) => sum + val, 0);
+      }
       
       trendData.push({
         date: dateStr,
         casesDelayed: totalCasesDelayed,
         doneToday: totalDoneToday,
+        pendingUs: totalPendingUs,
+        pendingClient: totalPendingClient,
+        pendingProVisit: totalPendingProVisit,
+        pendingGov: totalPendingGov,
+        totalPending: totalPending,
+        mtdCompleted: mtdCompleted,
       });
     }
   }

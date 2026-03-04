@@ -43,6 +43,12 @@ export interface OperationsTrendData {
   date: string;
   casesDelayed: number; // Total cases delayed
   doneToday: number; // Total cases done today
+  pendingUs: number; // Total pending US
+  pendingClient: number; // Total pending client
+  pendingProVisit: number; // Total pending PRO visit
+  pendingGov: number; // Total pending government
+  totalPending: number; // Total pending (US + PRO)
+  mtdCompleted: number; // Month-to-date completed (cumulative)
 }
 
 // Service mapping for consistency with other dashboards
