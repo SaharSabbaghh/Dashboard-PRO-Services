@@ -215,7 +215,7 @@ export default function OperationsDashboard() {
     const fetchTrendData = async () => {
       try {
         setIsLoadingTrends(true);
-        const response = await fetch(`/api/operations/trends?endDate=${selectedDate}&days=14`);
+        const response = await fetch(`/api/operations/trends?endDate=${selectedDate}&days=30`);
         const result = await response.json();
         
         if (result.success && result.data) {
