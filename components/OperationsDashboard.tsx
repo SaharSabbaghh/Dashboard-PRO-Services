@@ -6,7 +6,6 @@ import type { OperationsData, ProspectMetric, OperationMetric, SalesMetric, Oper
 import DatePickerCalendar from '@/components/DatePickerCalendar';
 import OperationsTrendChart from '@/components/OperationsTrendChart';
 import ServicePerformanceComparison from '@/components/ServicePerformanceComparison';
-
 export default function OperationsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
@@ -436,7 +435,7 @@ export default function OperationsDashboard() {
       {/* Trend Analysis Chart */}
       <OperationsTrendChart data={trendData} isLoading={isLoadingTrends} />
 
-      {/* Service Performance Comparison */}
+      {/* Service Performance */}
       {data && data.operations.length > 0 && (
         <ServicePerformanceComparison 
           operations={data.operations} 
