@@ -68,22 +68,26 @@ export default function NPSBreakdownTable({ data, isLoading }: NPSBreakdownTable
     );
   }
 
-  // Prepare services data with overall included
+  // Prepare services data with overall included at the end
   const servicesData = [
-    {
-      service: 'Overall',
-      metrics: data.overall,
-      isOverall: true,
-    },
     ...data.services.map(s => ({
       service: s.service,
       metrics: s.metrics,
       isOverall: false,
     })),
+    {
+      service: 'Overall',
+      metrics: data.overall,
+      isOverall: true,
+    },
   ];
 
-  // Sort services
+  // Sort services (but keep Overall at the end)
   const sortedServices = [...servicesData].sort((a, b) => {
+    // Always keep Overall at the end
+    if (a.isOverall && !b.isOverall) return 1;
+    if (!a.isOverall && b.isOverall) return -1;
+    
     let aVal: number | string;
     let bVal: number | string;
 
