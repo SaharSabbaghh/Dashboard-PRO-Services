@@ -53,7 +53,7 @@ export interface ChatAnalysisData {
       direction: 'increasing' | 'decreasing' | 'stable';
     };
   };
-  trendData: ChatTrendData[]; // Last 7-14 days of data for trend visualization
+  trendData: ChatTrendData[]; // Last 30 days of data for trend visualization
   insights: {
     frustration: {
       mainIssue: ChatInsight;

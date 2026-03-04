@@ -116,9 +116,9 @@ export async function getDailyChatAnalysisData(date: string): Promise<ChatAnalys
 }
 
 /**
- * Get historical trend data for the dashboard (last 14 days)
+ * Get historical trend data for the dashboard (last 30 days)
  */
-export async function getChatTrendData(endDate: string, days: number = 14): Promise<ChatTrendData[]> {
+export async function getChatTrendData(endDate: string, days: number = 30): Promise<ChatTrendData[]> {
   const trendData: ChatTrendData[] = [];
   const end = new Date(endDate);
   
@@ -652,8 +652,8 @@ export async function aggregateDailyChatAnalysisResults(
     });
   }
 
-  // Get historical trend data for the last 14 days
-  const trendData = await getChatTrendData(analysisDate, 14);
+  // Get historical trend data for the last 30 days
+  const trendData = await getChatTrendData(analysisDate, 30);
 
   // Calculate previous day scores for trend comparison
   const previousDay = new Date(analysisDate);
