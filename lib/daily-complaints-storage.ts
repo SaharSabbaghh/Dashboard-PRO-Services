@@ -16,7 +16,8 @@ export interface DailyComplaintsData {
  */
 export async function storeDailyComplaints(
   date: string,
-  complaints: PnLComplaint[]
+  complaints: PnLComplaint[],
+  mergeWithExisting: boolean = true
 ): Promise<{
   success: boolean;
   message: string;
@@ -43,11 +44,38 @@ export async function storeDailyComplaints(
       };
     }
 
+    // If merging, fetch existing complaints first
+    let finalComplaints = complaints;
+    if (mergeWithExisting) {
+      try {
+        const existing = await getDailyComplaints(date);
+        if (existing.success && existing.data && existing.data.complaints.length > 0) {
+          // Merge: combine existing with new, avoiding duplicates based on contractId + housemaidId + clientId + complaintType + creationDate
+          const existingMap = new Map<string, PnLComplaint>();
+          existing.data.complaints.forEach(c => {
+            const key = `${c.contractId}_${c.housemaidId}_${c.clientId}_${c.complaintType}_${c.creationDate}`;
+            existingMap.set(key, c);
+          });
+          
+          // Add new complaints (will overwrite duplicates)
+          complaints.forEach(c => {
+            const key = `${c.contractId}_${c.housemaidId}_${c.clientId}_${c.complaintType}_${c.creationDate}`;
+            existingMap.set(key, c);
+          });
+          
+          finalComplaints = Array.from(existingMap.values());
+        }
+      } catch (error) {
+        // If fetch fails (e.g., no existing data), just use new complaints
+        console.log(`No existing data found for ${date}, storing new complaints only`);
+      }
+    }
+
     const dailyData: DailyComplaintsData = {
       date,
       lastUpdated: new Date().toISOString(),
-      complaints,
-      totalComplaints: complaints.length,
+      complaints: finalComplaints,
+      totalComplaints: finalComplaints.length,
     };
 
     // Store in blob with date-based key
@@ -56,6 +84,7 @@ export async function storeDailyComplaints(
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
 
     console.log(`✅ Stored complaints for ${date}:`, {
