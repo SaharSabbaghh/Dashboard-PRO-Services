@@ -148,14 +148,23 @@ export default function OperationsDashboard() {
   useEffect(() => {
     const fetchMTDData = async () => {
       try {
+        if (!selectedDate) {
+          setMtdData({});
+          return;
+        }
+
         // MTD should be from start of month to the selected date (not entire month)
-        const referenceDate = selectedDate ? new Date(selectedDate) : new Date();
-        const startOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+        // Parse the selected date to ensure we're working with the correct month
+        const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+        const targetYear = selectedDateObj.getFullYear();
+        const targetMonth = selectedDateObj.getMonth();
+        
+        const startOfMonth = new Date(targetYear, targetMonth, 1);
         const startDate = startOfMonth.toISOString().split('T')[0];
-        const endDate = selectedDate || new Date().toISOString().split('T')[0];
+        const endDate = selectedDate;
 
         console.log(`[MTD] Fetching MTD data from ${startDate} to ${endDate} (selected date: ${selectedDate})`);
-        console.log(`[MTD] Reference date: ${referenceDate.toISOString()}`);
+        console.log(`[MTD] Target month: ${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`);
         
         const response = await fetch(`/api/operations?startDate=${startDate}&endDate=${endDate}`);
         if (!response.ok) throw new Error('Failed to fetch MTD data');
@@ -179,11 +188,19 @@ export default function OperationsDashboard() {
         const dataArray = Array.isArray(result.data) ? result.data : [result.data];
         
         // Filter and process only days from start of month to selected date
-        // Only include dates from the start of the current month (not past months)
+        // Strictly ensure we only include dates from the current month (not past months)
         dataArray
-          .filter((dayData: OperationsData) => 
-            dayData.analysisDate >= startDate && dayData.analysisDate <= endDate
-          )
+          .filter((dayData: OperationsData) => {
+            if (!dayData.analysisDate) return false;
+            
+            // String comparison for date range
+            const dateStr = dayData.analysisDate;
+            if (dateStr < startDate || dateStr > endDate) return false;
+            
+            // Additional check: ensure the date is in the same month/year
+            const dateObj = new Date(dateStr + 'T00:00:00');
+            return dateObj.getFullYear() === targetYear && dateObj.getMonth() === targetMonth;
+          })
           .forEach((dayData: OperationsData, dayIndex: number) => {
             console.log(`[MTD] Processing day ${dayIndex + 1}: ${dayData.analysisDate}`);
             
