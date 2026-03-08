@@ -5,7 +5,6 @@ import { Calendar, Clock, CheckCircle, AlertTriangle, FileText, MessageSquare } 
 import type { OperationsData, ProspectMetric, OperationMetric, SalesMetric, OperationsTrendData } from '@/lib/operations-types';
 import DatePickerCalendar from '@/components/DatePickerCalendar';
 import OperationsTrendChart from '@/components/OperationsTrendChart';
-import ServicePerformanceComparison from '@/components/ServicePerformanceComparison';
 export default function OperationsDashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
@@ -434,14 +433,6 @@ export default function OperationsDashboard() {
 
       {/* Trend Analysis Chart */}
       <OperationsTrendChart data={trendData} isLoading={isLoadingTrends} />
-
-      {/* Service Performance */}
-      {data && data.operations.length > 0 && (
-        <ServicePerformanceComparison 
-          operations={data.operations} 
-          mtdData={mtdData}
-        />
-      )}
 
       {/* Operations Section */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">

@@ -259,18 +259,35 @@ export async function getOperationsDateRange(
 /**
  * Get operations trend data for a date range
  * Returns daily totals for cases delayed, done today, pending cases, and MTD completed
+ * Only goes back to the beginning of the current month (1st of the month), not past months
  */
 export async function getOperationsTrendData(endDate: string, days: number = 14): Promise<OperationsTrendData[]> {
   const trendData: OperationsTrendData[] = [];
   const end = new Date(endDate);
   
+  // Calculate start of month for the endDate
+  const startOfMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+  const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+  
+  // Calculate actual number of days from start of month to endDate
+  const daysFromStartOfMonth = Math.floor((end.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  
+  // Use the minimum of requested days and days from start of month
+  // This ensures we never go back before the 1st of the current month
+  const actualDays = Math.min(days, daysFromStartOfMonth);
+  
   // Track cumulative MTD completed per month
   const mtdTotalsByServiceByMonth: Record<string, Record<string, number>> = {};
   
-  for (let i = days - 1; i >= 0; i--) {
+  for (let i = actualDays - 1; i >= 0; i--) {
     const date = new Date(end);
     date.setDate(end.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
+    
+    // Skip dates before the start of the month (safety check)
+    if (dateStr < startOfMonthStr) {
+      continue;
+    }
     
     // Calculate start of month for this date
     const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);

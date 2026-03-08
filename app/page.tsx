@@ -20,7 +20,6 @@ import ChatsDashboard from '@/components/ChatsDashboard';
 import AgentsDashboard from '@/components/AgentsDashboard';
 import OperationsDashboard from '@/components/OperationsDashboard';
 import NPSDashboard from '@/components/NPSDashboard';
-import StudiesDashboard from '@/components/StudiesDashboard';
 import type { Results, ServiceFilter, ProspectDetail, HouseholdGroup } from '@/lib/types';
 import type { AggregatedPnL } from '@/lib/pnl-types';
 
@@ -697,11 +696,6 @@ export default function Dashboard() {
         {/* Agents Dashboard Tab */}
         {activeTab === 'agents' && (
           <AgentsDashboard />
-        )}
-
-        {/* Studies Dashboard Tab */}
-        {activeTab === 'studies' && (
-          <StudiesDashboard />
         )}
 
       </main>

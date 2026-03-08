@@ -1,0 +1,100 @@
+{
+  "analysisDate": "2025-03-07",
+  "operations": [
+    {
+      "serviceType": "OEC",
+      "pendingUs": 98,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 3,
+      "doneToday": 0,
+      "casesDelayed": 62,
+      "delayedNotes": "backlog"
+    },
+    {
+      "serviceType": "Contract verification",
+      "pendingUs": 96,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 25,
+      "doneToday": 0,
+      "casesDelayed": 86,
+      "delayedNotes": "backlog"
+    },
+    {
+      "serviceType": "GCC",
+      "pendingUs": 0,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 22,
+      "doneToday": 1,
+      "casesDelayed": 26,
+      "delayedNotes": "pending visa team \"missing info\""
+    },
+    {
+      "serviceType": "OWWA",
+      "pendingUs": 179,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 65,
+      "doneToday": 0,
+      "casesDelayed": 44,
+      "delayedNotes": "backlog"
+    },
+    {
+      "serviceType": "Travel to Lebanon",
+      "pendingUs": 0,
+      "pendingClient": 0,
+      "pendingProVisit": 3,
+      "pendingGov": 0,
+      "doneToday": 0,
+      "casesDelayed": 0
+    },
+    {
+      "serviceType": "Travel to Egypt",
+      "pendingUs": 3,
+      "pendingClient": 8,
+      "pendingProVisit": 8,
+      "pendingGov": 5,
+      "doneToday": 0,
+      "casesDelayed": 0
+    },
+    {
+      "serviceType": "Travel to Jordan",
+      "pendingUs": 0,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 0,
+      "doneToday": 0,
+      "casesDelayed": 0
+    },
+    {
+      "serviceType": "Ethiopian passport renewal",
+      "pendingUs": 0,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 10,
+      "doneToday": 0,
+      "casesDelayed": 0
+    },
+    {
+      "serviceType": "Filipina passport renewal",
+      "pendingUs": 0,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 0,
+      "doneToday": 0,
+      "casesDelayed": 0
+    },
+    {
+      "serviceType": "Schengen visa",
+      "pendingUs": 8,
+      "pendingClient": 0,
+      "pendingProVisit": 0,
+      "pendingGov": 23,
+      "doneToday": 0,
+      "casesDelayed": 0,
+      "delayedNotes": "pending info from the client, qashio error"
+    }
+  ]
+}
